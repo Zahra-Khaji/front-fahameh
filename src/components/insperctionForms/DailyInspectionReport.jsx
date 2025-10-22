@@ -560,7 +560,7 @@ const calculateSummary = () => {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">فروشنده:</span>
+                <span className="text-gray-600">وندور:</span>
                 <span className="font-semibold">{getSellerName(seller)}</span>
               </div>
             </div>
