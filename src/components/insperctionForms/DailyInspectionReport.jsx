@@ -543,6 +543,7 @@ const calculateSummary = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           
           {/* اطلاعات پروژه */}
+          
           <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
             <h3 className="text-lg font-bold text-blue-800 mb-4 flex items-center">
               <FaClipboardList className="ml-2" />
