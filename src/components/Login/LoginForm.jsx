@@ -1,10 +1,10 @@
-// src/components/LoginForm.jsx
+// src/components/auth/LoginForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from "react-router-dom";
-import { FaCheck, FaTimes, FaUser, FaLock } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaUser, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa'; // اضافه کردن آیکون‌های چشم
 
 const loginSchema = z.object({
   user: z.string().min(1, 'لطفاً یک کاربر انتخاب کنید'),
@@ -22,6 +22,7 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
+  const [showPassword, setShowPassword] = useState(false); // state جدید برای نمایش/مخفی کردن رمز عبور
 
   const {
     register,
@@ -53,6 +54,11 @@ const LoginForm = () => {
     const user = users.find(u => u.id === data.user);
     setLoggedInUser(user);
     setShowSuccessPopup(true);
+  };
+
+  // تابع toggle برای نمایش/مخفی کردن رمز عبور
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -117,16 +123,30 @@ const LoginForm = () => {
                   <FaLock className="ml-2 text-indigo-500" />
                   رمز عبور
                 </label>
-                <input
-                  {...register('password')}
-                  type="password"
-                  placeholder="رمز عبور خود را وارد کنید"
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
-                    errors.password 
-                      ? 'border-red-500 ring-2 ring-red-200' 
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    {...register('password')}
+                    type={showPassword ? "text" : "password"} // تغییر type بر اساس state
+                    placeholder="رمز عبور خود را وارد کنید"
+                    className={`w-full pr-12 pl-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
+                      errors.password 
+                        ? 'border-red-500 ring-2 ring-red-200' 
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  />
+                  {/* آیکون چشم */}
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-indigo-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 rounded p-1"
+                  >
+                    {showPassword ? (
+                      <FaEyeSlash className="w-5 h-5" />
+                    ) : (
+                      <FaEye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
                 {errors.password && (
                   <p className="mt-2 text-sm text-red-600 flex items-center">
                     <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20">
