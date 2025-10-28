@@ -3,9 +3,7 @@ import React, { useState, useEffect } from 'react';
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import DatePicker from "react-multi-date-picker";
-import { FaCalendarAlt, FaHashtag, FaCheck,FaFileAlt } from 'react-icons/fa';
-
-
+import { FaCalendarAlt, FaHashtag, FaCheck, FaFileAlt,FaExclamationTriangle } from 'react-icons/fa';
 
 // Components
 import Button from '../ui/Button';
@@ -42,7 +40,7 @@ const ReportForm = ({
     };
     setShowConfirmation(true);
   };
-  
+
   const handleFinalSubmit = () => {
     const formData = {
       number: reportNumber,
@@ -54,7 +52,9 @@ const ReportForm = ({
     setShowConfirmation(false);
   };
 
-  const isFormValid = reportNumber && status && receiveDate && 
+  const isFormValid = reportNumber && 
+    status && 
+    receiveDate && 
     (status !== 'needs_correction' || corrections);
 
   const getStatusLabel = (statusValue) => {
@@ -88,36 +88,54 @@ const ReportForm = ({
 
           {/* Status */}
           <SelectField
-  label={
-    <span className="flex items-center">
-      <FaCheck className="ml-1 text-blue-500" />
-      وضعیت *
-    </span>
-  }
-  value={status}
-  onChange={(e) => setStatus(e.target.value)}
-  options={reportStatusOptions.map(option => ({
-    id: option.value,
-    name: option.label
-  }))}
-  placeholder="انتخاب وضعیت"
-/>
+            label={
+              <span className="flex items-center">
+                <FaCheck className="ml-1 text-blue-500" />
+                وضعیت *
+              </span>
+            }
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            options={reportStatusOptions.map(option => ({
+              id: option.value,
+              name: option.label
+            }))}
+            placeholder="انتخاب وضعیت"
+          />
 
           {/* Corrections */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               اصلاحات
+              {status === 'needs_correction' && (
+                <span className="text-red-500 mr-1">*</span>
+              )}
             </label>
             <textarea
               value={corrections}
               onChange={(e) => setCorrections(e.target.value)}
               rows="3"
-              className="w-full px-3 h-11 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white resize-none"
-              placeholder="در صورت نیاز به اصلاحات، توضیحات را وارد کنید..."
+              className={`w-full px-3 h-11 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white resize-none ${
+                status === 'needs_correction' && !corrections ? 'border-red-500' : ''
+              }`}
+              placeholder={
+                status === 'needs_correction' 
+                  ? "توضیحات اصلاحات الزامی است..." 
+                  : "در صورت نیاز به اصلاحات، توضیحات را وارد کنید..."
+              }
             />
             <p className="text-xs text-gray-500 mt-1">
-              این فیلد در صورت انتخاب وضعیت "نیاز به اصلاحات" الزامی خواهد بود
+              {status === 'needs_correction' 
+                ? 'این فیلد در صورت انتخاب وضعیت "نیاز به اصلاحات" الزامی است' 
+                : 'این فیلد در صورت انتخاب وضعیت "نیاز به اصلاحات" الزامی خواهد بود'
+              }
             </p>
+            {status === 'needs_correction' && !corrections && (
+              <p className="text-red-500 text-xs mt-1 flex items-center">
+                <FaExclamationTriangle className="ml-1 text-xs" />
+                وارد کردن توضیحات اصلاحات الزامی است
+              </p>
+            )}
           </div>
 
           {/* Receive Date */}
