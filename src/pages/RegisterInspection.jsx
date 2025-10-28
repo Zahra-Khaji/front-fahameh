@@ -1,5 +1,5 @@
 
-import FormWizard from '../components/insperctionForms/FormWizard';
+import FormWizard from '../components/FormWizard';
 // import RegisterInspectionData from '../components/insperctionForms/RegisterInspectionData'
 
 function RegisterInspection() {
