@@ -56,7 +56,7 @@ const RequestInfoSidebar = ({ previousData, onBack, showBackButton = true }) => 
             size="md"
             icon="arrowLeft"
             onClick={onBack}
-            className="w-full mt-4"
+            className="w-full text-sm mt-4"
           >
             بازگشت به مرحله قبل
           </Button>
