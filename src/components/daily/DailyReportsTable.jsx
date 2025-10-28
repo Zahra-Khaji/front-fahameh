@@ -56,7 +56,7 @@ const DailyReportsTable = ({ dailyReports, onUpdate }) => {
                 <select
                   value={report.approvalStatus}
                   onChange={(e) => handleInputChange(report.id, 'approvalStatus', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+                  className="w-full px-2 py-1 text-xs text-gray-800 font-semibold  border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
                 >
                   {approvalStatuses.map(status => (
                     <option key={status.value} value={status.value}>
@@ -71,7 +71,7 @@ const DailyReportsTable = ({ dailyReports, onUpdate }) => {
                 <select
                   value={report.inspectorName}
                   onChange={(e) => handleInputChange(report.id, 'inspectorName', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
+                  className="w-full px-2 py-1 text-xs text-gray-800 font-semibold border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200"
                 >
                   {inspectors.map(inspector => (
                     <option key={inspector.id} value={inspector.name}>
@@ -87,7 +87,7 @@ const DailyReportsTable = ({ dailyReports, onUpdate }) => {
                   type="text"
                   value={report.inspectorFee}
                   onChange={(e) => handleInputChange(report.id, 'inspectorFee', e.target.value)}
-                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200 text-left"
+                  className="w-full px-2 py-1 text-xs  text-gray-800 font-semibold border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 transition duration-200 text-left"
                   placeholder="مثال: ۱,۲۰۰,۰۰۰"
                 />
               </td>
