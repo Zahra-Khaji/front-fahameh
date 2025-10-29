@@ -71,7 +71,7 @@ const ConfirmationModal = ({
             <Button
               onClick={onConfirm}
               variant={type === 'danger' ? 'danger' : 'success'}
-              size="lg"
+              size="md"
               className="flex-1"
             >
               {confirmText}
@@ -79,7 +79,7 @@ const ConfirmationModal = ({
             <Button
               onClick={onClose}
               variant="secondary"
-              size="lg"
+              size="md"
               className="flex-1"
             >
               {cancelText}

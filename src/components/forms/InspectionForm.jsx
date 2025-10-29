@@ -95,7 +95,7 @@ const InspectionForm = ({ onComplete }) => {
   };
 
   return (
-    <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-3 px-4">
+    <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-2 px-4"> 
       <div className="max-w-5xl mx-auto">
         
         <StepHeader
@@ -105,21 +105,23 @@ const InspectionForm = ({ onComplete }) => {
         />
 
         <div className="bg-white rounded-xl shadow-lg">
-          <form onSubmit={handleSubmit(onSubmit, onError)} className="p-4">
+          <form onSubmit={handleSubmit(onSubmit, onError)} className="p-3"> 
             
             {/* Project Information Section */}
             <FormSection
               title="اطلاعات درخواست بازرسی"
               icon={FaClipboardList}
+              className="mb-3"
             >
               <InputField
                 label="نام پروژه *"
                 {...register('projectInfo.projectName')}
                 error={errors.projectInfo?.projectName}
                 placeholder="نام پروژه را وارد کنید"
+                className="py-1.5" 
               />
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2"> 
                 <SelectField
                   label="استان *"
                   {...register('projectInfo.province')}
@@ -127,6 +129,7 @@ const InspectionForm = ({ onComplete }) => {
                   onChange={handleProvinceChange}
                   options={provinces}
                   placeholder="انتخاب استان"
+                  className="py-1.5" 
                 />
 
                 <SelectField
@@ -136,6 +139,7 @@ const InspectionForm = ({ onComplete }) => {
                   disabled={!currentProvince}
                   options={currentProvince ? citiesByProvince[currentProvince] : []}
                   placeholder="انتخاب شهر"
+                  className="py-1.5" 
                 />
 
                 <SelectField
@@ -144,6 +148,7 @@ const InspectionForm = ({ onComplete }) => {
                   error={errors.projectInfo?.seller}
                   options={sellers}
                   placeholder="انتخاب وندور"
+                  className="py-1.5" 
                 />
               </div>
             </FormSection>
@@ -152,6 +157,7 @@ const InspectionForm = ({ onComplete }) => {
             <FormSection
               title="اطلاعات بازرس"
               icon={FaUserTie}
+              className="mb-3" /* کاهش margin */
             >
               <SelectField
                 label="نام بازرس *"
@@ -159,29 +165,30 @@ const InspectionForm = ({ onComplete }) => {
                 onChange={handleInspectorChange}
                 options={inspectors}
                 placeholder="انتخاب بازرس"
+                className="py-1.5" 
               />
               <input type="hidden" {...register('inspectorInfo.inspectorName')} />
 
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-1.5"> {/* کاهش gap */}
                 <InputField
                   label="موقعیت (استان) *"
                   {...register('inspectorInfo.inspectorLocation')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed"
+                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs" /* کاهش ارتفاع و فونت */
                 />
 
                 <InputField
                   label="شماره تماس *"
                   {...register('inspectorInfo.phoneNumber')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed"
+                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs" /* کاهش ارتفاع و فونت */
                 />
 
                 <InputField
                   label="تخصص *"
                   {...register('inspectorInfo.expertise')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed"
+                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs" /* کاهش ارتفاع و فونت */
                 />
 
                 <InputField
@@ -189,24 +196,24 @@ const InspectionForm = ({ onComplete }) => {
                   {...register('inspectorInfo.email')}
                   error={errors.inspectorInfo?.email}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed"
+                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs" /* کاهش ارتفاع و فونت */
                 />
 
                 <InputField
                   label="دستمزد *"
                   {...register('inspectorInfo.fee')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed font-semibold"
+                  className="bg-blue-50 cursor-not-allowed font-semibold py-1.5 text-xs" /* کاهش ارتفاع و فونت */
                 />
               </div>
             </FormSection>
 
             {/* Submit Button */}
-            <div className="flex justify-center pt-3">
+            <div className="flex justify-center pt-2"> {/* کاهش padding */}
               <Button
                 type="submit"
                 variant="primary"
-                size="lg"
+                size="md" /* تغییر از lg به md */
                 icon="check"
               >
                 ادامه به مرحله بعد

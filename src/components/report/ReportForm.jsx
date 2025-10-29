@@ -7,8 +7,6 @@ import { FaCalendarAlt, FaHashtag, FaCheck, FaFileAlt,FaExclamationTriangle } fr
 
 // Components
 import Button from '../ui/Button';
-import InputField from '../ui/InputField';
-import SelectField from '../ui/SelectField';
 import ConfirmationModal from '../ui/ConfirmationModal';
 
 // Data & Utils
@@ -64,105 +62,123 @@ const ReportForm = ({
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
-        <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+      <div className="bg-white rounded-xl shadow-lg p-4 mb-4"> {/* افزایش padding */}
+        <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center"> {/* افزایش margin */}
           <FaFileAlt className="ml-2 text-blue-500" />
           اطلاعات گزارش بازرس
         </h2>
 
-        <div className="space-y-4">
-          {/* Report Number */}
-          <InputField
-            label={
-              <span className="flex items-center">
-                <FaHashtag className="ml-1 text-blue-500" />
+        <div className="space-y-3"> {/* افزایش فاصله */}
+          {/* سطر اول: شماره گزارش و تاریخ دریافت */}
+          <div className="grid grid-cols-2 gap-4 items-start">
+            
+            {/* Report Number */}
+            <div className="flex flex-col">
+              <label className="block text-sm font-semibold text-gray-700 mb-0.5 flex items-center"> {/* افزایش فونت و margin */}
+                <FaHashtag className="ml-1 text-blue-500" /> {/* افزایش سایز آیکون */}
                 شماره گزارش *
-              </span>
-            }
-            type="number"
-            value={reportNumber}
-            onChange={(e) => setReportNumber(parseInt(e.target.value) || '')}
-            placeholder="شماره گزارش"
-            helperText={`پیشنهاد سیستم: ${lastReportNumber + 1}`}
-          />
+              </label>
+              <input
+                type="number"
+                value={reportNumber}
+                onChange={(e) => setReportNumber(parseInt(e.target.value) || '')}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white" /* افزایش padding و فونت */
+                placeholder="شماره گزارش"
+              />
+            </div>
 
-          {/* Status */}
-          <SelectField
-            label={
-              <span className="flex items-center">
-                <FaCheck className="ml-1 text-blue-500" />
+            {/* Receive Date */}
+            <div className="flex flex-col">
+              <label className="block text-sm font-semibold text-gray-700 mb-0.5 flex items-center"> {/* افزایش فونت و margin */}
+                <FaCalendarAlt className="ml-1 text-blue-500" /> {/* افزایش سایز آیکون */}
+                تاریخ دریافت *
+              </label>
+              <DatePicker
+                value={receiveDate}
+                onChange={setReceiveDate}
+                format="YYYY/MM/DD"
+                calendar={persian}
+                locale={persian_fa}
+                calendarPosition="bottom-right"
+                inputClass="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white" /* افزایش padding و فونت */
+                placeholder="انتخاب تاریخ"
+              />
+            </div>
+          </div>
+
+          {/* سطر دوم: وضعیت و فیلد اصلاحات (در صورت نیاز) */}
+          {status === 'needs_correction' ? (
+            <div className="grid grid-cols-4 gap-4 items-start">
+              
+              {/* وضعیت */}
+              <div className="flex flex-col col-span-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-0.5 flex items-center"> {/* افزایش فونت و margin */}
+                  <FaCheck className="ml-1 text-blue-500" /> {/* افزایش سایز آیکون */}
+                  وضعیت *
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white" /* افزایش padding و فونت */
+                >
+                  <option value="">انتخاب وضعیت</option>
+                  {reportStatusOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* فیلد اصلاحات */}
+              <div className="flex flex-col col-span-3">
+                <label className="block text-sm font-semibold text-gray-700 mb-0.5"> {/* افزایش فونت و margin */}
+                 اصلاحات *
+                </label>
+                <textarea
+                  value={corrections}
+                  onChange={(e) => setCorrections(e.target.value)}
+                  rows="2" /* افزایش از 1 به 2 */
+                  className="w-full px-3 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white resize-none" /* افزایش padding و فونت */
+                  placeholder="توضیحات اصلاحات الزامی است..."
+                />
+                {!corrections && (
+                  <p className="text-red-500 text-xs mt-0.5 flex items-center"> {/* افزایش فونت و margin */}
+                    <FaExclamationTriangle className="ml-1" /> {/* افزایش سایز آیکون */}
+                    وارد کردن توضیحات اصلاحات الزامی است
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* فقط وضعیت وقتی اصلاحات نیاز نیست */
+            <div className="flex flex-col">
+              <label className="block text-sm font-semibold text-gray-700 mb-0.5 flex items-center"> {/* افزایش فونت و margin */}
+                <FaCheck className="ml-1 text-blue-500" /> {/* افزایش سایز آیکون */}
                 وضعیت *
-              </span>
-            }
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            options={reportStatusOptions.map(option => ({
-              id: option.value,
-              name: option.label
-            }))}
-            placeholder="انتخاب وضعیت"
-          />
-
-          {/* Corrections */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              اصلاحات
-              {status === 'needs_correction' && (
-                <span className="text-red-500 mr-1">*</span>
-              )}
-            </label>
-            <textarea
-              value={corrections}
-              onChange={(e) => setCorrections(e.target.value)}
-              rows="3"
-              className={`w-full px-3 h-11 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white resize-none ${
-                status === 'needs_correction' && !corrections ? 'border-red-500' : ''
-              }`}
-              placeholder={
-                status === 'needs_correction' 
-                  ? "توضیحات اصلاحات الزامی است..." 
-                  : "در صورت نیاز به اصلاحات، توضیحات را وارد کنید..."
-              }
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              {status === 'needs_correction' 
-                ? 'این فیلد در صورت انتخاب وضعیت "نیاز به اصلاحات" الزامی است' 
-                : 'این فیلد در صورت انتخاب وضعیت "نیاز به اصلاحات" الزامی خواهد بود'
-              }
-            </p>
-            {status === 'needs_correction' && !corrections && (
-              <p className="text-red-500 text-xs mt-1 flex items-center">
-                <FaExclamationTriangle className="ml-1 text-xs" />
-                وارد کردن توضیحات اصلاحات الزامی است
-              </p>
-            )}
-          </div>
-
-          {/* Receive Date */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-              <FaCalendarAlt className="ml-1 text-blue-500" />
-              تاریخ دریافت گزارش *
-            </label>
-            <DatePicker
-              value={receiveDate}
-              onChange={setReceiveDate}
-              format="YYYY/MM/DD"
-              calendar={persian}
-              locale={persian_fa}
-              calendarPosition="bottom-right"
-              inputClass="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
-              placeholder="انتخاب تاریخ"
-            />
-          </div>
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white" /* افزایش padding و فونت */
+              >
+                <option value="">انتخاب وضعیت</option>
+                {reportStatusOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-3">
+          <div className="flex gap-3 pt-3"> {/* افزایش gap و padding */}
             <Button
               onClick={handleSubmit}
               disabled={!isFormValid}
               variant="primary"
-              size="lg"
+              size="md" /* تغییر از sm به md */
               icon="check"
               className="flex-1"
             >
@@ -171,7 +187,7 @@ const ReportForm = ({
             <Button
               onClick={onCancel}
               variant="secondary"
-              size="lg"
+              size="md" /* تغییر از sm به md */
             >
               انصراف
             </Button>
@@ -190,7 +206,7 @@ const ReportForm = ({
         cancelText="ویرایش اطلاعات"
         type="success"
       >
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <div className="bg-gray-50 rounded-lg p-4 mb-4">
           <h4 className="font-semibold text-gray-800 mb-3 text-sm">خلاصه اطلاعات:</h4>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between items-center pb-2 border-b border-gray-200">
@@ -205,12 +221,14 @@ const ReportForm = ({
               <span className="text-gray-600">تاریخ دریافت:</span>
               <span className="font-semibold">{formatPersianDate(receiveDate)}</span>
             </div>
-            <div className="flex justify-between items-start">
-              <span className="text-gray-600">اصلاحات:</span>
-              <span className="font-semibold text-right text-xs max-w-xs">
-                {corrections || '---'}
-              </span>
-            </div>
+            {status === 'needs_correction' && (
+              <div className="flex justify-between items-start">
+                <span className="text-gray-600">اصلاحات:</span>
+                <span className="font-semibold text-right text-sm max-w-xs"> {/* افزایش فونت */}
+                  {corrections || '---'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </ConfirmationModal>

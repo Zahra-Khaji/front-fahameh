@@ -16,7 +16,7 @@ const ReportsList = ({
   onDelete, 
   onAddNew, 
   showAddButton, 
-  onComplete 
+  onComplete // این prop باید دریافت بشه
 }) => {
   const [deleteConfirmation, setDeleteConfirmation] = useState({ 
     show: false, 
@@ -121,10 +121,10 @@ const ReportsList = ({
           </table>
         </div>
 
-        {/* Complete Button */}
+        {/* Complete Button - این دکمه باید onComplete رو صدا بزنه */}
         <div className="flex justify-center pt-6 border-t border-gray-200 mt-6">
           <Button
-            onClick={onComplete}
+            onClick={onComplete} // اینجا onComplete صدا زده میشه
             variant="primary"
             size="lg"
             icon="check"

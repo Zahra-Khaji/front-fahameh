@@ -121,7 +121,7 @@ const NotificationForm = ({
               onClick={handleSubmit}
               disabled={!isFormValid}
               variant="primary"
-              size="lg"
+              size="md"
               icon="check"
               className="flex-1"
             >
@@ -130,7 +130,7 @@ const NotificationForm = ({
             <Button
               onClick={onCancel}
               variant="secondary"
-              size="lg"
+              size="md"
             >
               انصراف
             </Button>

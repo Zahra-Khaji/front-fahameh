@@ -16,7 +16,7 @@ import ConfirmationModal from '../ui/ConfirmationModal';
 // Hooks & Utils
 import { useNotifications } from '../../hooks/useNotifications';
 import { formatPersianDate, formatDateRange } from '../../utils/helpers';
-import { FaCalendarAlt, FaHashtag } from 'react-icons/fa';
+import { FaList, FaHashtag } from 'react-icons/fa';
 
 
 const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChange }) => {

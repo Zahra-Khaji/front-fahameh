@@ -8,12 +8,12 @@ import Button from '../ui/Button';
 import ReportForm from '../report/ReportForm';
 import ReportsList from '../report/ReportsList';
 import NotificationsTable from '../notification/NotificationsTable';
+import {  FaFileAlt } from 'react-icons/fa';
+
 
 // Hooks & Utils
 import { useReports } from '../../hooks/useReports';
 import { sampleNotifications } from '../../data/sampleData';
-import {FaFileAlt } from 'react-icons/fa';
-
 
 const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) => {
   const [showAddForm, setShowAddForm] = useState(true);
@@ -44,7 +44,7 @@ const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) =
       reports: reports
     };
     console.log('ارسال داده‌های گزارش:', stepData);
-    onComplete(stepData);
+    onComplete(stepData); // این خط باید اجرا بشه
   };
 
   return (
@@ -90,7 +90,7 @@ const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) =
                 onDelete={deleteReport}
                 onAddNew={() => setShowAddForm(true)}
                 showAddButton={!showAddForm}
-                onComplete={handleCompleteStep}
+                onComplete={handleCompleteStep} // این prop باید پاس داده بشه
               />
             )}
 
