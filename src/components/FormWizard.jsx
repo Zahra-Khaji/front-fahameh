@@ -18,20 +18,21 @@ const FormWizard = () => {
     { id: 'dailyReport', label: 'صورت وضعیت', number: 4 }
   ];
 
-  const handleStepComplete = (step, data) => {
-    console.log(`تکمیل مرحله ${step}:`, data);
-    updateFormData(data);
-    
-    const nextSteps = {
-      inspection: 'notification',
-      notification: 'report',
-      report: 'dailyReport'
-    };
-    
-    if (nextSteps[step]) {
-      setCurrentStep(nextSteps[step]);
-    }
+// در FormWizard.jsx - تابع handleStepComplete رو چک کنید:
+const handleStepComplete = (step, data) => {
+  console.log(`تکمیل مرحله ${step}:`, data);
+  updateFormData(data);
+  
+  const nextSteps = {
+    inspection: 'notification',
+    notification: 'report',
+    report: 'dailyReport'
   };
+  
+  if (nextSteps[step]) {
+    setCurrentStep(nextSteps[step]);
+  }
+};
 
   const handleBack = () => {
     const prevSteps = {

@@ -44,14 +44,15 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
     setShowAddForm(false);
   };
 
-  const handleCompleteStep = () => {
-    const stepData = {
-      notifications: notifications,
-      inspectionRange: notifications[0]?.inspectionRange || []
-    };
-    console.log('ارسال داده‌های نوتیفیکیشن:', stepData);
-    onComplete(stepData);
+// در NotificationStep.jsx - تابع handleCompleteStep رو چک کنید:
+const handleCompleteStep = () => {
+  const stepData = {
+    notifications: notifications,
+    inspectionRange: notifications[0]?.inspectionRange || []
   };
+  console.log('ارسال داده‌های نوتیفیکیشن:', stepData);
+  onComplete(stepData); // اینجا داده‌ها به مرحله بعد فرستاده می‌شوند
+};
 
   return (
     <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-3 px-4">

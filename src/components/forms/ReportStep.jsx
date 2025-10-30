@@ -1,5 +1,6 @@
 // src/components/forms/ReportStep.jsx
 import React, { useState } from 'react';
+import { FaFileAlt } from 'react-icons/fa';
 
 // Components
 import StepHeader from '../common/StepHeader';
@@ -8,12 +9,9 @@ import Button from '../ui/Button';
 import ReportForm from '../report/ReportForm';
 import ReportsList from '../report/ReportsList';
 import NotificationsTable from '../notification/NotificationsTable';
-import {  FaFileAlt } from 'react-icons/fa';
-
 
 // Hooks & Utils
 import { useReports } from '../../hooks/useReports';
-import { sampleNotifications } from '../../data/sampleData';
 
 const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) => {
   const [showAddForm, setShowAddForm] = useState(true);
@@ -44,8 +42,11 @@ const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) =
       reports: reports
     };
     console.log('ارسال داده‌های گزارش:', stepData);
-    onComplete(stepData); // این خط باید اجرا بشه
+    onComplete(stepData);
   };
+
+  // استفاده از نوتیفیکیشن‌های واقعی از previousData
+  const realNotifications = previousData?.notifications || [];
 
   return (
     <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-3 px-4">
@@ -70,8 +71,10 @@ const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) =
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
             
-            {/* Notifications Table */}
-            <NotificationsTable notifications={sampleNotifications} />
+            {/* Notifications Table با دیتای واقعی */}
+            {realNotifications.length > 0 && (
+              <NotificationsTable notifications={realNotifications} />
+            )}
 
             {/* Add Report Form */}
             {showAddForm && (
@@ -90,7 +93,7 @@ const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) =
                 onDelete={deleteReport}
                 onAddNew={() => setShowAddForm(true)}
                 showAddButton={!showAddForm}
-                onComplete={handleCompleteStep} // این prop باید پاس داده بشه
+                onComplete={handleCompleteStep}
               />
             )}
 

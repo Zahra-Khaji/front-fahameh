@@ -4,14 +4,14 @@ import { FaMoneyBillWave } from 'react-icons/fa';
 
 const FinancialSummary = ({ summary = {} }) => {
   return (
-    <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+    <div className="mt-2 px-4 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
       <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
         <FaMoneyBillWave className="ml-2 text-blue-600" />
         خلاصه مالی
       </h4>
       <div className="text-sm text-gray-700">
         {/* خط اول - سه آیتم در یک خط */}
-        <div className="flex justify-between items-center mb-3 pb-2 border-b border-blue-200">
+        <div className="flex justify-between items-center mb-1 pb-0.5 border-b border-blue-200">
           <div>
             <span className="font-semibold">بازرس اصلی:</span>
             <span className="mr-2">{summary.mainInspector || '-'}</span>
@@ -27,7 +27,7 @@ const FinancialSummary = ({ summary = {} }) => {
         </div>
         
         {/* خط دوم - مجموع پرداختی */}
-        <div className="flex justify-between items-center pt-2">
+        <div className="flex justify-between items-center pt-1">
           <span className="font-semibold text-green-700">
             مجموع پرداختی به {summary.mainInspector || 'بازرس'}:
           </span>
