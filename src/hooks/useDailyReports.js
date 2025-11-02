@@ -1,7 +1,7 @@
 // src/hooks/useDailyReports.js
-import { useState, useEffect } from 'react';
-import { getDatesInRange } from '../utils/helpers';
-import { calculateFinancialSummary } from '../utils/financialCalculations';
+import { useState, useEffect } from "react";
+import { getDatesInRange } from "../utils/helpers";
+import { calculateFinancialSummary } from "../utils/financialCalculations";
 
 export const useDailyReports = (previousData, initialDailyReports = []) => {
   const [dailyReports, setDailyReports] = useState([]);
@@ -13,60 +13,78 @@ export const useDailyReports = (previousData, initialDailyReports = []) => {
       return;
     }
 
-    const defaultInspector = previousData?.inspectorInfo?.inspectorName || '';
-    const defaultFee = previousData?.inspectorInfo?.fee || '';
-    
-    // Get real inspection range from previous data
+    const defaultInspector = previousData?.inspectorInfo?.inspectorName || "";
+    const defaultFee = previousData?.inspectorInfo?.fee || "";
+
+    // گرفتن بازه زمانی واقعی از نوتیفیکیشن
     const getRealInspectionRange = () => {
-      if (previousData?.notifications && previousData.notifications.length > 0) {
+      if (
+        previousData?.notifications &&
+        previousData.notifications.length > 0
+      ) {
         const notification = previousData.notifications[0];
-        if (notification.inspectionRange && Array.isArray(notification.inspectionRange) && notification.inspectionRange.length === 2) {
+        if (
+          notification.inspectionRange &&
+          Array.isArray(notification.inspectionRange)
+        ) {
           return notification.inspectionRange;
         }
       }
-      
-      if (previousData?.inspectionRange && Array.isArray(previousData.inspectionRange) && previousData.inspectionRange.length === 2) {
+
+      if (
+        previousData?.inspectionRange &&
+        Array.isArray(previousData.inspectionRange)
+      ) {
         return previousData.inspectionRange;
       }
-      
-      // Fallback to sample dates
-      return [
-        new Date('2024-10-13'),
-        new Date('2024-10-15')
-      ];
+
+      // Fallback به تاریخ‌های نمونه
+      return [new Date("2024-10-13"), new Date("2024-10-15")];
     };
 
     const realInspectionRange = getRealInspectionRange();
-    const dates = getDatesInRange(realInspectionRange[0], realInspectionRange[1]);
-    
+
+    // منطق جدید: اگر یک تاریخ انتخاب شده، فقط همون تاریخ رو در نظر بگیر
+    let dates = [];
+
+    if (realInspectionRange.length === 1) {
+      // فقط یک تاریخ انتخاب شده
+      dates = [realInspectionRange[0]];
+    } else if (realInspectionRange.length === 2) {
+      // بازه زمانی انتخاب شده
+      dates = getDatesInRange(realInspectionRange[0], realInspectionRange[1]);
+    } else {
+      // حالت پیش‌فرض
+      dates = getDatesInRange(new Date("2024-10-13"), new Date("2024-10-15"));
+    }
+
+    console.log("تاریخ‌های تولید شده برای جدول:", dates);
+
     const reports = dates.map((date, index) => ({
       id: Date.now() + index,
       inspectionDate: date,
-      approvalStatus: 'approved',
+      approvalStatus: "approved",
       inspectorName: defaultInspector,
       inspectorFee: defaultFee,
-      secondInspectorName: '',
-      secondInspectorFee: ''
+      secondInspectorName: "",
+      secondInspectorFee: "",
     }));
 
     setDailyReports(reports);
   }, [previousData, initialDailyReports]);
 
   const updateDailyReport = (reportId, field, value) => {
-    setDailyReports(prev => 
-      prev.map(report => 
-        report.id === reportId 
-          ? { ...report, [field]: value }
-          : report
+    setDailyReports((prev) =>
+      prev.map((report) =>
+        report.id === reportId ? { ...report, [field]: value } : report
       )
     );
   };
 
   const validateForm = () => {
-    return dailyReports.every(report => 
-      report.approvalStatus && 
-      report.inspectorName && 
-      report.inspectorFee
+    return dailyReports.every(
+      (report) =>
+        report.approvalStatus && report.inspectorName && report.inspectorFee
     );
   };
 
@@ -76,6 +94,6 @@ export const useDailyReports = (previousData, initialDailyReports = []) => {
     dailyReports,
     updateDailyReport,
     summary,
-    validateForm
+    validateForm,
   };
 };

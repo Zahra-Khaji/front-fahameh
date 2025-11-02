@@ -4,7 +4,7 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import DatePicker from "react-multi-date-picker";
 import Toolbar from "react-multi-date-picker/plugins/toolbar";
-import { FaCalendarAlt, FaHashtag } from 'react-icons/fa';
+import { FaCalendarAlt, FaHashtag, FaExclamationTriangle } from 'react-icons/fa';
 
 // Components
 import Button from '../ui/Button';
@@ -21,18 +21,41 @@ const NotificationForm = ({
 }) => {
   const [notificationNumber, setNotificationNumber] = useState('');
   const [sendDate, setSendDate] = useState(null);
+  const [inspectionDays, setInspectionDays] = useState('');
   const [inspectionRange, setInspectionRange] = useState([]);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [daysError, setDaysError] = useState('');
 
   useEffect(() => {
     setNotificationNumber(lastNotificationNumber + 1);
     setSendDate(new Date());
   }, [lastNotificationNumber]);
 
+  // تابع برای validation عدد - با خطای مرتبط
+  const handleInspectionDaysChange = (e) => {
+    const value = e.target.value;
+    
+    if (value === '') {
+      setInspectionDays(value);
+      setDaysError('');
+    } else if (/^\d+$/.test(value)) {
+      setInspectionDays(value);
+      setDaysError('');
+    } else {
+      setDaysError('فقط عدد مجاز است');
+    }
+  };
+
+  // تابع جدید برای مدیریت تغییر تاریخ (هم تک تاریخ و هم بازه)
+  const handleInspectionRangeChange = (dates) => {
+    setInspectionRange(dates);
+  };
+
   const handleSubmit = () => {
     const formData = {
       number: notificationNumber,
       sendDate: sendDate,
+      inspectionDays: parseInt(inspectionDays) || 0,
       inspectionRange: inspectionRange,
     };
     setShowConfirmation(true);
@@ -42,12 +65,21 @@ const NotificationForm = ({
     onSubmit({
       number: notificationNumber,
       sendDate: sendDate,
+      inspectionDays: parseInt(inspectionDays) || 0,
       inspectionRange: inspectionRange,
     });
     setShowConfirmation(false);
   };
 
-  const isFormValid = notificationNumber && sendDate && inspectionRange.length === 2;
+  // شرط validation: حداقل یک تاریخ انتخاب شده باشه
+  const isFormValid = notificationNumber && sendDate && inspectionDays && !daysError && inspectionRange.length > 0;
+
+  // تابع جدید برای فرمت نمایش تاریخ (هم تک و هم بازه)
+  const formatInspectionDate = (range) => {
+    if (!range || range.length === 0) return '-';
+    if (range.length === 1) return formatPersianDate(range[0]);
+    return formatDateRange(range);
+  };
 
   return (
     <>
@@ -58,61 +90,101 @@ const NotificationForm = ({
         </h2>
 
         <div className="space-y-4">
-          {/* Notification Number */}
-          <InputField
-            label={
-              <span className="flex items-center">
+          {/* سطر اول: شماره ثبت و تاریخ ارسال */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Notification Number */}
+            <div className="flex flex-col">
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
                 <FaHashtag className="ml-1 text-blue-500" />
                 شماره ثبت نوتیفیکیشن *
-              </span>
-            }
-            type="number"
-            value={notificationNumber}
-            onChange={(e) => setNotificationNumber(parseInt(e.target.value) || '')}
-            placeholder="شماره ثبت"
-            helperText={`پیشنهاد سیستم: ${lastNotificationNumber + 1}`}
-          />
+              </label>
+              <input
+                type="number"
+                value={notificationNumber}
+                onChange={(e) => setNotificationNumber(parseInt(e.target.value) || '')}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
+                placeholder="شماره ثبت"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                پیشنهاد سیستم: {lastNotificationNumber + 1}
+              </p>
+            </div>
 
-          {/* Send Date */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-              <FaCalendarAlt className="ml-1 text-blue-500" />
-              تاریخ ارسال نوتیفیکیشن *
-            </label>
-            <DatePicker
-              value={sendDate}
-              onChange={setSendDate}
-              format="YYYY/MM/DD"
-              calendar={persian}
-              locale={persian_fa}
-              calendarPosition="bottom-right"
-              inputClass="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
-              placeholder="انتخاب تاریخ"
-            />
+            {/* Send Date */}
+            <div className="flex flex-col">
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                <FaCalendarAlt className="ml-1 text-blue-500" />
+                تاریخ ارسال نوتیفیکیشن *
+              </label>
+              <DatePicker
+                value={sendDate}
+                onChange={setSendDate}
+                format="YYYY/MM/DD"
+                calendar={persian}
+                locale={persian_fa}
+                calendarPosition="bottom-right"
+                inputClass="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
+                placeholder="انتخاب تاریخ"
+              />
+            </div>
           </div>
 
-          {/* Inspection Range */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-              <FaCalendarAlt className="ml-1 text-blue-500" />
-              بازه انجام بازرسی *
-            </label>
-            <DatePicker
-              dateSeparator=" تا "
-              value={inspectionRange}
-              onChange={setInspectionRange}
-              range
-              rangeHover
-              plugins={[<Toolbar position="bottom" />]}
-              calendar={persian}
-              locale={persian_fa}
-              inputClass="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
-            />
-            {inspectionRange.length === 2 && (
-              <p className="text-xs text-green-600 mt-2 mr-1">
-                بازه انتخاب شده: {formatDateRange(inspectionRange)}
+          {/* سطر دوم: تعداد روز بازرسی و بازه بازرسی */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Inspection Days */}
+            <div className="flex flex-col">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                تعداد روز بازرسی *
+              </label>
+              <input
+                type="text"
+                value={inspectionDays}
+                onChange={handleInspectionDaysChange}
+                inputMode="numeric"
+                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white ${
+                  daysError ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'
+                }`}
+                placeholder="تعداد روز را وارد کنید"
+              />
+              {daysError && (
+                <p className="text-red-500 text-xs mt-1 flex items-center">
+                  <FaExclamationTriangle className="ml-1 text-xs" />
+                  {daysError}
+                </p>
+              )}
+            </div>
+
+            {/* Inspection Range */}
+            <div className="flex flex-col">
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                <FaCalendarAlt className="ml-1 text-blue-500" />
+                تاریخ/بازه انجام بازرسی *
+              </label>
+              <DatePicker
+                dateSeparator=" تا "
+                value={inspectionRange}
+                onChange={handleInspectionRangeChange}
+                range
+                rangeHover
+                multiple={false} // امکان انتخاب چند تاریخ غیرفعال
+                plugins={[<Toolbar position="bottom" />]}
+                calendar={persian}
+                locale={persian_fa}
+                inputClass="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
+                placeholder="انتخاب تاریخ یا بازه"
+              />
+              {inspectionRange.length > 0 && (
+                <p className="text-xs text-green-600 mt-2 mr-1">
+                  {inspectionRange.length === 1 
+                    ? `تاریخ انتخاب شده: ${formatPersianDate(inspectionRange[0])}`
+                    : `بازه انتخاب شده: ${formatDateRange(inspectionRange)}`
+                  }
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                می‌توانید یک تاریخ یا یک بازه زمانی انتخاب کنید
               </p>
-            )}
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -160,9 +232,17 @@ const NotificationForm = ({
               <span className="text-gray-600">تاریخ ارسال:</span>
               <span className="font-semibold">{formatPersianDate(sendDate)}</span>
             </div>
+            <div className="flex justify-between items-center pb-2 border-b border-gray-200">
+              <span className="text-gray-600">تعداد روز بازرسی:</span>
+              <span className="font-semibold">{inspectionDays} روز</span>
+            </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">بازه بازرسی:</span>
-              <span className="font-semibold text-left">{formatDateRange(inspectionRange)}</span>
+              <span className="text-gray-600">
+                {inspectionRange.length === 1 ? 'تاریخ بازرسی:' : 'بازه بازرسی:'}
+              </span>
+              <span className="font-semibold text-left">
+                {formatInspectionDate(inspectionRange)}
+              </span>
             </div>
           </div>
         </div>
