@@ -16,6 +16,24 @@ export const useDailyReports = (previousData, initialDailyReports = []) => {
     const defaultInspector = previousData?.inspectorInfo?.inspectorName || "";
     const defaultFee = previousData?.inspectorInfo?.fee || "";
 
+    // پیدا کردن وضعیت گزارش از مرحله سوم
+    const getReportStatus = () => {
+      // اول از reportStatus مستقیم
+      if (previousData?.reportStatus) {
+        return previousData.reportStatus;
+      }
+
+      // سپس از اولین گزارش در reports
+      if (previousData?.reports && previousData.reports.length > 0) {
+        return previousData.reports[0].status;
+      }
+
+      // در نهایت مقدار پیش‌فرض
+      return "under_inspection";
+    };
+
+    const defaultApprovalStatus = getReportStatus();
+
     // گرفتن بازه زمانی واقعی از نوتیفیکیشن
     const getRealInspectionRange = () => {
       if (
@@ -59,11 +77,12 @@ export const useDailyReports = (previousData, initialDailyReports = []) => {
     }
 
     console.log("تاریخ‌های تولید شده برای جدول:", dates);
+    console.log("وضعیت گزارش استفاده شده:", defaultApprovalStatus);
 
     const reports = dates.map((date, index) => ({
       id: Date.now() + index,
       inspectionDate: date,
-      approvalStatus: "approved",
+      approvalStatus: defaultApprovalStatus,
       inspectorName: defaultInspector,
       inspectorFee: defaultFee,
       secondInspectorName: "",

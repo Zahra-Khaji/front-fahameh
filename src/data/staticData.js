@@ -74,7 +74,14 @@ export const inspectors = [
   },
 ];
 
+// در src/data/staticData.js - اصلاح approvalStatuses
 export const approvalStatuses = [
+  {
+    value: "under_inspection",
+    label: "در حال بازرسی",
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+  },
   {
     value: "approved",
     label: "تأیید شده",
@@ -103,6 +110,12 @@ export const approvalStatuses = [
 
 export const reportStatusOptions = [
   {
+    value: "under_inspection",
+    label: "در حال بازرسی",
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+  }, // تغییر به "در حال بازرسی"
+  {
     value: "approved",
     label: "تأیید شده",
     color: "text-green-600",
@@ -119,12 +132,6 @@ export const reportStatusOptions = [
     label: "نیاز به اصلاحات",
     color: "text-yellow-600",
     bgColor: "bg-yellow-100",
-  },
-  {
-    value: "under_review",
-    label: "در حال بررسی",
-    color: "text-blue-600",
-    bgColor: "bg-blue-100",
   },
 ];
 

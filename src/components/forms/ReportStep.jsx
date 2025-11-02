@@ -37,10 +37,22 @@ const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) =
     setShowAddForm(false);
   };
 
+  // const handleCompleteStep = () => {
+  //   const stepData = {
+  //     reports: reports
+  //   };
+  //   console.log('ارسال داده‌های گزارش:', stepData);
+  //   onComplete(stepData);
+  // };
   const handleCompleteStep = () => {
+    // استفاده از وضعیت آخرین گزارش اضافه شده
+    const latestReportStatus = reports.length > 0 ? reports[0].status : 'under_inspection';
+    
     const stepData = {
-      reports: reports
+      reports: reports,
+      reportStatus: latestReportStatus // ارسال وضعیت گزارش
     };
+    
     console.log('ارسال داده‌های گزارش:', stepData);
     onComplete(stepData);
   };
