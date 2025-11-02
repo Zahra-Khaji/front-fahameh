@@ -18,13 +18,14 @@ import Button from '../ui/Button';
 import ErrorPopup from '../ui/ErrorPopup';
 
 // Data & Utils
-import { provinces, citiesByProvince, sellers, inspectors } from '../../data/staticData';
+import { provinces, citiesByProvince, sellers, inspectors, projects } from '../../data/staticData'; // اضافه کردن projects
 import { inspectionSchema } from '../../utils/validationSchemas';
 
 const InspectionForm = ({ onComplete }) => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedInspectorId, setSelectedInspectorId] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
 
   const {
     register,
@@ -58,6 +59,18 @@ const InspectionForm = ({ onComplete }) => {
     const provinceId = e.target.value;
     setValue('projectInfo.province', provinceId);
     setValue('projectInfo.city', '');
+  };
+
+  const handleProjectChange = (e) => {
+    const projectId = e.target.value;
+    setSelectedProjectId(projectId);
+    
+    const selectedProject = projects.find(project => project.id === projectId);
+    if (selectedProject) {
+      setValue('projectInfo.projectName', selectedProject.name);
+    } else {
+      setValue('projectInfo.projectName', '');
+    }
   };
 
   const handleInspectorChange = (e) => {
@@ -113,13 +126,16 @@ const InspectionForm = ({ onComplete }) => {
               icon={FaClipboardList}
               className="mb-3"
             >
-              <InputField
+              <SelectField
                 label="نام پروژه *"
-                {...register('projectInfo.projectName')}
+                value={selectedProjectId}
+                onChange={handleProjectChange}
+                options={projects}
+                placeholder="انتخاب پروژه"
                 error={errors.projectInfo?.projectName}
-                placeholder="نام پروژه را وارد کنید"
                 className="py-1.5" 
               />
+              <input type="hidden" {...register('projectInfo.projectName')} />
 
               <div className="grid grid-cols-3 gap-2"> 
                 <SelectField
@@ -157,7 +173,7 @@ const InspectionForm = ({ onComplete }) => {
             <FormSection
               title="اطلاعات بازرس"
               icon={FaUserTie}
-              className="mb-3" /* کاهش margin */
+              className="mb-3"
             >
               <SelectField
                 label="نام بازرس *"
@@ -169,26 +185,26 @@ const InspectionForm = ({ onComplete }) => {
               />
               <input type="hidden" {...register('inspectorInfo.inspectorName')} />
 
-              <div className="grid grid-cols-5 gap-1.5"> {/* کاهش gap */}
+              <div className="grid grid-cols-5 gap-1.5">
                 <InputField
                   label="موقعیت (استان) *"
                   {...register('inspectorInfo.inspectorLocation')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs" /* کاهش ارتفاع و فونت */
+                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs"
                 />
 
                 <InputField
                   label="شماره تماس *"
                   {...register('inspectorInfo.phoneNumber')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs" /* کاهش ارتفاع و فونت */
+                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs"
                 />
 
                 <InputField
                   label="تخصص *"
                   {...register('inspectorInfo.expertise')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs" /* کاهش ارتفاع و فونت */
+                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs"
                 />
 
                 <InputField
@@ -196,24 +212,24 @@ const InspectionForm = ({ onComplete }) => {
                   {...register('inspectorInfo.email')}
                   error={errors.inspectorInfo?.email}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs" /* کاهش ارتفاع و فونت */
+                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs"
                 />
 
                 <InputField
                   label="دستمزد *"
                   {...register('inspectorInfo.fee')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed font-semibold py-1.5 text-xs" /* کاهش ارتفاع و فونت */
+                  className="bg-blue-50 cursor-not-allowed font-semibold py-1.5 text-xs"
                 />
               </div>
             </FormSection>
 
             {/* Submit Button */}
-            <div className="flex justify-center pt-2"> {/* کاهش padding */}
+            <div className="flex justify-center pt-2">
               <Button
                 type="submit"
                 variant="primary"
-                size="md" /* تغییر از lg به md */
+                size="md"
                 icon="check"
               >
                 ادامه به مرحله بعد
