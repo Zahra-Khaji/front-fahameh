@@ -136,7 +136,7 @@ export const reportStatusOptions = [
 ];
 
 export const projects = [
-  { id: "1", name: "پروژه برزین" },
-  { id: "2", name: "پروژه کنگان" },
-  { id: "3", name: "پروژه پل ساوه" },
+  { id: "1", name: 'پروژه بدر شرق' },
+  { id: "2", name: 'پروژه پارس بهین پالایش' },
+  { id: "3", name: 'پروژه پتروشیمی جم' },
 ];
