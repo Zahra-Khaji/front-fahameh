@@ -18,7 +18,7 @@ import Button from '../ui/Button';
 import ErrorPopup from '../ui/ErrorPopup';
 
 // Data & Utils
-import { provinces, citiesByProvince, sellers, inspectors, projects } from '../../data/staticData'; // اضافه کردن projects
+import { provinces, citiesByProvince, sellers, inspectors, projects } from '../../data/staticData';
 import { inspectionSchema } from '../../utils/validationSchemas';
 
 const InspectionForm = ({ onComplete }) => {
@@ -107,25 +107,29 @@ const InspectionForm = ({ onComplete }) => {
     }
   };
 
-  return (
-    <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-2 px-4"> 
-      <div className="max-w-5xl mx-auto">
-        
-        <StepHeader
-          title="سامانه درخواست بازرسی"
-          description="فرم ثبت درخواست بازرسی فنی و کیفیت"
-          icon={FaClipboardList}
-        />
+// src/components/forms/InspectionForm.jsx
+// ... imports و stateها بدون تغییر
 
-        <div className="bg-white rounded-xl shadow-lg">
-          <form onSubmit={handleSubmit(onSubmit, onError)} className="p-3"> 
-            
-            {/* Project Information Section */}
-            <FormSection
-              title="اطلاعات درخواست بازرسی"
-              icon={FaClipboardList}
-              className="mb-3"
-            >
+return (
+  <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-1 px-3 sm:px-4 lg:px-4"> {/* کاهش py و px */}
+    <div className="max-w-5xl mx-auto">
+      
+      <StepHeader
+        title="سامانه درخواست بازرسی"
+        description="فرم ثبت درخواست بازرسی فنی و کیفیت"
+        icon={FaClipboardList}
+      />
+
+      <div className="bg-white rounded-xl shadow-lg">
+        <form onSubmit={handleSubmit(onSubmit, onError)} className="p-3 sm:p-3 lg:p-4"> {/* کاهش پدینگ */}
+          
+          {/* Project Information Section */}
+          <FormSection
+            title="اطلاعات درخواست بازرسی"
+            icon={FaClipboardList}
+            className="mb-2 lg:mb-3" // کاهش بیشتر margin
+          >
+            <div className="mb-2 lg:mb-2"> {/* کاهش بیشتر */}
               <SelectField
                 label="نام پروژه *"
                 value={selectedProjectId}
@@ -133,120 +137,134 @@ const InspectionForm = ({ onComplete }) => {
                 options={projects}
                 placeholder="انتخاب پروژه"
                 error={errors.projectInfo?.projectName}
-                className="py-1.5" 
+                className="py-1.5 sm:py-1.5 lg:py-1.5" // کاهش بیشتر ارتفاع
               />
               <input type="hidden" {...register('projectInfo.projectName')} />
+            </div>
 
-              <div className="grid grid-cols-3 gap-2"> 
-                <SelectField
-                  label="استان *"
-                  {...register('projectInfo.province')}
-                  error={errors.projectInfo?.province}
-                  onChange={handleProvinceChange}
-                  options={provinces}
-                  placeholder="انتخاب استان"
-                  className="py-1.5" 
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 lg:gap-2"> {/* کاهش بیشتر gap */}
+              <SelectField
+                label="استان *"
+                {...register('projectInfo.province')}
+                error={errors.projectInfo?.province}
+                onChange={handleProvinceChange}
+                options={provinces}
+                placeholder="انتخاب استان"
+                className="py-1.5 sm:py-1.5 lg:py-1.5"
+              />
 
-                <SelectField
-                  label="شهر *"
-                  {...register('projectInfo.city')}
-                  error={errors.projectInfo?.city}
-                  disabled={!currentProvince}
-                  options={currentProvince ? citiesByProvince[currentProvince] : []}
-                  placeholder="انتخاب شهر"
-                  className="py-1.5" 
-                />
+              <SelectField
+                label="شهر *"
+                {...register('projectInfo.city')}
+                error={errors.projectInfo?.city}
+                disabled={!currentProvince}
+                options={currentProvince ? citiesByProvince[currentProvince] : []}
+                placeholder={currentProvince ? "انتخاب شهر" : "ابتدا استان را انتخاب کنید"}
+                className="py-1.5 sm:py-1.5 lg:py-1.5"
+              />
 
-                <SelectField
-                  label="وندور *"
-                  {...register('projectInfo.seller')}
-                  error={errors.projectInfo?.seller}
-                  options={sellers}
-                  placeholder="انتخاب وندور"
-                  className="py-1.5" 
-                />
-              </div>
-            </FormSection>
+              <SelectField
+                label="وندور *"
+                {...register('projectInfo.seller')}
+                error={errors.projectInfo?.seller}
+                options={sellers}
+                placeholder="انتخاب وندور"
+                className="py-1.5 sm:py-1.5 lg:py-1.5"
+              />
+            </div>
+          </FormSection>
 
-            {/* Inspector Information Section */}
-            <FormSection
-              title="اطلاعات بازرس"
-              icon={FaUserTie}
-              className="mb-3"
-            >
+          {/* Inspector Information Section */}
+          <FormSection
+            title="اطلاعات بازرس"
+            icon={FaUserTie}
+            className="mb-2 lg:mb-3" // کاهش بیشتر margin
+          >
+            <div className="mb-2 lg:mb-2"> {/* کاهش بیشتر */}
               <SelectField
                 label="نام بازرس *"
                 value={selectedInspectorId}
                 onChange={handleInspectorChange}
                 options={inspectors}
                 placeholder="انتخاب بازرس"
-                className="py-1.5" 
+                className="py-1.5 sm:py-1.5 lg:py-1.5"
               />
               <input type="hidden" {...register('inspectorInfo.inspectorName')} />
+            </div>
 
-              <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-1.5 sm:gap-2 lg:gap-2"> {/* کاهش بیشتر gap */}
+              <div className="sm:col-span-2 lg:col-span-1">
                 <InputField
                   label="موقعیت (استان) *"
                   {...register('inspectorInfo.inspectorLocation')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs"
+                  className="bg-blue-50 cursor-not-allowed py-1.5 sm:py-1.5 lg:py-1.5 text-sm"
                 />
+              </div>
 
+              <div className="sm:col-span-2 lg:col-span-1">
                 <InputField
                   label="شماره تماس *"
                   {...register('inspectorInfo.phoneNumber')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs"
+                  className="bg-blue-50 cursor-not-allowed py-1.5 sm:py-1.5 lg:py-1.5 text-sm"
                 />
+              </div>
 
+              <div className="sm:col-span-2 lg:col-span-1">
                 <InputField
                   label="تخصص *"
                   {...register('inspectorInfo.expertise')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs"
+                  className="bg-blue-50 cursor-not-allowed py-1.5 sm:py-1.5 lg:py-1.5 text-sm"
                 />
+              </div>
 
+              <div className="sm:col-span-2 lg:col-span-1">
                 <InputField
                   label="ایمیل *"
                   {...register('inspectorInfo.email')}
                   error={errors.inspectorInfo?.email}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed py-1.5 text-xs"
+                  className="bg-blue-50 cursor-not-allowed py-1.5 sm:py-1.5 lg:py-1.5 text-sm"
                 />
+              </div>
 
+              <div className="sm:col-span-2 lg:col-span-1">
                 <InputField
                   label="دستمزد *"
                   {...register('inspectorInfo.fee')}
                   readOnly
-                  className="bg-blue-50 cursor-not-allowed font-semibold py-1.5 text-xs"
+                  className="bg-blue-50 cursor-not-allowed font-semibold py-1.5 sm:py-1.5 lg:py-1.5 text-sm"
                 />
               </div>
-            </FormSection>
-
-            {/* Submit Button */}
-            <div className="flex justify-center pt-2">
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                icon="check"
-              >
-                ادامه به مرحله بعد
-              </Button>
             </div>
-          </form>
-        </div>
-      </div>
+          </FormSection>
 
-      <ErrorPopup
-        isOpen={showErrorPopup}
-        onClose={() => setShowErrorPopup(false)}
-        title="خطا در ثبت"
-        message={errorMessage}
-      />
+          {/* Submit Button */}
+          <div className="flex justify-center pt-2 lg:pt-1"> {/* کاهش بیشتر */}
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              icon="check"
+              className="w-full sm:w-auto px-8"
+            >
+              ادامه به مرحله بعد
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
-  );
+
+    <ErrorPopup
+      isOpen={showErrorPopup}
+      onClose={() => setShowErrorPopup(false)}
+      title="خطا در ثبت"
+      message={errorMessage}
+    />
+  </div>
+);
 };
 
 export default InspectionForm;

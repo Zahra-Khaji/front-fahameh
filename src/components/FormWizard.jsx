@@ -18,21 +18,20 @@ const FormWizard = () => {
     { id: 'dailyReport', label: 'صورت وضعیت', number: 4 }
   ];
 
-// در FormWizard.jsx - تابع handleStepComplete رو چک کنید:
-const handleStepComplete = (step, data) => {
-  console.log(`تکمیل مرحله ${step}:`, data);
-  updateFormData(data);
-  
-  const nextSteps = {
-    inspection: 'notification',
-    notification: 'report',
-    report: 'dailyReport'
+  const handleStepComplete = (step, data) => {
+    console.log(`تکمیل مرحله ${step}:`, data);
+    updateFormData(data);
+    
+    const nextSteps = {
+      inspection: 'notification',
+      notification: 'report',
+      report: 'dailyReport'
+    };
+    
+    if (nextSteps[step]) {
+      setCurrentStep(nextSteps[step]);
+    }
   };
-  
-  if (nextSteps[step]) {
-    setCurrentStep(nextSteps[step]);
-  }
-};
 
   const handleBack = () => {
     const prevSteps = {
@@ -64,9 +63,16 @@ const handleStepComplete = (step, data) => {
   };
 
   return (
-    <div className="min-h-0 -mt-4">
-      <StepProgress steps={steps} currentStep={currentStep} />
-      {renderCurrentStep()}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-2">
+        {/* Step Progress - بهبود برای موبایل */}
+        <div className="mb-6 sm:mb-0.5">
+          <StepProgress steps={steps} currentStep={currentStep} />
+        </div>
+        
+        {/* Step Content */}
+        {renderCurrentStep()}
+      </div>
     </div>
   );
 };
