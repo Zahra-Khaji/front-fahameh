@@ -18,7 +18,7 @@ import Button from '../ui/Button';
 import ErrorPopup from '../ui/ErrorPopup';
 
 // Data & Utils
-import { provinces, citiesByProvince, sellers, inspectors, projects } from '../../data/staticData';
+import { provinces, citiesByProvince, vendors, inspectors, projects } from '../../data/staticData';
 import { inspectionSchema } from '../../utils/validationSchemas';
 
 const InspectionForm = ({ onComplete }) => {
@@ -40,7 +40,7 @@ const InspectionForm = ({ onComplete }) => {
         projectName: '',
         province: '',
         city: '',
-        seller: '',
+        vendor: '',
       },
       inspectorInfo: {
         inspectorName: '',
@@ -165,9 +165,9 @@ return (
 
               <SelectField
                 label="وندور *"
-                {...register('projectInfo.seller')}
-                error={errors.projectInfo?.seller}
-                options={sellers}
+                {...register('projectInfo.vendor')}
+                error={errors.projectInfo?.vendor}
+                options={vendors}
                 placeholder="انتخاب وندور"
                 className="py-1.5 sm:py-1.5 lg:py-1.5"
               />

@@ -1,6 +1,6 @@
 // src/components/common/RequestInfoSidebar.jsx
 import React from 'react';
-import { provinces, citiesByProvince, sellers } from '../../data/staticData';
+import { provinces, citiesByProvince, vendors } from '../../data/staticData';
 import Button from '../ui/Button';
 
 const RequestInfoSidebar = ({ previousData, onBack, showBackButton = true }) => {
@@ -13,9 +13,9 @@ const RequestInfoSidebar = ({ previousData, onBack, showBackButton = true }) => 
     };
   };
 
-  const getSellerName = (sellerId) => {
-    const seller = sellers.find(s => s.id === sellerId);
-    return seller ? seller.name : '-';
+  const getVendorName = (vendorId) => {
+    const vendor = vendors.find(s => s.id === vendorId);
+    return vendor ? vendor.name : '-';
   };
 
   return (
@@ -38,7 +38,7 @@ const RequestInfoSidebar = ({ previousData, onBack, showBackButton = true }) => 
         <div>
           <span className="font-semibold text-gray-600">وندور:</span>
           <p className="text-gray-800">
-            {getSellerName(previousData?.projectInfo?.seller) || '-'}
+            {getVendorName(previousData?.projectInfo?.vendor) || '-'}
           </p>
         </div>
         

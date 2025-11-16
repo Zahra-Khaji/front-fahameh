@@ -3,7 +3,7 @@ import React from 'react';
 import { FaClipboardList, FaUserTie, FaMoneyBillWave, FaFileAlt } from 'react-icons/fa';
 
 // Utils
-import { provinces, citiesByProvince, sellers } from '../../data/staticData';
+import { provinces, citiesByProvince, vendors } from '../../data/staticData';
 import { formatPersianDate } from '../../utils/helpers';
 
 const FinalConfirmationContent = ({ previousData, summary, dailyReports }) => {
@@ -16,15 +16,15 @@ const FinalConfirmationContent = ({ previousData, summary, dailyReports }) => {
     };
   };
 
-  const getSellerName = (sellerId) => {
-    const seller = sellers.find(s => s.id === sellerId);
-    return seller ? seller.name : '-';
+  const getVendorName = (vendorId) => {
+    const vendor = vendors.find(s => s.id === vendorId);
+    return vendor ? vendor.name : '-';
   };
 
   const projectName = previousData?.projectInfo?.projectName || '-';
   const province = previousData?.projectInfo?.province || '';
   const city = previousData?.projectInfo?.city || '';
-  const seller = previousData?.projectInfo?.seller || '';
+  const vendor = previousData?.projectInfo?.vendor || '';
   const defaultInspector = previousData?.inspectorInfo?.inspectorName || '';
   const defaultFee = previousData?.inspectorInfo?.fee || '';
 
@@ -50,7 +50,7 @@ const FinalConfirmationContent = ({ previousData, summary, dailyReports }) => {
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">وندور:</span>
-            <span className="font-semibold">{getSellerName(seller)}</span>
+            <span className="font-semibold">{getVendorName(vendor)}</span>
           </div>
         </div>
       </div>

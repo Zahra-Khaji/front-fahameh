@@ -37,7 +37,7 @@ export const citiesByProvince = {
   ],
 };
 
-export const sellers = [
+export const vendors = [
   { id: "1", name: "برزین" },
   { id: "2", name: "مجتمع صنعتی آریا" },
   { id: "3", name: "کارخانجات پیشتاز" },
@@ -136,7 +136,7 @@ export const reportStatusOptions = [
 ];
 
 export const projects = [
-  { id: "1", name: 'پروژه بدر شرق' },
-  { id: "2", name: 'پروژه پارس بهین پالایش' },
-  { id: "3", name: 'پروژه پتروشیمی جم' },
+  { id: "1", name: "پروژه بدر شرق" },
+  { id: "2", name: "پروژه پارس بهین پالایش" },
+  { id: "3", name: "پروژه پتروشیمی جم" },
 ];
