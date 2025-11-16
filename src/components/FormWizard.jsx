@@ -63,8 +63,14 @@ const FormWizard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-2">
+    <div
+      style={{ direction: 'rtl' }}
+                      //  style={{ direction: "ltr" }}
+
+    
+    className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div
+      className="container mx-auto px-3 sm:px-4 lg:px-6 py-2">
         {/* Step Progress - بهبود برای موبایل */}
         <div className="mb-6 sm:mb-0.5">
           <StepProgress steps={steps} currentStep={currentStep} />

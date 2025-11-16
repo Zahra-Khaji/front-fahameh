@@ -31,7 +31,6 @@ const NotificationForm = ({
     setSendDate(new Date());
   }, [lastNotificationNumber]);
 
-  // تابع برای validation عدد - با خطای مرتبط
   const handleInspectionDaysChange = (e) => {
     const value = e.target.value;
     
@@ -46,7 +45,6 @@ const NotificationForm = ({
     }
   };
 
-  // تابع جدید برای مدیریت تغییر تاریخ (هم تک تاریخ و هم بازه)
   const handleInspectionRangeChange = (dates) => {
     setInspectionRange(dates);
   };
@@ -71,10 +69,8 @@ const NotificationForm = ({
     setShowConfirmation(false);
   };
 
-  // شرط validation: حداقل یک تاریخ انتخاب شده باشه
   const isFormValid = notificationNumber && sendDate && inspectionDays && !daysError && inspectionRange.length > 0;
 
-  // تابع جدید برای فرمت نمایش تاریخ (هم تک و هم بازه)
   const formatInspectionDate = (range) => {
     if (!range || range.length === 0) return '-';
     if (range.length === 1) return formatPersianDate(range[0]);
@@ -83,26 +79,26 @@ const NotificationForm = ({
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
-        <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-          <FaHashtag className="ml-2 text-blue-500" />
+      <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-4 mb-4">
+        <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4 flex items-center">
+          <FaHashtag className="ml-2 text-blue-500 text-sm sm:text-base" />
           اطلاعات نوتیفیکیشن
         </h2>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* سطر اول: شماره ثبت و تاریخ ارسال */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {/* Notification Number */}
             <div className="flex flex-col">
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                <FaHashtag className="ml-1 text-blue-500" />
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2 flex items-center">
+                <FaHashtag className="ml-1 text-blue-500 text-xs sm:text-sm" />
                 شماره ثبت نوتیفیکیشن *
               </label>
               <input
                 type="number"
                 value={notificationNumber}
                 onChange={(e) => setNotificationNumber(parseInt(e.target.value) || '')}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
+                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
                 placeholder="شماره ثبت"
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -112,8 +108,8 @@ const NotificationForm = ({
 
             {/* Send Date */}
             <div className="flex flex-col">
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                <FaCalendarAlt className="ml-1 text-blue-500" />
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2 flex items-center">
+                <FaCalendarAlt className="ml-1 text-blue-500 text-xs sm:text-sm" />
                 تاریخ ارسال نوتیفیکیشن *
               </label>
               <DatePicker
@@ -123,17 +119,17 @@ const NotificationForm = ({
                 calendar={persian}
                 locale={persian_fa}
                 calendarPosition="bottom-right"
-                inputClass="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
+                inputClass="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
                 placeholder="انتخاب تاریخ"
               />
             </div>
           </div>
 
           {/* سطر دوم: تعداد روز بازرسی و بازه بازرسی */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {/* Inspection Days */}
             <div className="flex flex-col">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
                 تعداد روز بازرسی *
               </label>
               <input
@@ -141,7 +137,7 @@ const NotificationForm = ({
                 value={inspectionDays}
                 onChange={handleInspectionDaysChange}
                 inputMode="numeric"
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white ${
+                className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white ${
                   daysError ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'
                 }`}
                 placeholder="تعداد روز را وارد کنید"
@@ -156,8 +152,8 @@ const NotificationForm = ({
 
             {/* Inspection Range */}
             <div className="flex flex-col">
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                <FaCalendarAlt className="ml-1 text-blue-500" />
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2 flex items-center">
+                <FaCalendarAlt className="ml-1 text-blue-500 text-xs sm:text-sm" />
                 تاریخ/بازه انجام بازرسی *
               </label>
               <DatePicker
@@ -166,15 +162,15 @@ const NotificationForm = ({
                 onChange={handleInspectionRangeChange}
                 range
                 rangeHover
-                multiple={false} // امکان انتخاب چند تاریخ غیرفعال
+                multiple={false}
                 plugins={[<Toolbar position="bottom" />]}
                 calendar={persian}
                 locale={persian_fa}
-                inputClass="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
+                inputClass="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
                 placeholder="انتخاب تاریخ یا بازه"
               />
               {inspectionRange.length > 0 && (
-                <p className="text-xs text-green-600 mt-2 mr-1">
+                <p className="text-xs text-green-600 mt-1 sm:mt-2 mr-1">
                   {inspectionRange.length === 1 
                     ? `تاریخ انتخاب شده: ${formatPersianDate(inspectionRange[0])}`
                     : `بازه انتخاب شده: ${formatDateRange(inspectionRange)}`
@@ -188,14 +184,14 @@ const NotificationForm = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-3">
             <Button
               onClick={handleSubmit}
               disabled={!isFormValid}
               variant="primary"
               size="md"
               icon="check"
-              className="flex-1"
+              className="flex-1 w-full sm:w-auto"
             >
               ادامه و تأیید اطلاعات
             </Button>
@@ -203,6 +199,7 @@ const NotificationForm = ({
               onClick={onCancel}
               variant="secondary"
               size="md"
+              className="w-full sm:w-auto"
             >
               انصراف
             </Button>
@@ -221,9 +218,9 @@ const NotificationForm = ({
         cancelText="ویرایش اطلاعات"
         type="success"
       >
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <h4 className="font-semibold text-gray-800 mb-3 text-sm">خلاصه اطلاعات:</h4>
-          <div className="space-y-3 text-sm">
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+          <h4 className="font-semibold text-gray-800 mb-2 sm:mb-3 text-sm">خلاصه اطلاعات:</h4>
+          <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
             <div className="flex justify-between items-center pb-2 border-b border-gray-200">
               <span className="text-gray-600">شماره ثبت:</span>
               <span className="font-semibold">{notificationNumber}</span>
@@ -240,7 +237,7 @@ const NotificationForm = ({
               <span className="text-gray-600">
                 {inspectionRange.length === 1 ? 'تاریخ بازرسی:' : 'بازه بازرسی:'}
               </span>
-              <span className="font-semibold text-left">
+              <span className="font-semibold text-left text-xs sm:text-sm">
                 {formatInspectionDate(inspectionRange)}
               </span>
             </div>

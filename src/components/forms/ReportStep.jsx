@@ -37,31 +37,22 @@ const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) =
     setShowAddForm(false);
   };
 
-  // const handleCompleteStep = () => {
-  //   const stepData = {
-  //     reports: reports
-  //   };
-  //   console.log('ارسال داده‌های گزارش:', stepData);
-  //   onComplete(stepData);
-  // };
   const handleCompleteStep = () => {
-    // استفاده از وضعیت آخرین گزارش اضافه شده
     const latestReportStatus = reports.length > 0 ? reports[0].status : 'under_inspection';
     
     const stepData = {
       reports: reports,
-      reportStatus: latestReportStatus // ارسال وضعیت گزارش
+      reportStatus: latestReportStatus
     };
     
     console.log('ارسال داده‌های گزارش:', stepData);
     onComplete(stepData);
   };
 
-  // استفاده از نوتیفیکیشن‌های واقعی از previousData
   const realNotifications = previousData?.notifications || [];
 
   return (
-    <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-3 px-4">
+    <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-2 sm:py-3 px-3 sm:px-4 lg:px-6">
       <div className="max-w-7xl mx-auto">
         
         <StepHeader
@@ -70,7 +61,7 @@ const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) =
           icon={FaFileAlt}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4">
           
           {/* Sidebar */}
           <div className="lg:col-span-1">
@@ -81,7 +72,7 @@ const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) =
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
             
             {/* Notifications Table با دیتای واقعی */}
             {realNotifications.length > 0 && (
@@ -111,16 +102,17 @@ const ReportStep = ({ onBack, onComplete, previousData, lists, onListChange }) =
 
             {/* Empty State */}
             {!showAddForm && reports.length === 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-                <div className="text-gray-500 mb-4">
-                  <FaFileAlt className="text-4xl mx-auto mb-3" />
-                  <h3 className="text-lg font-semibold">هنوز گزارشی ثبت نشده</h3>
-                  <p className="text-sm mt-1">برای شروع، اولین گزارش بازرس را ثبت کنید</p>
+              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 text-center">
+                <div className="text-gray-500 mb-3 sm:mb-4">
+                  <FaFileAlt className="text-3xl sm:text-4xl mx-auto mb-2 sm:mb-3" />
+                  <h3 className="text-base sm:text-lg font-semibold">هنوز گزارشی ثبت نشده</h3>
+                  <p className="text-xs sm:text-sm mt-1">برای شروع، اولین گزارش بازرس را ثبت کنید</p>
                 </div>
                 <Button
                   onClick={() => setShowAddForm(true)}
                   variant="primary"
                   icon="plus"
+                  className="w-full sm:w-auto"
                 >
                   افزودن گزارش
                 </Button>

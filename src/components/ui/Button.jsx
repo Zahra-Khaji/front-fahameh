@@ -1,4 +1,4 @@
-
+// src/components/ui/Button.jsx
 import React from 'react';
 import { FaCheck, FaArrowLeft, FaPlus, FaSave } from 'react-icons/fa';
 
@@ -30,13 +30,13 @@ const Button = ({
   };
 
   const getIcon = () => {
-    if (loading) return <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2" />;
+    if (loading) return <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />;
     
     const icons = {
-      check: <FaCheck className="ml-2" />,
-      arrowLeft: <FaArrowLeft className="ml-2" />,
-      plus: <FaPlus className="ml-2" />,
-      save: <FaSave className="ml-2" />
+      check: <FaCheck className="mr-2" />, // تغییر از ml-2 به mr-2
+      arrowLeft: <FaArrowLeft className="mr-2" />, // تغییر از ml-2 به mr-2
+      plus: <FaPlus className="mr-2" />, // تغییر از ml-2 به mr-2
+      save: <FaSave className="mr-2" /> // تغییر از ml-2 به mr-2
     };
     
     return icon ? icons[icon] : null;

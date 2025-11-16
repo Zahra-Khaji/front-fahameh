@@ -53,8 +53,9 @@ function AppLayout({ children }) {
 
       {/* Main Content */}
       <main
-    
-      className="flex-1 bg-secondary-100 p-2.5 lg:p-5 overflow-y-auto"
+                       style={{ direction: "ltr" }}
+
+      className="   flex-1 bg-secondary-100 p-2.5 lg:p-5 overflow-y-auto"
       // className="flex-1 bg p-4 lg:p-8 overflow-y-auto"
 
        

@@ -19,7 +19,7 @@ const ReportForm = ({
   onCancel 
 }) => {
   const [reportNumber, setReportNumber] = useState('');
-  const [status, setStatus] = useState('under_inspection'); // تغییر: مقدار پیش‌فرض "در حال بازرسی"
+  const [status, setStatus] = useState('under_inspection');
   const [corrections, setCorrections] = useState('');
   const [receiveDate, setReceiveDate] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -27,7 +27,6 @@ const ReportForm = ({
   useEffect(() => {
     setReportNumber(lastReportNumber + 1);
     setReceiveDate(new Date());
-    // status قبلاً مقدار پیش‌فرض "under_inspection" رو داره
   }, [lastReportNumber]);
 
   const handleSubmit = () => {
@@ -63,35 +62,35 @@ const ReportForm = ({
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
-        <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
-          <FaFileAlt className="ml-2 text-blue-500" />
+      <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-3 mb-4"> {/* کاهش lg:p-4 به lg:p-3 */}
+        <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-1.5 sm:mb-2 lg:mb-2 flex items-center"> {/* کاهش margin در دسکتاپ */}
+          <FaFileAlt className="ml-2 text-blue-500 text-sm sm:text-base" />
           اطلاعات گزارش بازرس
         </h2>
 
-        <div className="space-y-3">
+        <div className="space-y-1.5 sm:space-y-2 lg:space-y-2"> {/* کاهش space-y در دسکتاپ */}
           {/* سطر اول: شماره گزارش و تاریخ دریافت */}
-          <div className="grid grid-cols-2 gap-4 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 lg:gap-3 items-start"> {/* کاهش gap در دسکتاپ */}
             
             {/* Report Number */}
             <div className="flex flex-col">
-              <label className="block text-sm font-semibold text-gray-700 mb-0.5 flex items-center">
-                <FaHashtag className="ml-1 text-blue-500" />
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-0.5 flex items-center">
+                <FaHashtag className="ml-1 text-blue-500 text-xs sm:text-sm" />
                 شماره گزارش *
               </label>
               <input
                 type="number"
                 value={reportNumber}
                 onChange={(e) => setReportNumber(parseInt(e.target.value) || '')}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
+                className="w-full px-2 sm:px-3 py-1.5 lg:py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
                 placeholder="شماره گزارش"
               />
             </div>
 
             {/* Receive Date */}
             <div className="flex flex-col">
-              <label className="block text-sm font-semibold text-gray-700 mb-0.5 flex items-center">
-                <FaCalendarAlt className="ml-1 text-blue-500" />
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-0.5 flex items-center">
+                <FaCalendarAlt className="ml-1 text-blue-500 text-xs sm:text-sm" />
                 تاریخ دریافت *
               </label>
               <DatePicker
@@ -101,7 +100,7 @@ const ReportForm = ({
                 calendar={persian}
                 locale={persian_fa}
                 calendarPosition="bottom-right"
-                inputClass="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
+                inputClass="w-full px-2 sm:px-3 py-1.5 lg:py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
                 placeholder="انتخاب تاریخ"
               />
             </div>
@@ -109,18 +108,18 @@ const ReportForm = ({
 
           {/* سطر دوم: وضعیت و فیلد اصلاحات (در صورت نیاز) */}
           {status === 'needs_correction' ? (
-            <div className="grid grid-cols-4 gap-4 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-1.5 sm:gap-2 lg:gap-3 items-start"> {/* کاهش gap در دسکتاپ */}
               
               {/* وضعیت */}
-              <div className="flex flex-col col-span-1">
-                <label className="block text-sm font-semibold text-gray-700 mb-0.5 flex items-center">
-                  <FaCheck className="ml-1 text-blue-500" />
+              <div className="flex flex-col lg:col-span-1">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-0.5 flex items-center">
+                  <FaCheck className="ml-1 text-blue-500 text-xs sm:text-sm" />
                   وضعیت *
                 </label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
+                  className="w-full px-2 sm:px-3 py-1.5 lg:py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
                 >
                   {reportStatusOptions.map(option => (
                     <option key={option.value} value={option.value}>
@@ -131,20 +130,20 @@ const ReportForm = ({
               </div>
 
               {/* فیلد اصلاحات */}
-              <div className="flex flex-col col-span-3">
-                <label className="block text-sm font-semibold text-gray-700 mb-0.5">
+              <div className="flex flex-col lg:col-span-3">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-0.5">
                  اصلاحات *
                 </label>
                 <textarea
                   value={corrections}
                   onChange={(e) => setCorrections(e.target.value)}
                   rows="2"
-                  className="w-full px-3 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white resize-none"
+                  className="w-full px-2 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white resize-none"
                   placeholder="توضیحات اصلاحات الزامی است..."
                 />
                 {!corrections && (
                   <p className="text-red-500 text-xs mt-0.5 flex items-center">
-                    <FaExclamationTriangle className="ml-1" />
+                    <FaExclamationTriangle className="ml-1 text-xs" />
                     وارد کردن توضیحات اصلاحات الزامی است
                   </p>
                 )}
@@ -153,14 +152,14 @@ const ReportForm = ({
           ) : (
             /* فقط وضعیت وقتی اصلاحات نیاز نیست */
             <div className="flex flex-col">
-              <label className="block text-sm font-semibold text-gray-700 mb-0.5 flex items-center">
-                <FaCheck className="ml-1 text-blue-500" />
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-0.5 flex items-center">
+                <FaCheck className="ml-1 text-blue-500 text-xs sm:text-sm" />
                 وضعیت *
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
+                className="w-full px-2 sm:px-3 py-1.5 lg:py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
               >
                 {reportStatusOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -172,14 +171,14 @@ const ReportForm = ({
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-3">
+          <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2 lg:gap-2 pt-1.5 sm:pt-2 lg:pt-2"> {/* کاهش gap و padding در دسکتاپ */}
             <Button
               onClick={handleSubmit}
               disabled={!isFormValid}
               variant="primary"
               size="md"
               icon="check"
-              className="flex-1"
+              className="flex-1 w-full sm:w-auto"
             >
               ادامه و تأیید اطلاعات
             </Button>
@@ -187,6 +186,7 @@ const ReportForm = ({
               onClick={onCancel}
               variant="secondary"
               size="md"
+              className="w-full sm:w-auto"
             >
               انصراف
             </Button>
@@ -194,7 +194,7 @@ const ReportForm = ({
         </div>
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal بدون تغییر */}
       <ConfirmationModal
         isOpen={showConfirmation}
         onClose={() => setShowConfirmation(false)}
@@ -205,9 +205,9 @@ const ReportForm = ({
         cancelText="ویرایش اطلاعات"
         type="success"
       >
-        <div className="bg-gray-50 rounded-lg p-4 mb-4">
-          <h4 className="font-semibold text-gray-800 mb-3 text-sm">خلاصه اطلاعات:</h4>
-          <div className="space-y-3 text-sm">
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4 mb-4">
+          <h4 className="font-semibold text-gray-800 mb-2 sm:mb-3 text-sm">خلاصه اطلاعات:</h4>
+          <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
             <div className="flex justify-between items-center pb-2 border-b border-gray-200">
               <span className="text-gray-600">شماره گزارش:</span>
               <span className="font-semibold">{reportNumber}</span>
@@ -223,7 +223,7 @@ const ReportForm = ({
             {status === 'needs_correction' && (
               <div className="flex justify-between items-start">
                 <span className="text-gray-600">اصلاحات:</span>
-                <span className="font-semibold text-right text-sm max-w-xs">
+                <span className="font-semibold text-right text-xs sm:text-sm max-w-xs">
                   {corrections || '---'}
                 </span>
               </div>

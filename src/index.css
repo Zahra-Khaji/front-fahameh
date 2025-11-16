@@ -117,6 +117,8 @@ body {
   min-height: 100vh;
   user-select: none;
   background-color: rgb(var(--background-app-rgb));
+  direction: rtl;
+  scrollbar-gutter: stable right;
 }
 
 * {

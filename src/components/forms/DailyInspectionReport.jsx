@@ -3,8 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { FaList, FaCalendarAlt} from 'react-icons/fa';
 import FinalConfirmationContent  from "./../../components/daily/FinalConfirmationContent"
 
-
-
 // Components
 import StepHeader from '../common/StepHeader';
 import RequestInfoSidebar from '../common/RequestInfoSidebar';
@@ -46,7 +44,7 @@ const DailyInspectionReport = ({ onBack, onComplete, previousData, lists }) => {
   };
 
   return (
-    <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-3 px-4">
+    <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-2 sm:py-3 px-3 sm:px-4 lg:px-6">
       <div className="max-w-7xl mx-auto">
         
         <StepHeader
@@ -55,7 +53,7 @@ const DailyInspectionReport = ({ onBack, onComplete, previousData, lists }) => {
           icon={FaList}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4">
           
           {/* Sidebar */}
           <div className="lg:col-span-1">
@@ -67,13 +65,13 @@ const DailyInspectionReport = ({ onBack, onComplete, previousData, lists }) => {
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-xl shadow-lg p-4">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-gray-800 flex items-center">
-                  <FaCalendarAlt className="ml-2 text-blue-500" />
+            <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
+                <h2 className="text-base sm:text-lg font-bold text-gray-800 flex items-center">
+                  <FaCalendarAlt className="ml-2 text-blue-500 text-sm sm:text-base" />
                   صورت وضعیت بازرسی روزانه
                 </h2>
-                <span className="text-sm text-gray-600 bg-blue-50 px-3 py-1 rounded">
+                <span className="text-xs sm:text-sm text-gray-600 bg-blue-50 px-2 sm:px-3 py-1 rounded self-start sm:self-auto">
                   {dailyReports.length} روز
                 </span>
               </div>
@@ -88,13 +86,14 @@ const DailyInspectionReport = ({ onBack, onComplete, previousData, lists }) => {
               <FinancialSummary summary={summary} />
 
               {/* Final Submit Button */}
-              <div className="flex justify-center pt-6 border-t border-gray-200 mt-6">
+              <div className="flex justify-center pt-4 sm:pt-6 border-t border-gray-200 mt-4 sm:mt-6">
                 <Button
                   onClick={handleFinalSubmit}
                   disabled={!validateForm()}
                   variant="success"
                   size="lg"
                   icon="save"
+                  className="w-full sm:w-auto"
                 >
                   تکمیل و ثبت نهایی
                 </Button>
