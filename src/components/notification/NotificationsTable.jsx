@@ -3,7 +3,7 @@ import React from 'react';
 import { FaBell } from 'react-icons/fa';
 
 // Utils
-import { formatPersianDate, formatDateRange } from '../../utils/helpers';
+import { formatPersianDate, formatMultipleDates } from '../../utils/helpers'; // تغییر import
 
 const NotificationsTable = ({ notifications = [] }) => {
   if (!notifications || notifications.length === 0) {
@@ -45,7 +45,7 @@ const NotificationsTable = ({ notifications = [] }) => {
             <tr className="bg-gray-50">
               <th className="p-2 text-right font-semibold text-gray-700 text-xs sm:text-sm">شماره</th>
               <th className="p-2 text-right font-semibold text-gray-700 text-xs sm:text-sm">تاریخ ارسال</th>
-              <th className="p-2 text-right font-semibold text-gray-700 text-xs sm:text-sm">بازه بازرسی</th>
+              <th className="p-2 text-right font-semibold text-gray-700 text-xs sm:text-sm">تاریخ‌های بازرسی</th> {/* تغییر عنوان */}
               <th className="p-2 text-right font-semibold text-gray-700 text-xs sm:text-sm">وضعیت</th>
             </tr>
           </thead>
@@ -54,7 +54,11 @@ const NotificationsTable = ({ notifications = [] }) => {
               <tr key={notification.id} className="border-b border-gray-200 hover:bg-gray-50">
                 <td className="p-2 font-semibold text-xs sm:text-sm">{notification.number}</td>
                 <td className="p-2 text-xs sm:text-sm">{formatPersianDate(notification.sendDate)}</td>
-                <td className="p-2 text-xs sm:text-sm">{formatDateRange(notification.inspectionRange)}</td>
+                <td className="p-2 text-xs sm:text-sm max-w-xs"> {/* اضافه کردن max-w-xs */}
+                  <div className="truncate" title={formatMultipleDates(notification.inspectionRange)}>
+                    {formatMultipleDates(notification.inspectionRange)}
+                  </div>
+                </td>
                 <td className="p-2">
                   <span className={`text-xs px-2 py-1 rounded ${getStatusClass(notification.status)}`}>
                     {getStatusText(notification.status)}
@@ -79,9 +83,13 @@ const NotificationsTable = ({ notifications = [] }) => {
                 <span className="text-gray-600">تاریخ ارسال:</span>
                 <span className="font-semibold">{formatPersianDate(notification.sendDate)}</span>
               </div>
-              <div className="col-span-2 flex justify-between">
-                <span className="text-gray-600">بازه بازرسی:</span>
-                <span className="font-semibold text-left flex-1 mr-2">{formatDateRange(notification.inspectionRange)}</span>
+              <div className="col-span-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">تاریخ‌های بازرسی:</span>
+                  <span className="font-semibold text-right flex-1 mr-2 text-xs break-words" title={formatMultipleDates(notification.inspectionRange)}>
+                    {formatMultipleDates(notification.inspectionRange)}
+                  </span>
+                </div>
               </div>
               <div className="col-span-2 flex justify-between items-center">
                 <span className="text-gray-600">وضعیت:</span>

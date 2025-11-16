@@ -22,7 +22,7 @@ export const inspectionSchema = z.object({
 export const notificationSchema = z.object({
   notificationNumber: z.number().min(1, "شماره ثبت الزامی است"),
   sendDate: z.date({ required_error: "تاریخ ارسال الزامی است" }),
-  inspectionRange: z.array(z.date()).length(2, "بازه بازرسی الزامی است"),
+  inspectionRange: z.array(z.date()).length(2, "تاریخ بازرسی الزامی است"),
 });
 
 export const reportSchema = z.object({

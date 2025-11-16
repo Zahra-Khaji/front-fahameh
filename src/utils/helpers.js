@@ -76,3 +76,17 @@ export const formatDateRange = (range) => {
   if (!range || range.length < 2) return "-";
   return `${formatPersianDate(range[0])} تا ${formatPersianDate(range[1])}`;
 };
+
+
+export const formatMultipleDates = (dates) => {
+  if (!dates || dates.length === 0) return "-";
+  if (dates.length === 1) return formatPersianDate(dates[0]);
+  return dates.map(date => formatPersianDate(date)).join('، ');
+};
+
+// تابع جدید برای نمایش خلاصه تاریخ‌ها
+export const formatDatesSummary = (dates) => {
+  if (!dates || dates.length === 0) return "-";
+  if (dates.length === 1) return formatPersianDate(dates[0]);
+  return `${dates.length} تاریخ انتخاب شده`;
+};

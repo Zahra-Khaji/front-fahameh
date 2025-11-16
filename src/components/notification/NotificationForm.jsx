@@ -12,7 +12,7 @@ import InputField from '../ui/InputField';
 import ConfirmationModal from '../ui/ConfirmationModal';
 
 // Utils
-import { formatPersianDate, formatDateRange } from '../../utils/helpers';
+import { formatPersianDate, formatMultipleDates } from '../../utils/helpers';
 
 const NotificationForm = ({ 
   lastNotificationNumber, 
@@ -154,31 +154,31 @@ const NotificationForm = ({
             <div className="flex flex-col">
               <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2 flex items-center">
                 <FaCalendarAlt className="ml-1 text-blue-500 text-xs sm:text-sm" />
-                تاریخ/بازه انجام بازرسی *
+                تاریخ انجام بازرسی *
               </label>
               <DatePicker
-                dateSeparator=" تا "
+           
                 value={inspectionRange}
                 onChange={handleInspectionRangeChange}
-                range
-                rangeHover
-                multiple={false}
+               
+            
+                multiple
                 plugins={[<Toolbar position="bottom" />]}
                 calendar={persian}
                 locale={persian_fa}
                 inputClass="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white"
-                placeholder="انتخاب تاریخ یا بازه"
+                placeholder="انتخاب تاریخ"
               />
-              {inspectionRange.length > 0 && (
-                <p className="text-xs text-green-600 mt-1 sm:mt-2 mr-1">
-                  {inspectionRange.length === 1 
-                    ? `تاریخ انتخاب شده: ${formatPersianDate(inspectionRange[0])}`
-                    : `بازه انتخاب شده: ${formatDateRange(inspectionRange)}`
-                  }
-                </p>
-              )}
+{inspectionRange.length > 0 && (
+  <p className="text-xs text-green-600 mt-1 sm:mt-2 mr-1">
+    {inspectionRange.length === 1 
+      ? `تاریخ انتخاب شده: ${formatPersianDate(inspectionRange[0])}`
+      : `تاریخ‌های انتخاب شده: ${formatMultipleDates(inspectionRange)}`
+    }
+  </p>
+)}
               <p className="text-xs text-gray-500 mt-1">
-                می‌توانید یک تاریخ یا یک بازه زمانی انتخاب کنید
+                می‌توانید یک یا چند تاریخ انتخاب کنید
               </p>
             </div>
           </div>
@@ -234,13 +234,13 @@ const NotificationForm = ({
               <span className="font-semibold">{inspectionDays} روز</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">
-                {inspectionRange.length === 1 ? 'تاریخ بازرسی:' : 'بازه بازرسی:'}
-              </span>
-              <span className="font-semibold text-left text-xs sm:text-sm">
-                {formatInspectionDate(inspectionRange)}
-              </span>
-            </div>
+  <span className="text-gray-600">
+    {inspectionRange.length === 1 ? 'تاریخ بازرسی:' : 'تاریخ‌های بازرسی:'}
+  </span>
+  <span className="font-semibold text-left text-xs sm:text-sm">
+    {formatMultipleDates(inspectionRange)}
+  </span>
+</div>
           </div>
         </div>
       </ConfirmationModal>

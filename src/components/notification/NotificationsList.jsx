@@ -7,7 +7,7 @@ import Button from '../ui/Button';
 import ConfirmationModal from '../ui/ConfirmationModal';
 
 // Data & Utils
-import { formatPersianDate, formatDateRange } from '../../utils/helpers';
+import { formatPersianDate, formatMultipleDates } from '../../utils/helpers'; // تغییر import
 
 const NotificationsList = ({ 
   notifications = [], 
@@ -79,7 +79,7 @@ const NotificationsList = ({
               <tr className="bg-gray-50">
                 <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">شماره</th>
                 <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">تاریخ ارسال</th>
-                <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">بازه بازرسی</th>
+                <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">تاریخ‌های بازرسی</th> {/* تغییر عنوان */}
                 <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">وضعیت</th>
                 <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">عملیات</th>
               </tr>
@@ -89,7 +89,11 @@ const NotificationsList = ({
                 <tr key={notification.id} className="border-b border-gray-200 hover:bg-gray-50">
                   <td className="p-2 sm:p-3 font-semibold text-xs sm:text-sm">{notification.number}</td>
                   <td className="p-2 sm:p-3 text-xs sm:text-sm">{formatPersianDate(notification.sendDate)}</td>
-                  <td className="p-2 sm:p-3 text-xs sm:text-sm">{formatDateRange(notification.inspectionRange)}</td>
+                  <td className="p-2 sm:p-3 text-xs sm:text-sm max-w-xs"> {/* اضافه کردن max-w-xs برای محدود کردن عرض */}
+                    <div className="truncate" title={formatMultipleDates(notification.inspectionRange)}>
+                      {formatMultipleDates(notification.inspectionRange)}
+                    </div>
+                  </td>
                   <td className="p-2 sm:p-3">
                     <select
                       value={notification.status}
@@ -138,9 +142,13 @@ const NotificationsList = ({
                   <span className="text-gray-600">تاریخ ارسال:</span>
                   <span className="font-semibold">{formatPersianDate(notification.sendDate)}</span>
                 </div>
-                <div className="col-span-2 flex justify-between">
-                  <span className="text-gray-600">بازه بازرسی:</span>
-                  <span className="font-semibold text-left flex-1 mr-2">{formatDateRange(notification.inspectionRange)}</span>
+                <div className="col-span-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">تاریخ‌های بازرسی:</span>
+                    <span className="font-semibold text-right flex-1 mr-2 text-xs break-words" title={formatMultipleDates(notification.inspectionRange)}>
+                      {formatMultipleDates(notification.inspectionRange)}
+                    </span>
+                  </div>
                 </div>
                 <div className="col-span-2 flex justify-between items-center">
                   <span className="text-gray-600">وضعیت:</span>
