@@ -140,3 +140,8 @@ export const projects = [
   { id: "2", name: "پروژه پارس بهین پالایش" },
   { id: "3", name: "پروژه پتروشیمی جم" },
 ];
+
+export const projectTypes = [
+  { id: "internal", name: "داخلی" },
+  { id: "external", name: "کالا خارجی" },
+];

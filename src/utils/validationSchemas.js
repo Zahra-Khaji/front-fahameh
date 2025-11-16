@@ -4,6 +4,7 @@ import { z } from "zod";
 export const inspectionSchema = z.object({
   projectInfo: z.object({
     projectName: z.string().min(1, "نام پروژه الزامی است"),
+    projectType: z.string().min(1, "نوع پروژه الزامی است"),
     province: z.string().min(1, "انتخاب استان الزامی است"),
     city: z.string().min(1, "انتخاب شهر الزامی است"),
     vendor: z.string().min(1, "انتخاب وندور الزامی است"),
