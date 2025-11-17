@@ -1,6 +1,5 @@
 // src/hooks/useDailyReports.js
 import { useState, useEffect } from "react";
-import { getDatesInRange } from "../utils/helpers";
 import { calculateFinancialSummary } from "../utils/financialCalculations";
 
 export const useDailyReports = (previousData, initialDailyReports = []) => {
@@ -34,8 +33,8 @@ export const useDailyReports = (previousData, initialDailyReports = []) => {
 
     const defaultApprovalStatus = getReportStatus();
 
-    // گرفتن بازه زمانی واقعی از نوتیفیکیشن
-    const getRealInspectionRange = () => {
+    // گرفتن بازه زمانی واقعی از نوتیفیکیشن - حالت MULTIPLE
+    const getRealInspectionDates = () => {
       if (
         previousData?.notifications &&
         previousData.notifications.length > 0
@@ -45,6 +44,8 @@ export const useDailyReports = (previousData, initialDailyReports = []) => {
           notification.inspectionRange &&
           Array.isArray(notification.inspectionRange)
         ) {
+          // حالت MULTIPLE: استفاده مستقیم از تاریخ‌های انتخاب شده
+          console.log("تاریخ‌های انتخاب شده در نوتیفیکیشن:", notification.inspectionRange);
           return notification.inspectionRange;
         }
       }
@@ -53,33 +54,23 @@ export const useDailyReports = (previousData, initialDailyReports = []) => {
         previousData?.inspectionRange &&
         Array.isArray(previousData.inspectionRange)
       ) {
+        // حالت MULTIPLE: استفاده مستقیم از تاریخ‌های انتخاب شده
+        console.log("تاریخ‌های انتخاب شده در inspectionRange:", previousData.inspectionRange);
         return previousData.inspectionRange;
       }
 
       // Fallback به تاریخ‌های نمونه
+      console.log("استفاده از تاریخ‌های پیش‌فرض");
       return [new Date("2024-10-13"), new Date("2024-10-15")];
     };
 
-    const realInspectionRange = getRealInspectionRange();
+    const realInspectionDates = getRealInspectionDates();
 
-    // منطق جدید: اگر یک تاریخ انتخاب شده، فقط همون تاریخ رو در نظر بگیر
-    let dates = [];
-
-    if (realInspectionRange.length === 1) {
-      // فقط یک تاریخ انتخاب شده
-      dates = [realInspectionRange[0]];
-    } else if (realInspectionRange.length === 2) {
-      // بازه زمانی انتخاب شده
-      dates = getDatesInRange(realInspectionRange[0], realInspectionRange[1]);
-    } else {
-      // حالت پیش‌فرض
-      dates = getDatesInRange(new Date("2024-10-13"), new Date("2024-10-15"));
-    }
-
-    console.log("تاریخ‌های تولید شده برای جدول:", dates);
+    console.log("تاریخ‌های نهایی برای جدول:", realInspectionDates);
     console.log("وضعیت گزارش استفاده شده:", defaultApprovalStatus);
 
-    const reports = dates.map((date, index) => ({
+    // ایجاد گزارش برای هر تاریخ انتخاب شده در حالت MULTIPLE
+    const reports = realInspectionDates.map((date, index) => ({
       id: Date.now() + index,
       inspectionDate: date,
       approvalStatus: defaultApprovalStatus,
