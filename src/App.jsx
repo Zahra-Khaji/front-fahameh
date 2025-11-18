@@ -19,6 +19,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Users from "./pages/Users";
 import Auth from "./pages/Auth";
 import Login from "./pages/Login";
+import RegisterReport from "./pages/RegisterReport";
 
 
 const queryClient = new QueryClient();
@@ -53,6 +54,8 @@ function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="registerInspection" element={<RegisterInspection />} />
+            <Route path="registerReport" element={<RegisterReport />} />
+
 
             <Route path="users" element={<Users />} />
             <Route path="proposals" element={<Proposals />} />

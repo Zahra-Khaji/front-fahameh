@@ -31,3 +31,20 @@ export const reportSchema = z.object({
   corrections: z.string().optional(),
   receiveDate: z.date({ required_error: "تاریخ دریافت الزامی است" }),
 });
+
+// اضافه کردن schema جدید برای گزارش
+export const inspectionReportSchema = z.object({
+  reportNumber: z.number().min(1, "شماره گزارش الزامی است"),
+  receiveDate: z.date({ required_error: "تاریخ دریافت الزامی است" }),
+  status: z.string().min(1, "وضعیت گزارش الزامی است"),
+  corrections: z.string().optional(),
+}).refine((data) => {
+  // اگر وضعیت "نیاز به اصلاحات" باشد، فیلد اصلاحات الزامی است
+  if (data.status === 'needs_correction') {
+    return data.corrections && data.corrections.trim().length > 0;
+  }
+  return true;
+}, {
+  message: "وارد کردن توضیحات اصلاحات الزامی است",
+  path: ["corrections"],
+});
