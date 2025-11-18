@@ -5,9 +5,10 @@ import { FaList, FaPlus, FaTrash } from 'react-icons/fa';
 // Components
 import Button from '../ui/Button';
 import ConfirmationModal from '../ui/ConfirmationModal';
+import FinalConfirmationContent from './FinalConfirmationContent'; // اضافه کردن import
 
 // Data & Utils
-import { formatPersianDate, formatMultipleDates } from '../../utils/helpers'; // تغییر import
+import { formatPersianDate, formatMultipleDates } from '../../utils/helpers';
 
 const NotificationsList = ({ 
   notifications = [], 
@@ -15,12 +16,14 @@ const NotificationsList = ({
   onDelete, 
   onAddNew, 
   showAddButton = true, 
-  onComplete 
+  onComplete,
+  previousData 
 }) => {
   const [deleteConfirmation, setDeleteConfirmation] = useState({ 
     show: false, 
     notification: null 
   });
+  const [showFinalConfirmation, setShowFinalConfirmation] = useState(false); // state جدید برای مدال نهایی
 
   const handleStatusChange = (notificationId, newStatus) => {
     onEdit(notificationId, { status: newStatus });
@@ -35,6 +38,17 @@ const NotificationsList = ({
       onDelete(deleteConfirmation.notification.id);
     }
     setDeleteConfirmation({ show: false, notification: null });
+  };
+
+  // تابع جدید برای نمایش مدال تأیید نهایی
+  const handleFinalConfirmation = () => {
+    setShowFinalConfirmation(true);
+  };
+
+  // تابع جدید برای ثبت نهایی
+  const handleFinalSubmit = () => {
+    setShowFinalConfirmation(false);
+    onComplete(); // فراخوانی تابع اصلی
   };
 
   const statusOptions = [
@@ -79,7 +93,7 @@ const NotificationsList = ({
               <tr className="bg-gray-50">
                 <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">شماره</th>
                 <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">تاریخ ارسال</th>
-                <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">تاریخ‌های بازرسی</th> {/* تغییر عنوان */}
+                <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">تاریخ‌های بازرسی</th>
                 <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">وضعیت</th>
                 <th className="p-2 sm:p-3 text-right font-semibold text-gray-700 text-xs sm:text-sm">عملیات</th>
               </tr>
@@ -89,7 +103,7 @@ const NotificationsList = ({
                 <tr key={notification.id} className="border-b border-gray-200 hover:bg-gray-50">
                   <td className="p-2 sm:p-3 font-semibold text-xs sm:text-sm">{notification.number}</td>
                   <td className="p-2 sm:p-3 text-xs sm:text-sm">{formatPersianDate(notification.sendDate)}</td>
-                  <td className="p-2 sm:p-3 text-xs sm:text-sm max-w-xs"> {/* اضافه کردن max-w-xs برای محدود کردن عرض */}
+                  <td className="p-2 sm:p-3 text-xs sm:text-sm max-w-xs">
                     <div className="truncate" title={formatMultipleDates(notification.inspectionRange)}>
                       {formatMultipleDates(notification.inspectionRange)}
                     </div>
@@ -186,13 +200,13 @@ const NotificationsList = ({
         {/* Complete Button */}
         <div className="flex justify-center pt-4 sm:pt-6 border-t border-gray-200 mt-4 sm:mt-6">
           <Button
-            onClick={onComplete}
-            variant="primary"
+            onClick={handleFinalConfirmation} // تغییر به تابع جدید
+            variant="success"
             size="lg"
             icon="check"
             className="w-full sm:w-auto"
           >
-            ادامه به مرحله بعد
+            تکمیل و ثبت نهایی
           </Button>
         </div>
       </div>
@@ -208,6 +222,24 @@ const NotificationsList = ({
         cancelText="انصراف"
         type="danger"
       />
+
+      {/* Final Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showFinalConfirmation}
+        onClose={() => setShowFinalConfirmation(false)}
+        onConfirm={handleFinalSubmit}
+        title="تأیید نهایی اطلاعات"
+        message="لطفاً اطلاعات وارد شده را بررسی و تأیید کنید"
+        confirmText="تأیید و ثبت نهایی"
+        cancelText="بازگشت و ویرایش"
+        type="success"
+        size="large"
+      >
+        <FinalConfirmationContent 
+          previousData={previousData} 
+          notifications={notifications}
+        />
+      </ConfirmationModal>
     </>
   );
 };

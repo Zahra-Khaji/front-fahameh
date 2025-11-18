@@ -11,6 +11,8 @@ import RequestInfoSidebar from '../common/RequestInfoSidebar';
 import Button from '../ui/Button';
 import NotificationForm from '../notification/NotificationForm';
 import NotificationsList from '../notification/NotificationsList';
+import NotificationsTable from '../notification/NotificationsTable';
+
 import ConfirmationModal from '../ui/ConfirmationModal';
 
 // Hooks & Utils
@@ -43,14 +45,14 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
     setShowAddForm(false);
   };
 
-  // تغییر: مستقیماً به مرحله صورت وضعیت برو
+  // تغییر: این مرحله آخر هست - روی complete داده‌ها رو جمع‌آوری کن
   const handleCompleteStep = () => {
     const stepData = {
       notifications: notifications,
       inspectionRange: notifications[0]?.inspectionRange || []
     };
-    console.log('ارسال داده‌های نوتیفیکیشن:', stepData);
-    onComplete(stepData); // اینجا مستقیماً به مرحله بعد می‌ره
+    console.log('ارسال داده‌های نهایی:', stepData);
+    onComplete(stepData); // اینجا فرم تموم میشه
   };
 
   const realNotifications = previousData?.notifications || [];
@@ -77,11 +79,6 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-4 sm:space-y-6">
-            
-            {/* Notifications Table با دیتای واقعی */}
-            {realNotifications.length > 0 && (
-              <NotificationsTable notifications={realNotifications} />
-            )}
 
             {/* Add Notification Form */}
             {showAddForm && (
@@ -100,7 +97,11 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
                 onDelete={deleteNotification}
                 onAddNew={() => setShowAddForm(true)}
                 showAddButton={!showAddForm}
-                onComplete={handleCompleteStep} // تغییر: مستقیماً به صورت وضعیت
+                onComplete={handleCompleteStep}
+                previousData={previousData}
+                
+                
+                // تغییر: این مرحله آخر هست
               />
             )}
 

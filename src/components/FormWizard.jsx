@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import InspectionForm from './forms/InspectionForm';
 import NotificationStep from './forms/NotificationStep';
-import DailyInspectionReport from './forms/DailyInspectionReport';
 import StepProgress from './common/StepProgress';
 import { useFormState } from '../hooks/useFormState';
 
@@ -10,21 +9,20 @@ const FormWizard = () => {
   const [currentStep, setCurrentStep] = useState('inspection');
   const { formData, lists, updateFormData, addToList, updateListItem, removeFromList } = useFormState({});
 
-  // حذف مرحله گزارش بازرس
+  // فقط دو مرحله
   const steps = [
     { id: 'inspection', label: 'اطلاعات بازرسی', number: 1 },
-    { id: 'notification', label: 'نوتیفیکیشن', number: 2 },
-    { id: 'dailyReport', label: 'صورت وضعیت', number: 3 } // تغییر شماره به 3
+    { id: 'notification', label: 'نوتیفیکیشن', number: 2 }
   ];
 
   const handleStepComplete = (step, data) => {
     console.log(`تکمیل مرحله ${step}:`, data);
     updateFormData(data);
     
-    // حذف مرحله report از nextSteps
+    // فقط دو مرحله
     const nextSteps = {
-      inspection: 'notification',
-      notification: 'dailyReport' // مستقیماً به صورت وضعیت برو
+      inspection: 'notification'
+      // notification مرحله آخر هست - دیگه مرحله‌ای بعدش نیست
     };
     
     if (nextSteps[step]) {
@@ -33,10 +31,9 @@ const FormWizard = () => {
   };
 
   const handleBack = () => {
-    // حذف مرحله report از prevSteps
+    // فقط دو مرحله
     const prevSteps = {
-      notification: 'inspection',
-      dailyReport: 'notification'
+      notification: 'inspection'
     };
     
     if (prevSteps[currentStep]) {
@@ -51,11 +48,10 @@ const FormWizard = () => {
       previousData: formData
     };
 
-    // حذف ReportStep
+    // فقط دو کامپوننت
     const stepComponents = {
       inspection: <InspectionForm {...commonProps} />,
-      notification: <NotificationStep {...commonProps} lists={lists} onListChange={{ addToList, updateListItem, removeFromList }} />,
-      dailyReport: <DailyInspectionReport {...commonProps} lists={lists} />
+      notification: <NotificationStep {...commonProps} lists={lists} onListChange={{ addToList, updateListItem, removeFromList }} />
     };
 
     return stepComponents[currentStep];
