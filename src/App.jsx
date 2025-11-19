@@ -20,6 +20,8 @@ import Users from "./pages/Users";
 import Auth from "./pages/Auth";
 import Login from "./pages/Login";
 import RegisterReport from "./pages/RegisterReport";
+import ProjectsInfo from "./pages/ProjectsInfo";
+
 
 
 const queryClient = new QueryClient();
@@ -55,6 +57,8 @@ function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="registerInspection" element={<RegisterInspection />} />
             <Route path="registerReport" element={<RegisterReport />} />
+            <Route path="projectsInfo" element={<ProjectsInfo />} />
+
 
 
             <Route path="users" element={<Users />} />

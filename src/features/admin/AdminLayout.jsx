@@ -20,18 +20,22 @@ function AdminLayout() {
         <HiOutlineDocumentAdd  className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>ثبت درخواست بازرسی</span>
       </CustomNavLink>
-      <CustomNavLink to="registerReport">
+      {/* <CustomNavLink to="registerReport">
         <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>ثبت گزارش بازرسی</span>
+      </CustomNavLink> */}
+      <CustomNavLink to="projectsInfo">
+        <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
+        <span>پروژه ها</span>
       </CustomNavLink>
       <CustomNavLink to="users">
         <HiUser className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>کاربران</span>
       </CustomNavLink>
-      <CustomNavLink to="projects">
+      {/* <CustomNavLink to="projects">
         <HiOutlineViewGrid className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>پروژه ها</span>
-      </CustomNavLink>
+      </CustomNavLink> */}
       <CustomNavLink to="proposals">
         <HiCollection className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>درخواست ها</span>
