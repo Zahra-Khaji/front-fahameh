@@ -99,6 +99,15 @@ const ProjectsTable = () => {
 
   const handleViewDetails = (projectId) => {
     console.log('مشاهده جزئیات پروژه:', projectId);
+    const fetchData = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/inspectors');
+        const data = await response.json();
+        console.log("its ok+++++++",data);
+      } catch (error) {
+        console.error('خطا در دریافت داده:', error);
+      }
+    };
   };
 
   return (
