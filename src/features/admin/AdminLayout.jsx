@@ -8,10 +8,7 @@ import { HiCollection, HiHome, HiUser, HiOutlineViewGrid,HiDocumentReport,HiOutl
 function AdminLayout() {
   return (
     <AppLayout>
-            {/* <CustomNavLink to="login">
-        <HiHome className="w-5 h-5 lg:w-4 lg:h-4" />
-        <span>ورود</span>
-      </CustomNavLink> */}
+
       <CustomNavLink to="dashboard">
         <HiHome className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>داشبورد</span>
@@ -20,11 +17,7 @@ function AdminLayout() {
         <HiOutlineDocumentAdd  className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>ثبت درخواست بازرسی</span>
       </CustomNavLink>
-      {/* <CustomNavLink to="registerReport">
-        <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
-        <span>ثبت گزارش بازرسی</span>
-      </CustomNavLink> */}
-      <CustomNavLink to="projectsInfo">
+      <CustomNavLink to="rfi-report">
         <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>پروژه ها</span>
       </CustomNavLink>
@@ -32,10 +25,7 @@ function AdminLayout() {
         <HiUser className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>کاربران</span>
       </CustomNavLink>
-      {/* <CustomNavLink to="projects">
-        <HiOutlineViewGrid className="w-5 h-5 lg:w-4 lg:h-4" />
-        <span>پروژه ها</span>
-      </CustomNavLink> */}
+      {/* <Route path="/admin/rfi-report" element={<RFIReportTable />} /> */}
       <CustomNavLink to="proposals">
         <HiCollection className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>درخواست ها</span>

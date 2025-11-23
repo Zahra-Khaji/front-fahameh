@@ -38,8 +38,8 @@ export const useRFIReport = (projectName, enabled = false) => {
         throw new Error(errorMessage);
       }
     },
-    enabled: enabled && !!projectName, // فقط وقتی enabled باشه و projectName داشته باشیم
+    enabled: enabled && !!projectName,
     retry: 1,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };

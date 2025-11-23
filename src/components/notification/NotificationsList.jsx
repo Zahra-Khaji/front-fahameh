@@ -9,6 +9,7 @@ import FinalConfirmationContent from './FinalConfirmationContent'; // اضافه
 
 // Data & Utils
 import { formatPersianDate, formatMultipleDates } from '../../utils/helpers';
+import { useNavigate } from 'react-router-dom';
 
 const NotificationsList = ({ 
   notifications = [], 
@@ -19,6 +20,7 @@ const NotificationsList = ({
   onComplete,
   previousData 
 }) => {
+  const navigate = useNavigate();
   const [deleteConfirmation, setDeleteConfirmation] = useState({ 
     show: false, 
     notification: null 
@@ -46,11 +48,24 @@ const NotificationsList = ({
   };
 
   // تابع جدید برای ثبت نهایی
+  // const handleFinalSubmit = () => {
+  //   setShowFinalConfirmation(false);
+  //   onComplete(); // فراخوانی تابع اصلی
+  // };
   const handleFinalSubmit = () => {
     setShowFinalConfirmation(false);
-    onComplete(); // فراخوانی تابع اصلی
+    
+    // گرفتن نام پروژه از previousData
+    const projectName = previousData?.projectInfo?.projectName;
+    
+    if (projectName) {
+      // نویگیت به صفحه RFIReportTable با پارامتر پروژه
+      navigate(`/admin/rfi-report?project=${encodeURIComponent(projectName)}`);
+    } else {
+      // اگر نام پروژه نبود، تابع اصلی رو فراخوانی کن
+      onComplete();
+    }
   };
-
   const statusOptions = [
     { value: 'pending', label: 'در حال انجام' },
     { value: 'approved', label: 'تأیید شده' },

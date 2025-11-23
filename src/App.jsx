@@ -57,7 +57,9 @@ function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="registerInspection" element={<RegisterInspection />} />
             <Route path="registerReport" element={<RegisterReport />} />
-            <Route path="projectsInfo" element={<ProjectsInfo />} />
+            {/* <Route path="projectsInfo" element={<ProjectsInfo />} /> */}
+      <Route path="rfi-report" element={<ProjectsInfo />} />
+
 
 
 

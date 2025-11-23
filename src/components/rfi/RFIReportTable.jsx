@@ -1,6 +1,7 @@
 // src/components/rfi/RFIReportTable.jsx
-import React, { useState, useMemo } from 'react';
-import { FaTable, FaSearch, FaSync, FaFileAlt } from 'react-icons/fa';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { FaTable, FaSearch, FaSync, FaFileAlt, FaArrowRight } from 'react-icons/fa';
 
 // Components
 import StepHeader from '../common/StepHeader';
@@ -12,25 +13,46 @@ import { useProjects } from '../../hooks/useProjects';
 import { useRFIReport } from '../../hooks/useRFIReport';
 
 const RFIReportTable = () => {
+  const location = useLocation();
   const [selectedProject, setSelectedProject] = useState('');
   const [projectName, setProjectName] = useState('');
   const [shouldFetch, setShouldFetch] = useState(false);
+  const [isAutoFetch, setIsAutoFetch] = useState(false);
 
   // استفاده از هوک پروژه‌ها
   const { data: projects, isLoading: projectsLoading, error: projectsError } = useProjects();
   
-  // استفاده از هوک گزارش RFI - فقط وقتی shouldFetch true باشه
+  // استفاده از هوک گزارش RFI
   const { data: rfiData, isLoading: rfiLoading, error: rfiError } = useRFIReport(
     projectName, 
     shouldFetch
   );
 
+  // اثر برای خواندن query parameters از URL
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const projectFromQuery = searchParams.get('project');
+    
+    if (projectFromQuery) {
+      const decodedProjectName = decodeURIComponent(projectFromQuery);
+      setProjectName(decodedProjectName);
+      setShouldFetch(true);
+      setIsAutoFetch(true);
+      
+      // پیدا کردن ID پروژه بر اساس نام
+      const foundProject = projects?.find(project => project.name === decodedProjectName);
+      if (foundProject) {
+        setSelectedProject(foundProject.id);
+      }
+    }
+  }, [location.search, projects]);
+
   const handleProjectChange = (e) => {
     const projectId = e.target.value;
     setSelectedProject(projectId);
-    setShouldFetch(false); // ریست کردن جستجو وقتی پروژه عوض میشه
+    setShouldFetch(false);
+    setIsAutoFetch(false);
     
-    // پیدا کردن نام پروژه انتخاب شده
     const selectedProjectObj = projects?.find(project => project.id === projectId);
     if (selectedProjectObj) {
       setProjectName(selectedProjectObj.name);
@@ -42,6 +64,7 @@ const RFIReportTable = () => {
   const handleSearch = () => {
     if (projectName) {
       setShouldFetch(true);
+      setIsAutoFetch(false);
     }
   };
 
@@ -51,65 +74,90 @@ const RFIReportTable = () => {
     
     return Object.values(rfiData).map(item => ({
       ...item,
-      // فرمت تاریخ برای نمایش
       formattedInspectionDate: new Date(item.InspectionDate).toLocaleDateString('fa-IR')
     }));
   }, [rfiData, shouldFetch]);
 
   // حالت‌های مختلف نمایش
   const showEmptyState = shouldFetch && !rfiLoading && !rfiError && tableData.length === 0;
-  const showInitialState = !shouldFetch && !rfiLoading;
+  const showInitialState = !shouldFetch && !rfiLoading && !isAutoFetch;
+  const showAutoFetchLoading = isAutoFetch && rfiLoading;
+  const showManualLoading = !isAutoFetch && rfiLoading;
   const showResults = shouldFetch && tableData.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-1 px-3 sm:px-4 lg:px-4" dir="rtl">
       <div className="max-w-7xl mx-auto">
         
-        {/* Header شبیه فرم‌های قبلی */}
         <StepHeader
-          title="گزارش RFI پروژه‌ها"
-          description="مشاهده گزارش‌های RFI بر اساس پروژه انتخابی"
+          title="گزارش  پروژه‌ها"
+          
+          description="مشاهده گزارش‌ها  بر اساس پروژه انتخابی"
           icon={FaTable}
         />
 
         <div className="bg-white rounded-xl shadow-lg p-3 sm:p-3 lg:p-4">
           
-          {/* فرم انتخاب پروژه */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 mb-6 items-end">
-            <div className="lg:col-span-3">
-              <SelectField
-                label="انتخاب پروژه *"
-                value={selectedProject}
-                onChange={handleProjectChange}
-                options={projects || []}
-                placeholder={
-                  projectsLoading ? "در حال دریافت لیست پروژه‌ها..." : 
-                  projectsError ? "خطا در دریافت پروژه‌ها" : "انتخاب پروژه"
-                }
-                disabled={projectsLoading || !!projectsError}
-                className="py-2.5"
-              />
-            </div>
-            
-            <div className="lg:col-span-1">
-              <Button
-                onClick={handleSearch}
-                variant="primary"
-                icon="search"
-                disabled={!projectName || rfiLoading}
-                className="w-full py-2.5"
-              >
-                {rfiLoading ? (
-                  <span className="flex items-center justify-center">
-                    <FaSync className="animate-spin ml-2" />
-                    در حال جستجو...
-                  </span>
-                ) : (
-                  'جستجو'
+          {/* نمایش اطلاعات پروژه وقتی از بیرون میاد */}
+          {isAutoFetch && (
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 mb-6 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FaArrowRight className="text-xl" />
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1">
+                      پروژه: {projectName}
+                    </h3>
+                    <p className="text-blue-100 text-sm">
+                     در حال بارگذاری اطلاعات پروژه...
+                    </p>
+                  </div>
+                </div>
+                {rfiLoading && (
+                  <FaSync className="animate-spin text-white text-xl" />
                 )}
-              </Button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* فرم انتخاب پروژه - اگر auto-fetch نباشد نمایش بده */}
+          {!isAutoFetch && (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 mb-6 items-end">
+              <div className="lg:col-span-3">
+                <SelectField
+                  label="انتخاب پروژه *"
+                  value={selectedProject}
+                  onChange={handleProjectChange}
+                  options={projects || []}
+                  placeholder={
+                    projectsLoading ? "در حال دریافت لیست پروژه‌ها..." : 
+                    projectsError ? "خطا در دریافت پروژه‌ها" : "انتخاب پروژه"
+                  }
+                  disabled={projectsLoading || !!projectsError}
+                  className="py-2.5"
+                />
+              </div>
+              
+              <div className="lg:col-span-1">
+                <Button
+                  onClick={handleSearch}
+                  variant="primary"
+                  icon="search"
+                  disabled={!projectName || rfiLoading}
+                  className="w-full py-2.5"
+                >
+                  {rfiLoading ? (
+                    <span className="flex items-center justify-center">
+                      <FaSync className="animate-spin ml-2" />
+                      در حال جستجو...
+                    </span>
+                  ) : (
+                    'جستجو'
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* نمایش خطا */}
           {rfiError && (
@@ -127,7 +175,6 @@ const RFIReportTable = () => {
           {showResults && (
             <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200">
               <table className="w-full text-sm">
-                {/* Table Header با رنگ آبی */}
                 <thead>
                   <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
                     <th className="p-4 text-right font-semibold text-white text-sm min-w-24">شماره RFI</th>
@@ -241,30 +288,57 @@ const RFIReportTable = () => {
           {/* Results Count */}
           {showResults && (
             <div className="mt-4 text-sm text-gray-600 bg-blue-50 rounded-lg p-3 border border-blue-200">
-              <span className="font-semibold text-blue-800">تعداد گزارش‌های RFI: </span>
+              <span className="font-semibold text-blue-800">تعداد گزارش : </span>
               <span className="font-bold text-blue-600">{tableData.length} مورد</span>
               <span className="mr-2 text-blue-700">برای پروژه: {projectName}</span>
+              {isAutoFetch && (
+                <span className="text-blue-600 text-xs bg-blue-100 px-2 py-1 rounded mr-2">
+                  بارگذاری خودکار
+                </span>
+              )}
             </div>
           )}
 
-          {/* حالت خالی - فقط بعد از جستجو نمایش داده بشه */}
+          {/* حالت خالی */}
           {showEmptyState && (
             <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-gray-200">
               <FaFileAlt className="text-4xl mx-auto mb-3 text-gray-400" />
-              <p className="text-lg font-semibold">گزارش RFI‌ای یافت نشد</p>
+              <p className="text-lg font-semibold">گزارش  یافت نشد</p>
               <p className="text-sm text-gray-400 mt-1">
-                برای پروژه <span className="font-semibold text-gray-600">{projectName}</span> هیچ گزارش RFI‌ای موجود نیست.
+                برای پروژه <span className="font-semibold text-gray-600">{projectName}</span> هیچ گزارشی  موجود نیست.
               </p>
             </div>
           )}
 
-          {/* حالت اولیه - فقط قبل از جستجو نمایش داده بشه */}
+          {/* حالت اولیه - فقط وقتی auto-fetch نباشد */}
           {showInitialState && (
             <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-gray-200">
               <FaSearch className="text-4xl mx-auto mb-3 text-indigo-400" />
               <p className="text-lg font-semibold">انتخاب پروژه</p>
               <p className="text-sm text-gray-400 mt-1">
                 لطفاً یک پروژه از لیست انتخاب کنید و دکمه جستجو را بزنید.
+              </p>
+            </div>
+          )}
+
+          {/* حالت auto-fetch loading */}
+          {showAutoFetchLoading && (
+            <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-gray-200">
+              <FaSync className="text-4xl mx-auto mb-3 text-blue-400 animate-spin" />
+              <p className="text-lg font-semibold">در حال بارگذاری خودکار...</p>
+              <p className="text-sm text-gray-400 mt-1">
+                گزارش  برای پروژه <span className="font-semibold text-gray-600">{projectName}</span> در حال بارگذاری است.
+              </p>
+            </div>
+          )}
+
+          {/* حالت manual loading */}
+          {showManualLoading && (
+            <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-gray-200">
+              <FaSync className="text-4xl mx-auto mb-3 text-indigo-400 animate-spin" />
+              <p className="text-lg font-semibold">در حال جستجو...</p>
+              <p className="text-sm text-gray-400 mt-1">
+                در حال دریافت گزارش‌های  برای پروژه <span className="font-semibold text-gray-600">{projectName}</span>
               </p>
             </div>
           )}

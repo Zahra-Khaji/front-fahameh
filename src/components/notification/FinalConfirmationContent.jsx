@@ -150,7 +150,7 @@ const FinalConfirmationContent = ({ previousData, notifications }) => {
       )}
 
       {/* برنامه بازرسی خلاصه */}
-      {notifications && notifications.length > 0 && (
+      {/* {notifications && notifications.length > 0 && (
         <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
           <h3 className="text-md font-bold text-purple-800 mb-3 flex items-center">
             <FaCalendarAlt className="ml-2 text-sm" />
@@ -169,7 +169,7 @@ const FinalConfirmationContent = ({ previousData, notifications }) => {
             ))}
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
