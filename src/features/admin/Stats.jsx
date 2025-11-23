@@ -27,3 +27,7 @@ function Stats({ proposals, users, projects }) {
 }
 
 export default Stats;
+
+
+// style={{ direction: "ltr" }}
+

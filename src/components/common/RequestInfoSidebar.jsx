@@ -1,22 +1,30 @@
 // src/components/common/RequestInfoSidebar.jsx
 import React from 'react';
-import { provinces, citiesByProvince, vendors } from '../../data/staticData';
+import { useProvinces, useCities } from '../../hooks/useProvinces';
+import { useVendors } from '../../hooks/useVendors';
 import Button from '../ui/Button';
 
 const RequestInfoSidebar = ({ previousData, onBack, showBackButton = true }) => {
+  // استفاده از هوک‌های مشابه فرم
+  const { data: provinces } = useProvinces();
+  const { data: cities } = useCities(previousData?.projectInfo?.province);
+  const { data: vendors } = useVendors();
+
   const getLocationName = (provinceId, cityId) => {
-    const province = provinces.find(p => p.id === provinceId);
-    const city = citiesByProvince[provinceId]?.find(c => c.id === cityId);
+    const province = provinces?.find(p => p.id === provinceId);
+    const city = cities?.find(c => c.id === cityId);
     return {
-      provinceName: province ? province.name : '-',
-      cityName: city ? city.name : '-'
+      provinceName: province ? province.name : provinceId || '-',
+      cityName: city ? city.name : cityId || '-'
     };
   };
 
   const getVendorName = (vendorId) => {
-    const vendor = vendors.find(s => s.id === vendorId);
-    return vendor ? vendor.name : '-';
+    const vendor = vendors?.find(s => s.id === vendorId);
+    return vendor ? vendor.name : vendorId || '-';
   };
+
+  const location = getLocationName(previousData?.projectInfo?.province, previousData?.projectInfo?.city);
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 sticky top-4">
@@ -38,15 +46,14 @@ const RequestInfoSidebar = ({ previousData, onBack, showBackButton = true }) => 
         <div>
           <span className="font-semibold text-gray-600">وندور:</span>
           <p className="text-gray-800">
-            {getVendorName(previousData?.projectInfo?.vendor) || '-'}
+            {getVendorName(previousData?.projectInfo?.vendor)}
           </p>
         </div>
         
         <div>
           <span className="font-semibold text-gray-600">موقعیت:</span>
           <p className="text-gray-800">
-            {getLocationName(previousData?.projectInfo?.province, previousData?.projectInfo?.city).provinceName} - 
-            {getLocationName(previousData?.projectInfo?.province, previousData?.projectInfo?.city).cityName}
+            {location.provinceName} - {location.cityName}
           </p>
         </div>
 
@@ -56,7 +63,7 @@ const RequestInfoSidebar = ({ previousData, onBack, showBackButton = true }) => 
             size="md"
             icon="arrowLeft"
             onClick={onBack}
-            className="w-full text-sm mt-4"
+            className="w-full text-xs mt-4"
           >
             بازگشت به مرحله قبل
           </Button>

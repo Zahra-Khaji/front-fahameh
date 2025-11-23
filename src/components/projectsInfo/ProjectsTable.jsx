@@ -99,17 +99,31 @@ const ProjectsTable = () => {
 
   const handleViewDetails = (projectId) => {
     console.log('مشاهده جزئیات پروژه:', projectId);
-    console.log("its ok+++++++");
+    console.log("its okpppppppppppp+++++++");
 
     const fetchData = async () => {
+      console.log("its 22222");
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/inspectors');
-        const data = await response.json();
-        console.log("its ok+++++++",data);
-      } catch (error) {
-        console.error('خطا در دریافت داده:', error);
-      }
+       const response = await fetch('http://127.0.0.1:8001/api/projects', {
+           method: 'GET',
+           headers: {
+               'accept': 'application/json',
+               'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJNLVNhZHJpIiwiZXhwIjoxNzYzOTM2NzEzfQ.K3eY3rokXwr-GnXeWdVqIj6lwjVtE_5AUhyAe6bE7nc'
+           },
+           // mode: 'no-cors'
+       });
+   
+       if (!response.ok) {
+           throw new Error(`HTTP error! status: ${response.status}`);
+       }
+   
+       const data = await response.json();
+       console.log("Data received:", data);
+   } catch (error) {
+       console.error('Error fetching data:', error);
+   }
     };
+    fetchData()
   };
 
   return (

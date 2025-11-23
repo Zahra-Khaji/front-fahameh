@@ -4,57 +4,102 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from "react-router-dom";
-import { FaCheck, FaTimes, FaUser, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa'; // اضافه کردن آیکون‌های چشم
+import { FaCheck, FaTimes, FaUser, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+
+// Hooks
+import { useLogin } from '../../hooks/useAuth';
 
 const loginSchema = z.object({
-  user: z.string().min(1, 'لطفاً یک کاربر انتخاب کنید'),
-  password: z.string().min(1, 'رمز عبور الزامی است').min(6, 'رمز عبور باید حداقل ۶ کاراکتر باشد'),
+  username: z.string().min(1, 'لطفاً نام کاربری را وارد کنید').min(3, 'نام کاربری باید حداقل ۳ کاراکتر باشد'),
+  password: z.string().min(1, 'رمز عبور الزامی است'),
 });
-
-const users = [
-  { id: '1', name: 'عماد عمادپور', role: 'ادمین' },
-  { id: '2', name: ' حسن عمادی', role: 'بازرس یک' },
-  { id: '3', name: 'محمد حسنی ', role: 'بازرس دو' },
-  { id: '4', name: 'سعید امینی', role: 'اپراتور' },
-];
 
 const LoginForm = () => {
   const navigate = useNavigate();
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
-  const [showPassword, setShowPassword] = useState(false); // state جدید برای نمایش/مخفی کردن رمز عبور
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
+  // استفاده از هوک لاگین
+  const { mutate: login, isLoading: isSubmitting, error: loginMutationError } = useLogin();
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(loginSchema),
   });
 
-  // useEffect برای auto-navigate بعد از ۱ ثانیه
+  // مدیریت خطاهای لاگین
   useEffect(() => {
-    if (showSuccessPopup) {
+    if (loginMutationError) {
+      const errorMessage = loginMutationError.response?.data?.detail || 
+                          loginMutationError.message || 
+                          'خطا در ورود به سیستم';
+      setLoginError(errorMessage);
+    }
+  }, [loginMutationError]);
+
+  // تابع برای navigation بر اساس نقش
+  const navigateByRole = (role) => {
+    console.log('نقش کاربر:', role, 'در حال انتقال...');
+    
+    if (role === "admin") {
+      navigate("/admin");
+    } else if (role === "inspector") {
+      navigate("/inspector");
+    } else if (role === "operator") {
+      navigate("/operator");
+    } else {
+      // نقش پیش‌فرض
+      navigate("/dashboard");
+    }
+  };
+
+  const onSubmit = async (data) => {
+    setLoginError('');
+    
+    try {
+      login(
+        { username: data.username, password: data.password },
+        {
+          onSuccess: (response) => {
+            console.log('Login successful with user data:', response);
+            
+            // ایجاد اطلاعات کاربر برای نمایش
+            const user = {
+              id: '1',
+              name: response.userData.username,
+              role: response.userData.role
+            };
+            setLoggedInUser(user);
+            setShowSuccessPopup(true);
+          },
+          onError: (error) => {
+            console.error('Login failed:', error);
+            setLoginError('نام کاربری یا رمز عبور اشتباه است');
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Login error:', error);
+      setLoginError('خطا در ارتباط با سرور');
+    }
+  };
+
+  // useEffect برای auto-navigate بعد از ۱ ثانیه - بر اساس نقش کاربر
+  useEffect(() => {
+    if (showSuccessPopup && loggedInUser) {
       const timer = setTimeout(() => {
         setShowSuccessPopup(false);
-        navigate("/admin");
-      }, 1000); // ۱ ثانیه
+        navigateByRole(loggedInUser.role);
+      }, 1000);
 
       return () => clearTimeout(timer);
     }
-  }, [showSuccessPopup, navigate]);
-
-  const onSubmit = async (data) => {
-    console.log('Login data:', data);
-    
-    // شبیه‌سازی عملیات ورود
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // پیدا کردن اطلاعات کاربر
-    const user = users.find(u => u.id === data.user);
-    setLoggedInUser(user);
-    setShowSuccessPopup(true);
-  };
+  }, [showSuccessPopup, loggedInUser]);
 
   // تابع toggle برای نمایش/مخفی کردن رمز عبور
   const togglePasswordVisibility = () => {
@@ -79,40 +124,45 @@ const LoginForm = () => {
           {/* Form */}
           <div className="p-6 sm:p-8">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* User Select */}
+              {/* نمایش خطای لاگین */}
+              {loginError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-700 text-sm flex items-center">
+                    <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {loginError}
+                  </p>
+                </div>
+              )}
+
+              {/* Username Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   <FaUser className="ml-2 text-indigo-500" />
-                  انتخاب کاربر
+                  نام کاربری
                 </label>
                 <div className="relative">
-                  <select
-                    {...register('user')}
-                    className={`w-full pr-4 pl-10 py-3 border rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
-                      errors.user 
+                  <input
+                    {...register('username')}
+                    type="text"
+                    placeholder="نام کاربری خود را وارد کنید"
+                    className={`w-full pr-4 pl-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
+                      errors.username 
                         ? 'border-red-500 ring-2 ring-red-200' 
                         : 'border-gray-300 hover:border-gray-400'
                     }`}
-                  >
-                    <option value="">یک کاربر انتخاب کنید...</option>
-                    {users.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.name} ({user.role})
-                      </option>
-                    ))}
-                  </select>
+                  />
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-2 text-gray-700">
-                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
+                    <FaUser className="h-5 w-5 text-gray-400" />
                   </div>
                 </div>
-                {errors.user && (
+                {errors.username && (
                   <p className="mt-2 text-sm text-red-600 flex items-center">
                     <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
-                    {errors.user.message}
+                    {errors.username.message}
                   </p>
                 )}
               </div>
@@ -126,7 +176,7 @@ const LoginForm = () => {
                 <div className="relative">
                   <input
                     {...register('password')}
-                    type={showPassword ? "text" : "password"} // تغییر type بر اساس state
+                    type={showPassword ? "text" : "password"}
                     placeholder="رمز عبور خود را وارد کنید"
                     className={`w-full pr-12 pl-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 ${
                       errors.password 
@@ -134,7 +184,6 @@ const LoginForm = () => {
                         : 'border-gray-300 hover:border-gray-400'
                     }`}
                   />
-                  {/* آیکون چشم */}
                   <button
                     type="button"
                     onClick={togglePasswordVisibility}
@@ -197,7 +246,11 @@ const LoginForm = () => {
                 <FaCheck className="text-2xl text-white" />
               </div>
               <h2 className="text-xl font-bold">ورود موفقیت‌آمیز</h2>
-              <p className="text-green-100 text-sm mt-1">در حال انتقال به پنل مدیریت...</p>
+              <p className="text-green-100 text-sm mt-1">
+                در حال انتقال به پنل {loggedInUser?.role === 'admin' ? 'مدیریت' : 
+                                  loggedInUser?.role === 'inspector' ? 'بازرس' : 
+                                  loggedInUser?.role === 'operator' ? 'اپراتور' : 'کاربر'}...
+              </p>
             </div>
 
             {/* محتوای مدال */}
@@ -210,7 +263,9 @@ const LoginForm = () => {
                   {loggedInUser?.name}
                 </h3>
                 <p className="text-gray-600 text-sm mb-3">
-                  {loggedInUser?.role}
+                  {loggedInUser?.role === 'admin' ? 'مدیر سیستم' : 
+                   loggedInUser?.role === 'inspector' ? 'بازرس' : 
+                   loggedInUser?.role === 'operator' ? 'اپراتور' : 'کاربر'}
                 </p>
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 inline-block">
                   <span className="text-green-700 text-sm font-semibold">
@@ -232,6 +287,14 @@ const LoginForm = () => {
                     <span>تاریخ:</span>
                     <span className="font-semibold">
                       {new Date().toLocaleDateString('fa-IR')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>نقش:</span>
+                    <span className="font-semibold">
+                      {loggedInUser?.role === 'admin' ? 'مدیر' : 
+                       loggedInUser?.role === 'inspector' ? 'بازرس' : 
+                       loggedInUser?.role === 'operator' ? 'اپراتور' : 'کاربر'}
                     </span>
                   </div>
                 </div>

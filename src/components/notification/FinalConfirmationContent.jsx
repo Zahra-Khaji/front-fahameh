@@ -2,23 +2,31 @@
 import React from 'react';
 import { FaClipboardList, FaUserTie, FaHashtag, FaCalendarAlt } from 'react-icons/fa';
 
+// Hooks
+import { useProvinces, useCities } from '../../hooks/useProvinces';
+import { useVendors } from '../../hooks/useVendors';
+
 // Utils
-import { provinces, citiesByProvince, vendors } from '../../data/staticData';
 import { formatPersianDate, formatMultipleDates } from '../../utils/helpers';
 
 const FinalConfirmationContent = ({ previousData, notifications }) => {
+  // استفاده از هوک‌های مشابه فرم
+  const { data: provinces } = useProvinces();
+  const { data: cities } = useCities(previousData?.projectInfo?.province);
+  const { data: vendors } = useVendors();
+
   const getLocationName = (provinceId, cityId) => {
-    const province = provinces.find(p => p.id === provinceId);
-    const city = citiesByProvince[provinceId]?.find(c => c.id === cityId);
+    const province = provinces?.find(p => p.id === provinceId);
+    const city = cities?.find(c => c.id === cityId);
     return {
-      provinceName: province ? province.name : '-',
-      cityName: city ? city.name : '-'
+      provinceName: province ? province.name : provinceId || '-',
+      cityName: city ? city.name : cityId || '-'
     };
   };
 
   const getVendorName = (vendorId) => {
-    const vendor = vendors.find(s => s.id === vendorId);
-    return vendor ? vendor.name : '-';
+    const vendor = vendors?.find(s => s.id === vendorId);
+    return vendor ? vendor.name : vendorId || '-';
   };
 
   const getStatusLabel = (status) => {
@@ -35,8 +43,12 @@ const FinalConfirmationContent = ({ previousData, notifications }) => {
   const defaultInspector = previousData?.inspectorInfo?.inspectorName || '';
   const defaultFee = previousData?.inspectorInfo?.fee || '';
 
+  const location = getLocationName(province, city);
+
   return (
-    <div className="space-y-4 mb-4">
+    <div
+    
+    className="space-y-4 mb-4 ">
       
       {/* سطر اول: اطلاعات پروژه و اطلاعات بازرسی */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -54,7 +66,7 @@ const FinalConfirmationContent = ({ previousData, notifications }) => {
             <div className="flex items-center gap-3">
               <span className="text-gray-600 font-medium min-w-[80px]">موقعیت:</span>
               <span className="font-semibold">
-                {getLocationName(province, city).provinceName} - {getLocationName(province, city).cityName}
+                {location.provinceName} - {location.cityName}
               </span>
             </div>
             <div className="flex items-center gap-3">

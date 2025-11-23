@@ -1,4 +1,4 @@
-import useProjects from "../../hooks/useProjects";
+import useProjects from "../../hooks/useProjects_";
 import DashboardHeader from "../../ui/DashboardHeader";
 import Loading from "../../ui/Loading";
 import useProposals from "../proposals/useProposals";
@@ -13,7 +13,10 @@ function DashboardLayout() {
   // if (isLoading1 || isLoading2 || isLoading3) return <Loading />;
 
   return (
-    <div>
+    <div
+    style={{ direction: "rtl" }}
+    
+    >
       <DashboardHeader />
       {/* <Stats
         proposals={proposals.length}

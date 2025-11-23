@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import SendOTPForm from "./SendOTPForm";
 import CheckOTPForm from "./CheckOTPForm";
 import { useMutation } from "@tanstack/react-query";
-import { getOtp } from "../../services/authService";
+import { getOtp } from "../../services/authService_";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import useUser from "./useUser";

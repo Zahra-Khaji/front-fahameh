@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import TextField from "../../ui/TextField";
 import RadioInput from "../../ui/RadioInput";
 import { useMutation } from "@tanstack/react-query";
-import { completeProfile } from "../../services/authService";
+import { completeProfile } from "../../services/authService_";
 import { toast } from "react-hot-toast";
 import Loading from "../../ui/Loading";
 import { useNavigate } from "react-router-dom";

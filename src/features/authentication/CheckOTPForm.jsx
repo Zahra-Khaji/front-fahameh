@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import OTPInput from "react-otp-input";
-import { checkOtp } from "../../services/authService";
+import { checkOtp } from "../../services/authService_";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { HiArrowRight } from "react-icons/hi";

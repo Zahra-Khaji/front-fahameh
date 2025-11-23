@@ -1,20 +1,32 @@
-import { useQuery } from "@tanstack/react-query";
-import { geProjectsApi } from "../services/projectService";
-import { useLocation } from "react-router-dom";
-// import queryString from "query-string";
+// src/hooks/useProjects.js
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import projectService from '../services/projectService';
 
-export default function useProjects() {
-  const { search } = useLocation();
-  // const queryObject = queryString.parse(search);
+// کلیدهای query
+export const projectKeys = {
+  all: ['projects'],
+  lists: () => [...projectKeys.all, 'list'],
+  list: (filters) => [...projectKeys.lists(), { filters }],
+  details: () => [...projectKeys.all, 'detail'],
+  detail: (id) => [...projectKeys.details(), id],
+};
 
-  const queryObject = Object.fromEntries(new URLSearchParams(search));
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["projects", queryObject],
-    queryFn: () => geProjectsApi(search),
+// هوک برای گرفتن لیست پروژه‌ها
+export const useProjects = () => {
+  return useQuery({
+    queryKey: projectKeys.lists(),
+    queryFn: () => projectService.getAllProjects(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
+};
 
-  const { projects } = data || {};
-
-  return { isLoading, projects };
-}
+// هوک برای گرفتن اطلاعات یک پروژه خاص
+export const useProject = (id) => {
+  return useQuery({
+    queryKey: projectKeys.detail(id),
+    queryFn: () => projectService.getProjectById(id),
+    enabled: !!id, // فقط وقتی id وجود دارد اجرا شود
+    staleTime: 5 * 60 * 1000,
+  });
+};
