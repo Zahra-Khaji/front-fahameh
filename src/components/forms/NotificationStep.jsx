@@ -5,6 +5,7 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import DatePicker from "react-multi-date-picker";
 import Toolbar from "react-multi-date-picker/plugins/toolbar";
+import { useNotificationNumber } from '../../hooks/useNotificationNumber';
 
 // Components
 import StepHeader from '../common/StepHeader';
@@ -45,7 +46,8 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
       inspector: previousData?.inspectorInfo?.inspectorName || '',
       province: previousData?.projectInfo?.province || '',
       status: 'pending',
-      createdAt: new Date()
+      createdAt: new Date(),
+      idom: notificationData.idom
     };
 
     addNotification(newNotification);
@@ -71,7 +73,8 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
 
     return {
       IDP: parseInt(projectInfo.projectId) || 0,
-      IDOM: 1, // فعلاً ثابت
+      // IDOM: 1, // فعلاً ثابت
+      IDOM: firstNotification.idom || 1,
       InspectionDate: formatPersianDate(firstNotification.inspectionRange[0]), // تاریخ اول بازرسی
       Over_Domestic: projectTypeMap[projectInfo.projectType] || projectInfo.projectType,
       InspectionLocation: projectInfo.province, // نام استان
