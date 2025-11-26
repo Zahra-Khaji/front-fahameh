@@ -5,11 +5,9 @@ import { FaList, FaPlus, FaTrash } from 'react-icons/fa';
 // Components
 import Button from '../ui/Button';
 import ConfirmationModal from '../ui/ConfirmationModal';
-import FinalConfirmationContent from './FinalConfirmationContent'; // اضافه کردن import
 
 // Data & Utils
 import { formatPersianDate, formatMultipleDates } from '../../utils/helpers';
-import { useNavigate } from 'react-router-dom';
 
 const NotificationsList = ({ 
   notifications = [], 
@@ -17,15 +15,14 @@ const NotificationsList = ({
   onDelete, 
   onAddNew, 
   showAddButton = true, 
-  onComplete,
+  onComplete, // این تابع از NotificationStep میاد
   previousData 
 }) => {
-  const navigate = useNavigate();
   const [deleteConfirmation, setDeleteConfirmation] = useState({ 
     show: false, 
     notification: null 
   });
-  const [showFinalConfirmation, setShowFinalConfirmation] = useState(false); // state جدید برای مدال نهایی
+  // حذف state مربوط به مدال نهایی
 
   const handleStatusChange = (notificationId, newStatus) => {
     onEdit(notificationId, { status: newStatus });
@@ -42,30 +39,6 @@ const NotificationsList = ({
     setDeleteConfirmation({ show: false, notification: null });
   };
 
-  // تابع جدید برای نمایش مدال تأیید نهایی
-  const handleFinalConfirmation = () => {
-    setShowFinalConfirmation(true);
-  };
-
-  // تابع جدید برای ثبت نهایی
-  // const handleFinalSubmit = () => {
-  //   setShowFinalConfirmation(false);
-  //   onComplete(); // فراخوانی تابع اصلی
-  // };
-  const handleFinalSubmit = () => {
-    setShowFinalConfirmation(false);
-    
-    // گرفتن نام پروژه از previousData
-    const projectName = previousData?.projectInfo?.projectName;
-    
-    if (projectName) {
-      // نویگیت به صفحه RFIReportTable با پارامتر پروژه
-      navigate(`/admin/rfi-report?project=${encodeURIComponent(projectName)}`);
-    } else {
-      // اگر نام پروژه نبود، تابع اصلی رو فراخوانی کن
-      onComplete();
-    }
-  };
   const statusOptions = [
     { value: 'pending', label: 'در حال انجام' },
     { value: 'approved', label: 'تأیید شده' },
@@ -215,7 +188,7 @@ const NotificationsList = ({
         {/* Complete Button */}
         <div className="flex justify-center pt-4 sm:pt-6 border-t border-gray-200 mt-4 sm:mt-6">
           <Button
-            onClick={handleFinalConfirmation} // تغییر به تابع جدید
+            onClick={onComplete} // مستقیماً onComplete رو فراخوانی کن
             variant="success"
             size="lg"
             icon="check"
@@ -226,7 +199,7 @@ const NotificationsList = ({
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* فقط مدال حذف باقی بمونه */}
       <ConfirmationModal
         isOpen={deleteConfirmation.show}
         onClose={() => setDeleteConfirmation({ show: false, notification: null })}
@@ -238,23 +211,7 @@ const NotificationsList = ({
         type="danger"
       />
 
-      {/* Final Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showFinalConfirmation}
-        onClose={() => setShowFinalConfirmation(false)}
-        onConfirm={handleFinalSubmit}
-        title="تأیید نهایی اطلاعات"
-        message="لطفاً اطلاعات وارد شده را بررسی و تأیید کنید"
-        confirmText="تأیید و ثبت نهایی"
-        cancelText="بازگشت و ویرایش"
-        type="success"
-        size="large"
-      >
-        <FinalConfirmationContent 
-          previousData={previousData} 
-          notifications={notifications}
-        />
-      </ConfirmationModal>
+      {/* مدال نهایی رو کاملاً حذف کن */}
     </>
   );
 };

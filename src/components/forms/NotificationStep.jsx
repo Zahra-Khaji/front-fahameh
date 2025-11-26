@@ -1,5 +1,6 @@
 // src/components/forms/NotificationStep.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; 
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import DatePicker from "react-multi-date-picker";
@@ -11,17 +12,23 @@ import RequestInfoSidebar from '../common/RequestInfoSidebar';
 import Button from '../ui/Button';
 import NotificationForm from '../notification/NotificationForm';
 import NotificationsList from '../notification/NotificationsList';
-import NotificationsTable from '../notification/NotificationsTable';
-
 import ConfirmationModal from '../ui/ConfirmationModal';
+import FinalConfirmationContent from '../notification/FinalConfirmationContent';
 
 // Hooks & Utils
 import { useNotifications } from '../../hooks/useNotifications';
+import { useCreateInspection } from '../../hooks/useCreateInspection';
+import { useUser } from '../../hooks/useUser';
 import { formatPersianDate, formatDateRange } from '../../utils/helpers';
 import { FaList, FaHashtag } from 'react-icons/fa';
 
 const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChange }) => {
   const [showAddForm, setShowAddForm] = useState(true);
+  const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
+  const navigate = useNavigate(); // اضافه کردن این خط
+  
+  const { user } = useUser();
+  const { mutate: createInspection, isLoading: isCreating } = useCreateInspection();
   
   const {
     notifications,
@@ -45,17 +52,92 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
     setShowAddForm(false);
   };
 
-  // تغییر: این مرحله آخر هست - روی complete داده‌ها رو جمع‌آوری کن
-  const handleCompleteStep = () => {
-    const stepData = {
-      notifications: notifications,
-      inspectionRange: notifications[0]?.inspectionRange || []
+  // تابع برای ساخت داده‌های سرویس ثبت
+  const prepareInspectionData = () => {
+    if (!notifications.length || !previousData) return null;
+
+    const firstNotification = notifications[0];
+    const projectInfo = previousData.projectInfo;
+    const inspectorInfo = previousData.inspectorInfo;
+
+    // تبدیل نوع پروژه عددی به متن فارسی
+    const projectTypeMap = {
+    
+      '0': 'خارجی', 
+      '1': 'داخلی کالا',
+      '2': 'داخلی کشتی'
+
     };
-    console.log('ارسال داده‌های نهایی:', stepData);
-    onComplete(stepData); // اینجا فرم تموم میشه
+
+    return {
+      IDP: parseInt(projectInfo.projectId) || 0,
+      IDOM: 1, // فعلاً ثابت
+      InspectionDate: formatPersianDate(firstNotification.inspectionRange[0]), // تاریخ اول بازرسی
+      Over_Domestic: projectTypeMap[projectInfo.projectType] || projectInfo.projectType,
+      InspectionLocation: projectInfo.province, // نام استان
+      RFI_Number: firstNotification.number?.toString(),
+      RFI_Recived_Date: "1404/09/04", // فعلاً ثابت
+      RFI_Status: "در حال انجام",
+      VendorName: projectInfo.vendor,
+      Inspection_Duration: firstNotification.inspectionDays?.toString(),
+      Inspector_Name: inspectorInfo.inspectorName,
+      Remark: "",
+      QTY_3rdpartinspector: "",
+      approved_Duration: "",
+      Material: "",
+      User_Name: user?.username || "m-sadri", // از هوک user می‌گیریم
+      NotificationNo: "",
+      DateShamsi: "",
+      Inspector_Type: "",
+      Goods_Description: ""
+    };
   };
 
-  const realNotifications = previousData?.notifications || [];
+  // تابع ثبت نهایی در دیتابیس
+  const handleFinalCreate = () => {
+    console.log('🟢 handleFinalCreate: Started');
+    
+    const inspectionData = prepareInspectionData();
+    console.log('📋 handleFinalCreate: Prepared data:', inspectionData);
+    
+    if (!inspectionData) {
+      console.error('❌ handleFinalCreate: No data to submit');
+      return;
+    }
+
+    console.log('🚀 handleFinalCreate: Calling createInspection mutation');
+    
+    createInspection(inspectionData, {
+      onSuccess: (data) => {
+        console.log('✅ handleFinalCreate: onSuccess called with:', data);
+        setShowFinalConfirmation(false);
+        
+        // نویگیت به صفحه گزارش
+        const projectName = previousData?.projectInfo?.projectName;
+        if (projectName) {
+          console.log('🔄 Navigating to report page');
+          navigate(`/admin/rfi-report?project=${encodeURIComponent(projectName)}`);
+        } else {
+          console.log('📋 No project name for navigation');
+        }
+        
+        // بعد از ثبت موفق، داده‌ها رو به مرحله بعد پاس بدیم (اگر لازمه)
+        const stepData = {
+          notifications: notifications,
+          inspectionRange: notifications[0]?.inspectionRange || []
+        };
+        onComplete(stepData);
+      },
+      onError: (error) => {
+        console.error('❌ handleFinalCreate: onError called with:', error);
+      }
+    });
+  };
+
+  const handleCompleteStep = () => {
+    console.log('🔵 Complete step clicked - showing confirmation modal');
+    setShowFinalConfirmation(true);
+  };
 
   return (
     <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-2 sm:py-3 px-3 sm:px-4 lg:px-6">
@@ -86,6 +168,7 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
                 lastNotificationNumber={lastNotificationNumber}
                 onSubmit={handleFinalSubmit}
                 onCancel={() => setShowAddForm(false)}
+                previousData={previousData}
               />
             )}
 
@@ -99,9 +182,6 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
                 showAddButton={!showAddForm}
                 onComplete={handleCompleteStep}
                 previousData={previousData}
-                
-                
-                // تغییر: این مرحله آخر هست
               />
             )}
 
@@ -126,6 +206,24 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
           </div>
         </div>
       </div>
+
+      {/* مدال تأیید نهایی برای ثبت در دیتابیس */}
+      <ConfirmationModal
+        isOpen={showFinalConfirmation}
+        onClose={() => setShowFinalConfirmation(false)}
+        onConfirm={handleFinalCreate}
+        title="ثبت نهایی درخواست بازرسی"
+        message="آیا از ثبت نهایی درخواست بازرسی اطمینان دارید؟"
+        confirmText={isCreating ? "در حال ثبت..." : "تأیید و ثبت نهایی"}
+        cancelText="انصراف"
+        type="success"
+        size="large"
+      >
+        <FinalConfirmationContent 
+          previousData={previousData}
+          notifications={notifications}
+        />
+      </ConfirmationModal>
     </div>
   );
 };

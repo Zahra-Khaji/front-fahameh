@@ -72,7 +72,11 @@ const ConfirmationModal = ({
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <Button
-              onClick={onConfirm}
+              // onClick={onConfirm}
+              onClick={() => {
+                console.log('🎯 Confirm button clicked in modal');
+                onConfirm();
+              }}
               variant={type === 'danger' ? 'danger' : 'success'}
               size="md"
               className="flex-1"

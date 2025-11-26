@@ -1,12 +1,13 @@
 // src/components/rfi/RFIReportTable.jsx
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FaTable, FaSearch, FaSync, FaFileAlt, FaArrowRight } from 'react-icons/fa';
+import { FaTable, FaSearch, FaSync, FaFileAlt, FaArrowRight, FaCheckCircle, FaClock, FaListAlt, FaPlusCircle } from 'react-icons/fa';
 
 // Components
 import StepHeader from '../common/StepHeader';
 import SelectField from '../ui/SelectField';
 import Button from '../ui/Button';
+import AddReportModal from '../ui/AddReportModal';
 
 // Hooks
 import { useProjects } from '../../hooks/useProjects';
@@ -18,6 +19,8 @@ const RFIReportTable = () => {
   const [projectName, setProjectName] = useState('');
   const [shouldFetch, setShouldFetch] = useState(false);
   const [isAutoFetch, setIsAutoFetch] = useState(false);
+  const [showAddReportModal, setShowAddReportModal] = useState(false);
+  const [selectedRFI, setSelectedRFI] = useState(null);
 
   // استفاده از هوک پروژه‌ها
   const { data: projects, isLoading: projectsLoading, error: projectsError } = useProjects();
@@ -46,6 +49,33 @@ const RFIReportTable = () => {
       }
     }
   }, [location.search, projects]);
+
+  // محاسبه آمار گزارش‌ها
+  const stats = useMemo(() => {
+    if (!rfiData || !shouldFetch) {
+      return { total: 0, done: 0, Ongoing: 0 };
+    }
+    
+    const dataArray = Object.values(rfiData);
+    const total = dataArray.length;
+    const done = dataArray.filter(item => item.RFI_Status === 'Done').length;
+    const Ongoing = dataArray.filter(item => item.RFI_Status === 'Ongoing').length;
+    
+    return { total, done, Ongoing };
+  }, [rfiData, shouldFetch]);
+
+  // تابع برای باز کردن مدال
+  const handleAddReport = (rfiItem) => {
+    setSelectedRFI(rfiItem);
+    setShowAddReportModal(true);
+  };
+
+  // تابع برای ثبت گزارش جدید
+  const handleSubmitReport = (reportData) => {
+    console.log('Report data to submit:', reportData);
+    // اینجا سرویس کال می‌شه - فعلا فقط لاگ می‌کنیم
+    // بعداً سرویس رو اضافه می‌کنیم
+  };
 
   const handleProjectChange = (e) => {
     const projectId = e.target.value;
@@ -90,9 +120,8 @@ const RFIReportTable = () => {
       <div className="max-w-7xl mx-auto">
         
         <StepHeader
-          title="گزارش  پروژه‌ها"
-          
-          description="مشاهده گزارش‌ها  بر اساس پروژه انتخابی"
+          title="گزارش پروژه‌ها"
+          description="مشاهده گزارش‌ها بر اساس پروژه انتخابی"
           icon={FaTable}
         />
 
@@ -159,6 +188,68 @@ const RFIReportTable = () => {
             </div>
           )}
 
+          {/* بخش خلاصه آماری */}
+          {showResults && (
+            <div className="mb-2">
+              <h3 className="text-base font-bold text-gray-800 mb-1 flex items-center gap-2">
+                <FaListAlt className="text-blue-500 text-sm" />
+                خلاصه آماری گزارش‌ها
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* کارت تعداد کل */}
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-3 text-white shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-xs mb-1">تعداد کل گزارش‌ها</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-xl font-bold">{stats.total}</p>
+                      </div>
+                    </div>
+                    <div className="bg-blue-400 bg-opacity-30 p-2 rounded-full">
+                      <FaListAlt className="text-lg" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* کارت انجام شده */}
+                <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-3 text-white shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-100 text-xs mb-1">گزارش‌های انجام شده</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-xl font-bold">{stats.done}</p>
+                        <span className="text-green-200 text-xs font-medium">
+                          {stats.total > 0 ? `(${Math.round((stats.done / stats.total) * 100)}% از کل)` : '(0% از کل)'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-green-400 bg-opacity-30 p-2 rounded-full">
+                      <FaCheckCircle className="text-lg" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* کارت در حال انجام */}
+                <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg p-3 text-white shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-amber-100 text-xs mb-1">گزارش‌های در حال انجام</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-xl font-bold">{stats.Ongoing}</p>
+                        <span className="text-amber-200 text-xs font-medium">
+                          {stats.total > 0 ? `(${Math.round((stats.Ongoing / stats.total) * 100)}% از کل)` : '(0% از کل)'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-amber-400 bg-opacity-30 p-2 rounded-full">
+                      <FaClock className="text-lg" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* نمایش خطا */}
           {rfiError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -204,17 +295,32 @@ const RFIReportTable = () => {
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           item.RFI_Status === 'Done' 
                             ? 'bg-green-100 text-green-800'
-                            : item.RFI_Status === 'Pending'
+                            : item.RFI_Status === 'Ongoing'
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-red-100 text-red-800'
                         }`}>
                           {item.RFI_Status === 'Done' ? 'انجام شده' : 
-                           item.RFI_Status === 'Pending' ? 'در حال انجام' : 
+                           item.RFI_Status === 'Ongoing' ? 'در حال انجام' : 
                            item.RFI_Status}
                         </span>
                       </td>
                       <td className="p-4 text-gray-700">{item.formattedInspectionDate}</td>
-                      <td className="p-4 font-mono text-gray-900 text-xs">{item.Report_No}</td>
+                      <td className="p-4 font-mono text-gray-900 text-xs">
+                        {item.Report_No === '************' ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-600">************</span>
+                            <button
+                              onClick={() => handleAddReport(item)}
+                              className="text-green-600 hover:text-green-800 transition duration-200"
+                              title="ثبت گزارش جدید"
+                            >
+                              <FaPlusCircle className="text-sm" />
+                            </button>
+                          </div>
+                        ) : (
+                          item.Report_No
+                        )}
+                      </td>
                       <td className="p-4 font-mono text-gray-900 text-xs">{item.RFI_Numbering}</td>
                       <td className="p-4 text-gray-700">{item.ProjectTitle}</td>
                       <td className="p-4 text-gray-700">
@@ -243,12 +349,12 @@ const RFIReportTable = () => {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         item.RFI_Status === 'Done' 
                           ? 'bg-green-100 text-green-800'
-                          : item.RFI_Status === 'Pending'
+                          : item.RFI_Status === 'Ongoing'
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
                         {item.RFI_Status === 'Done' ? 'انجام شده' : 
-                         item.RFI_Status === 'Pending' ? 'در حال انجام' : 
+                         item.RFI_Status === 'Ongoing' ? 'در حال انجام' : 
                          item.RFI_Status}
                       </span>
                     </div>
@@ -260,7 +366,20 @@ const RFIReportTable = () => {
                       </div>
                       <div>
                         <span className="text-gray-600 font-medium">شماره گزارش:</span>
-                        <p className="text-gray-800 font-mono text-xs">{item.Report_No}</p>
+                        {item.Report_No === '********' ? (
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-gray-400">********</span>
+                            <button
+                              onClick={() => handleAddReport(item)}
+                              className="text-green-600 hover:text-green-800 transition duration-200 text-xs flex items-center gap-1"
+                            >
+                              <FaPlusCircle className="text-xs" />
+                              <span>ثبت گزارش</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-gray-800 font-mono text-xs">{item.Report_No}</p>
+                        )}
                       </div>
                       <div className="col-span-2">
                         <span className="text-gray-600 font-medium">RFI Numbering:</span>
@@ -288,7 +407,7 @@ const RFIReportTable = () => {
           {/* Results Count */}
           {showResults && (
             <div className="mt-4 text-sm text-gray-600 bg-blue-50 rounded-lg p-3 border border-blue-200">
-              <span className="font-semibold text-blue-800">تعداد گزارش : </span>
+              <span className="font-semibold text-blue-800">تعداد گزارش: </span>
               <span className="font-bold text-blue-600">{tableData.length} مورد</span>
               <span className="mr-2 text-blue-700">برای پروژه: {projectName}</span>
               {isAutoFetch && (
@@ -303,9 +422,9 @@ const RFIReportTable = () => {
           {showEmptyState && (
             <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-gray-200">
               <FaFileAlt className="text-4xl mx-auto mb-3 text-gray-400" />
-              <p className="text-lg font-semibold">گزارش  یافت نشد</p>
+              <p className="text-lg font-semibold">گزارش یافت نشد</p>
               <p className="text-sm text-gray-400 mt-1">
-                برای پروژه <span className="font-semibold text-gray-600">{projectName}</span> هیچ گزارشی  موجود نیست.
+                برای پروژه <span className="font-semibold text-gray-600">{projectName}</span> هیچ گزارشی موجود نیست.
               </p>
             </div>
           )}
@@ -327,7 +446,7 @@ const RFIReportTable = () => {
               <FaSync className="text-4xl mx-auto mb-3 text-blue-400 animate-spin" />
               <p className="text-lg font-semibold">در حال بارگذاری خودکار...</p>
               <p className="text-sm text-gray-400 mt-1">
-                گزارش  برای پروژه <span className="font-semibold text-gray-600">{projectName}</span> در حال بارگذاری است.
+                گزارش برای پروژه <span className="font-semibold text-gray-600">{projectName}</span> در حال بارگذاری است.
               </p>
             </div>
           )}
@@ -338,12 +457,20 @@ const RFIReportTable = () => {
               <FaSync className="text-4xl mx-auto mb-3 text-indigo-400 animate-spin" />
               <p className="text-lg font-semibold">در حال جستجو...</p>
               <p className="text-sm text-gray-400 mt-1">
-                در حال دریافت گزارش‌های  برای پروژه <span className="font-semibold text-gray-600">{projectName}</span>
+                در حال دریافت گزارش‌های برای پروژه <span className="font-semibold text-gray-600">{projectName}</span>
               </p>
             </div>
           )}
         </div>
       </div>
+
+      {/* مدال ثبت گزارش جدید */}
+      <AddReportModal
+        isOpen={showAddReportModal}
+        onClose={() => setShowAddReportModal(false)}
+        onAddReport={handleSubmitReport}
+        rfiData={selectedRFI}
+      />
     </div>
   );
 };
