@@ -173,40 +173,44 @@ const InspectionForm = ({ onComplete }) => {
     error: citiesError 
   } = useCities(currentProvince);
 
-  // تابع برای افزودن پروژه جدید
-  const handleAddProject = (projectData) => {
-    const newProject = {
-      id: `temp-${Date.now()}`,
-      name: projectData.name,
-      abbreviation: projectData.abbreviation,
-      subProject: projectData.subProject,
-      isTemp: true
-    };
+  const handleAddProject = (newProject) => {
+    console.log('New project added:', newProject);
     
+    // **اضافه کردن به لیست tempProjects برای نمایش فوری**
     setTempProjects(prev => [...prev, newProject]);
     
+    // **انتخاب فوری پروژه جدید در فیلد**
+    // کمی تاخیر برای اطمینان از رندر شدن گزینه جدید
     setTimeout(() => {
       handleProjectChange(newProject.id);
-    }, 100);
+      
+      // **همچنین مقدار رو در react-hook-form هم ست کنیم**
+      setValue('projectInfo.projectName', newProject.name, { shouldValidate: true });
+      setValue('projectInfo.projectId', newProject.id, { shouldValidate: true });
+      
+      console.log('Auto-selected new project:', newProject);
+    }, 150);
   };
+  
 
   // تابع برای افزودن وندور جدید
-  const handleAddVendor = (vendorData) => {
-    const newVendor = {
-      id: `temp-vendor-${Date.now()}`,
-      name: vendorData.name,
-      address: vendorData.address,
-      phone: vendorData.phone,
-      email: vendorData.email,
-      isTemp: true
-    };
+// تابع برای افزودن وندور جدید
+const handleAddVendor = (newVendor) => {
+  console.log('New vendor added:', newVendor);
+  
+  // **اضافه کردن به لیست tempVendors برای نمایش فوری**
+  setTempVendors(prev => [...prev, newVendor]);
+  
+  // **انتخاب فوری وندور جدید در فیلد**
+  setTimeout(() => {
+    handleVendorChange(newVendor.id);
     
-    setTempVendors(prev => [...prev, newVendor]);
+    // **همچنین مقدار رو در react-hook-form هم ست کنیم**
+    setValue('projectInfo.vendor', newVendor.id, { shouldValidate: true });
     
-    setTimeout(() => {
-      handleVendorChange(newVendor.id);
-    }, 100);
-  };
+    console.log('Auto-selected new vendor:', newVendor);
+  }, 150);
+};
 
   // تابع برای حذف فرمت از عدد
   const removeFormatting = (formattedValue) => {
@@ -458,6 +462,7 @@ const InspectionForm = ({ onComplete }) => {
                     }
                     disabled={projectsLoading || !!projectsError}
                     error={isSubmitted && errors.projectInfo?.projectName}
+                    key={`project-select-${allProjects.length}`}
                   />
                   <input 
                     type="hidden" 
@@ -597,6 +602,7 @@ const InspectionForm = ({ onComplete }) => {
                   }
                   disabled={inspectorsLoading || !!inspectorsError}
                   error={isSubmitted && errors.inspectorInfo?.inspectorName}
+                  key={`vendor-select-${allVendors.length}`}
                 />
                 <input 
                   type="hidden" 

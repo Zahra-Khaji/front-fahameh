@@ -25,6 +25,67 @@ class ProjectService {
     }
   }
 
+  // **افزودن پروژه جدید**
+
+
+
+async createProject(projectData) {
+  try {
+    console.log('Creating new project:', projectData);
+    
+    // اگر API فقط title می‌خواهد
+    const apiData = {
+      Title: projectData.name
+    };
+
+    const response = await http.post('/create_new_project', apiData);
+    console.log('Project created successfully:', response.data);
+    
+    // پاسخ API را به فرمت مورد نیاز تبدیل می‌کنیم
+    return {
+      id: response.data.id || `db-${Date.now()}`,
+      name: projectData.name,
+      abbreviation: projectData.abbreviation || '',
+      subProject: projectData.subProject || '',
+      isTemp: false
+    };
+  } catch (error) {
+    console.error('Error creating project:', error);
+    
+    // **مدیریت خطاهای خاص**
+    let errorMessage = 'خطا در ایجاد پروژه';
+    
+    if (error.response) {
+      const { status, data } = error.response;
+      
+      if (status === 400 || status === 409) {
+        // خطای اعتبارسنجی یا تکراری بودن
+        if (data.detail) {
+          // بررسی اگر پیام تکراری بودن است
+          if (data.detail.includes('already exists') || data.detail.includes('تکراری')) {
+            errorMessage = `نام پروژه "${projectData.name}" تکراری است. لطفاً نام دیگری انتخاب کنید.`;
+          } else {
+            errorMessage = data.detail;
+          }
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+      } else if (status === 401) {
+        errorMessage = 'دسترسی غیرمجاز. لطفاً دوباره وارد شوید.';
+      } else if (status === 500) {
+        errorMessage = 'خطای سرور. لطفاً دوباره تلاش کنید.';
+      }
+    }
+    
+    // ایجاد خطای جدید با پیام فارسی
+    const customError = new Error(errorMessage);
+    customError.originalError = error;
+    customError.projectData = projectData;
+    
+    throw customError;
+  }
+}
+
   // تبدیل داده‌های دریافتی از API به فرمت مورد نیاز کامپوننت
   transformProjectsData(apiData) {
     // فرمت: { "4": "چهلستون", "5": "عمران ساحل بندرپارسیان", ... }
