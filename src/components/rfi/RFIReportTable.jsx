@@ -7,7 +7,8 @@ import { FaTable, FaSearch, FaSync, FaFileAlt, FaArrowRight, FaCheckCircle, FaCl
 import StepHeader from '../common/StepHeader';
 import SelectField from '../ui/SelectField';
 import Button from '../ui/Button';
-import AddReportModal from '../ui/AddReportModal';
+// import AddReportModal from '../../components/ui/AddReportModal/AddReportModal';
+import AddReportModal from '../ui/AddReportModal/AddReportModal';
 
 // Hooks
 import { useProjects } from '../../hooks/useProjects';
