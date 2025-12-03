@@ -9,8 +9,10 @@ import {
   FaCheckCircle,
   FaInfoCircle
 } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 import Button from './Button';
 import { useCreateProject } from '../../hooks/useCreateProject';
+import { showSuccessToast, showErrorToast, showLoadingToast } from '../../utils/toastConfig';
 
 const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   const [formData, setFormData] = useState({
@@ -21,7 +23,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   
   const [localError, setLocalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   
   const { mutate: createProject, isLoading: isCreating, error: apiError } = useCreateProject();
 
@@ -30,7 +31,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
     if (isOpen) {
       setFormData({ name: '', abbreviation: '', subProject: '' });
       setLocalError('');
-      setSuccessMessage('');
     }
   }, [isOpen]);
 
@@ -54,7 +54,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
         // استخراج نام پروژه از پیام خطا
         const match = detail.match(/Title "([^"]+)"/);
         const projectName = match ? match[1] : formData.name;
-        return `پروژه "${projectName}" از قبل در سیستم وجود دارد. لطفاً نام دیگری انتخاب کنید.`;
+        return `نام پروژه "${projectName}" تکراری است.`;
       }
       
       // سایر پیام‌های خطا
@@ -94,46 +94,57 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
     // اعتبارسنجی اولیه
     if (!formData.name.trim()) {
       setLocalError('نام پروژه الزامی است');
+      showErrorToast('نام پروژه الزامی است');
       return;
     }
     
     if (formData.name.trim().length < 2) {
       setLocalError('نام پروژه باید حداقل ۲ حرف داشته باشد');
+      showErrorToast('نام پروژه باید حداقل ۲ حرف داشته باشد');
       return;
     }
     
     setLocalError('');
-    setSuccessMessage('');
     setIsSubmitting(true);
+    
+    // نمایش toast در حال بارگذاری
+    const loadingToast = showLoadingToast('در حال ایجاد پروژه جدید...');
     
     // ایجاد پروژه در سرور
     createProject(formData, {
       onSuccess: (newProject) => {
         console.log('✅ پروژه با موفقیت ایجاد شد:', newProject);
         
-        // نمایش پیام موفقیت
-        setSuccessMessage(`پروژه "${newProject.name}" با موفقیت ایجاد شد`);
+        // بستن toast بارگذاری
+        toast.dismiss(loadingToast);
+        
+        // نمایش toast موفقیت
+        showSuccessToast(`پروژه "${newProject.name}" با موفقیت ایجاد شد`);
         
         // اطلاع به کامپوننت والد برای انتخاب پروژه
         if (onAddProject) {
           onAddProject(newProject);
         }
         
-        // بستن خودکار مدال بعد از ۱.۵ ثانیه
+        // بستن مدال
         setTimeout(() => {
-          // ریست فرم
           setFormData({ name: '', abbreviation: '', subProject: '' });
-          setSuccessMessage('');
           setIsSubmitting(false);
           onClose();
-        }, 1500);
+        }, 500);
       },
       onError: (error) => {
         console.error('❌ خطا در ایجاد پروژه:', error);
         
+        // بستن toast بارگذاری
+        toast.dismiss(loadingToast);
+        
         // ترجمه خطا به فارسی
         const userErrorMessage = translateError(error);
         setLocalError(userErrorMessage);
+        
+        // نمایش toast خطا
+        showErrorToast(userErrorMessage);
         
         // فوکوس روی فیلد نام برای اصلاح
         setTimeout(() => {
@@ -160,18 +171,12 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
     if (localError) {
       setLocalError('');
     }
-    
-    // پاک کردن پیام موفقیت
-    if (successMessage) {
-      setSuccessMessage('');
-    }
   };
 
   const handleClose = () => {
     if (!isSubmitting && !isCreating) {
       setFormData({ name: '', abbreviation: '', subProject: '' });
       setLocalError('');
-      setSuccessMessage('');
       onClose();
     }
   };
@@ -201,22 +206,8 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* نمایش پیام موفقیت */}
-          {successMessage && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-              <div className="flex items-center">
-                <FaCheckCircle className="h-5 w-5 text-green-400 ml-2" />
-                <div>
-                  <strong className="font-semibold">موفقیت:</strong>
-                  <p className="mt-1">{successMessage}</p>
-                  <p className="text-xs mt-1">در حال بستن پنجره...</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* نمایش خطا */}
-          {localError && !successMessage && (
+          {/* نمایش خطا در مدال (اختیاری) */}
+          {localError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               <div className="flex items-start">
                 <FaExclamationTriangle className="h-5 w-5 text-red-400 ml-2 mt-0.5 flex-shrink-0" />
@@ -224,21 +215,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
                   <strong className="font-semibold">خطا:</strong>
                   <p className="mt-1">{localError}</p>
                   
-                  {/* پیشنهادات برای خطای تکراری */}
-                  {localError.includes('وجود دارد') && (
-                    <div className="mt-3 pt-3 border-t border-red-200">
-                      <div className="flex items-center text-red-600">
-                        <FaLightbulb className="h-4 w-4 ml-1" />
-                        <span className="text-xs font-semibold">پیشنهاد:</span>
-                      </div>
-                      <ul className="list-disc mr-4 mt-1 space-y-1 text-xs">
-                        <li>نام دیگری برای پروژه انتخاب کنید</li>
-                        <li>از شماره یا پسوند استفاده کنید (مثال: {formData.name} ۲)</li>
-                        <li>از مخفف متفاوتی استفاده کنید</li>
-                        <li>نام پروژه را با جزئیات بیشتری بنویسید</li>
-                      </ul>
-                    </div>
-                  )}
+                
                 </div>
               </div>
             </div>
@@ -248,7 +225,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
               نام پروژه *
-              {/* <span className="text-red-500 mr-1">*</span> */}
             </label>
             <input
               type="text"
@@ -264,10 +240,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
               autoFocus
               maxLength={100}
             />
-            {/* <div className="flex justify-between mt-1">
-              <span className="text-xs text-gray-500">حداقل ۲ حرف</span>
-              <span className="text-xs text-gray-500">{formData.name.length}/100</span>
-            </div> */}
           </div>
 
           {/* مخفف */}
@@ -285,7 +257,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
               disabled={isLoading}
               maxLength={20}
             />
-       
           </div>
 
           {/* ساب پروژه */}
@@ -303,7 +274,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
               disabled={isLoading}
               maxLength={50}
             />
-        
           </div>
 
           {/* Buttons */}
@@ -330,7 +300,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
             </Button>
           </div>
           
-   
+  
         </form>
       </div>
     </div>

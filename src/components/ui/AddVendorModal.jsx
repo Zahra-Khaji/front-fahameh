@@ -8,10 +8,10 @@ import {
   FaEnvelope, 
   FaSpinner,
   FaExclamationTriangle,
-  FaCheckCircle,
   FaInfoCircle,
   FaLightbulb
 } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 import Button from './Button';
 import { useCreateVendor } from '../../hooks/useCreateVendor';
 
@@ -25,7 +25,6 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
   
   const [localError, setLocalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   
   const { mutate: createVendor, isLoading: isCreating, error: apiError } = useCreateVendor();
 
@@ -34,11 +33,10 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
     if (isOpen) {
       setFormData({ name: '', address: '', phone: '', email: '' });
       setLocalError('');
-      setSuccessMessage('');
     }
   }, [isOpen]);
 
-  // ترجمه خطای سرور به فارسی
+  // ترجمه خطای سرور به فارسی - **آپدیت برای فرمت جدید خطا**
   const translateError = (error) => {
     if (!error) return 'خطای نامشخص';
     
@@ -53,12 +51,12 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
     if (error?.response?.data?.detail) {
       const detail = error.response.data.detail;
       
-      // خطای تکراری بودن نام وندور
+      // **خطای تکراری بودن نام وندور با فرمت جدید: 'Vendor Name "تست" already exists.'**
       if (typeof detail === 'string' && detail.includes('already exists')) {
-        // استخراج نام وندور از پیام خطا
-        const match = detail.match(/name "([^"]+)"/);
+        // استخراج نام وندور از پیام خطا - **آپدیت برای فرمت جدید**
+        const match = detail.match(/Vendor Name "([^"]+)"/);
         const vendorName = match ? match[1] : formData.name;
-        return `وندور "${vendorName}" از قبل در سیستم وجود دارد. لطفاً نام دیگری انتخاب کنید.`;
+        return `نام وندور "${vendorName}" تکراری است. لطفاً نام دیگری انتخاب کنید.`;
       }
       
       // سایر پیام‌های خطا
@@ -98,46 +96,152 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
     // اعتبارسنجی اولیه
     if (!formData.name.trim()) {
       setLocalError('نام وندور الزامی است');
+      toast.error('نام وندور الزامی است', {
+        position: 'top-center',
+        duration: 3000,
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+        icon: '❌',
+      });
       return;
     }
     
     if (formData.name.trim().length < 2) {
       setLocalError('نام وندور باید حداقل ۲ حرف داشته باشد');
+      toast.error('نام وندور باید حداقل ۲ حرف داشته باشد', {
+        position: 'top-center',
+        duration: 3000,
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+        icon: '❌',
+      });
+      return;
+    }
+    
+    // اعتبارسنجی ایمیل (اگر وارد شده)
+    if (formData.email && !validateEmail(formData.email)) {
+      setLocalError('ایمیل وارد شده معتبر نیست');
+      toast.error('ایمیل وارد شده معتبر نیست', {
+        position: 'top-center',
+        duration: 3000,
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+        icon: '❌',
+      });
       return;
     }
     
     setLocalError('');
-    setSuccessMessage('');
     setIsSubmitting(true);
+    
+    // نمایش toast در حال بارگذاری
+    const loadingToast = toast.loading('در حال ایجاد وندور جدید...', {
+      position: 'top-center',
+      duration: Infinity,
+    });
     
     // ایجاد وندور در سرور
     createVendor(formData, {
       onSuccess: (newVendor) => {
         console.log('✅ وندور با موفقیت ایجاد شد:', newVendor);
         
-        // نمایش پیام موفقیت
-        setSuccessMessage(`وندور "${newVendor.name}" با موفقیت ایجاد شد`);
+        // بستن toast بارگذاری
+        toast.dismiss(loadingToast);
+        
+        // نمایش toast موفقیت
+        toast.success(`وندور "${newVendor.name}" با موفقیت ایجاد شد`, {
+          position: 'top-center',
+          duration: 4000,
+          style: {
+            background: '#10b981',
+            color: 'white',
+            borderRadius: '10px',
+            padding: '16px',
+            fontSize: '14px',
+            direction: 'rtl',
+            textAlign: 'right',
+          },
+          icon: '✅',
+        });
         
         // اطلاع به کامپوننت والد برای انتخاب وندور
         if (onAddVendor) {
           onAddVendor(newVendor);
         }
         
-        // بستن خودکار مدال بعد از ۱.۵ ثانیه
+        // بستن مدال
         setTimeout(() => {
-          // ریست فرم
           setFormData({ name: '', address: '', phone: '', email: '' });
-          setSuccessMessage('');
           setIsSubmitting(false);
           onClose();
-        }, 1500);
+        }, 500);
       },
       onError: (error) => {
         console.error('❌ خطا در ایجاد وندور:', error);
         
+        // بستن toast بارگذاری
+        toast.dismiss(loadingToast);
+        
         // ترجمه خطا به فارسی
         const userErrorMessage = translateError(error);
         setLocalError(userErrorMessage);
+        
+        // نمایش toast خطا
+        toast.error(userErrorMessage, {
+          position: 'top-center',
+          duration: 5000,
+          style: {
+            background: '#ef4444',
+            color: 'white',
+            borderRadius: '10px',
+            padding: '16px',
+            fontSize: '14px',
+            direction: 'rtl',
+            textAlign: 'right',
+          },
+          icon: '❌',
+        });
+        
+        // **پیشنهادات برای خطای تکراری**
+        // if (userErrorMessage.includes('تکراری')) {
+        //   setTimeout(() => {
+        //     toast('💡 پیشنهاد: نام دیگری انتخاب کنید یا از شماره/پسوند استفاده نمایید', {
+        //       position: 'top-center',
+        //       duration: 6000,
+        //       style: {
+        //         background: '#f59e0b',
+        //         color: 'white',
+        //         borderRadius: '10px',
+        //         padding: '16px',
+        //         fontSize: '13px',
+        //         direction: 'rtl',
+        //         textAlign: 'right',
+        //       },
+        //       icon: '💡',
+        //     });
+        //   }, 1000);
+        // }
         
         // فوکوس روی فیلد نام برای اصلاح
         setTimeout(() => {
@@ -164,18 +268,12 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
     if (localError) {
       setLocalError('');
     }
-    
-    // پاک کردن پیام موفقیت
-    if (successMessage) {
-      setSuccessMessage('');
-    }
   };
 
   const handleClose = () => {
     if (!isSubmitting && !isCreating) {
       setFormData({ name: '', address: '', phone: '', email: '' });
       setLocalError('');
-      setSuccessMessage('');
       onClose();
     }
   };
@@ -234,22 +332,8 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* نمایش پیام موفقیت */}
-          {successMessage && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-              <div className="flex items-center">
-                <FaCheckCircle className="h-5 w-5 text-green-400 ml-2" />
-                <div>
-                  <strong className="font-semibold">موفقیت:</strong>
-                  <p className="mt-1">{successMessage}</p>
-                  <p className="text-xs mt-1">در حال بستن پنجره...</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* نمایش خطا */}
-          {localError && !successMessage && (
+          {/* نمایش خطا در مدال (اختیاری) */}
+          {localError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               <div className="flex items-start">
                 <FaExclamationTriangle className="h-5 w-5 text-red-400 ml-2 mt-0.5 flex-shrink-0" />
@@ -257,21 +341,7 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
                   <strong className="font-semibold">خطا:</strong>
                   <p className="mt-1">{localError}</p>
                   
-                  {/* پیشنهادات برای خطای تکراری */}
-                  {localError.includes('وجود دارد') && (
-                    <div className="mt-3 pt-3 border-t border-red-200">
-                      <div className="flex items-center text-red-600">
-                        <FaLightbulb className="h-4 w-4 ml-1" />
-                        <span className="text-xs font-semibold">پیشنهاد:</span>
-                      </div>
-                      <ul className="list-disc mr-4 mt-1 space-y-1 text-xs">
-                        <li>نام دیگری برای وندور انتخاب کنید</li>
-                        <li>از شماره یا پسوند استفاده کنید (مثال: {formData.name} ۲)</li>
-                        <li>از نام شرکت به جای نام شخص استفاده کنید</li>
-                        <li>مخفف یا نام تجاری متفاوتی استفاده کنید</li>
-                      </ul>
-                    </div>
-                  )}
+              
                 </div>
               </div>
             </div>
@@ -281,7 +351,6 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
               نام وندور *
-    
             </label>
             <input
               type="text"
@@ -297,7 +366,6 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
               autoFocus
               maxLength={100}
             />
-           
           </div>
 
           {/* آدرس */}
@@ -316,7 +384,6 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
               disabled={isLoading}
               maxLength={200}
             />
-          
           </div>
 
           {/* شماره تلفن */}
@@ -382,7 +449,8 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
               انصراف
             </Button>
           </div>
-    
+          
+
         </form>
       </div>
     </div>

@@ -31,7 +31,56 @@ function App() {
     <DarkModeProvier>
       <QueryClientProvider client={queryClient}>
         <ReactQueryDevtools initialIsOpen={false} />
-        <Toaster />
+    
+<Toaster
+  position="top-center" 
+  gutter={12}
+  containerStyle={{
+    margin: '8px',
+    zIndex: 100000,
+    top: '20px',
+  }}
+  toastOptions={{
+    success: {
+      duration: 4000,
+      style: {
+        background: '#10b981',
+        color: 'white',
+        borderRadius: '10px',
+        padding: '16px',
+        fontSize: '14px',
+        direction: 'rtl',
+        textAlign: 'right',
+      },
+      icon: '✅',
+    },
+    error: {
+      duration: 5000,
+      style: {
+        background: '#ef4444',
+        color: 'white',
+        borderRadius: '10px',
+        padding: '16px',
+        fontSize: '14px',
+        direction: 'rtl',
+        textAlign: 'right',
+      },
+      icon: '❌',
+    },
+    loading: {
+      duration: Infinity,
+      style: {
+        background: '#3b82f6',
+        color: 'white',
+        borderRadius: '10px',
+        padding: '16px',
+        fontSize: '14px',
+        direction: 'rtl',
+        textAlign: 'right',
+      },
+    },
+  }}
+/>
         <Routes>
           <Route path="/auth" element={<Auth />} />
         <Route index element={<Navigate to="login" replace />} />

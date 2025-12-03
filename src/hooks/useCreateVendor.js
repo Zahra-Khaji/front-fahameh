@@ -1,5 +1,6 @@
 // src/hooks/useCreateVendor.js
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import vendorService from '../services/vendorService';
 import { vendorKeys } from './useVendors';
 
@@ -20,11 +21,13 @@ export const useCreateVendor = () => {
       
       // اینوالیدیت برای دریافت داده تازه از سرور
       queryClient.invalidateQueries({ queryKey: vendorKeys.lists() });
+      
+      // نمایش toast موفقیت در کامپوننت انجام می‌شود
     },
     
     onError: (error) => {
       console.error('❌ Error creating vendor:', error);
-      // خطا در کامپوننت مدیریت می‌شود
+      // نمایش toast خطا در کامپوننت انجام می‌شود
     }
   });
 };

@@ -25,66 +25,69 @@ class VendorService {
     }
   }
 
-  // **افزودن وندور جدید**
-  async createVendor(vendorData) {
-    try {
-      console.log('📤 Creating new vendor:', vendorData);
-      
-      // داده‌های ارسالی به API (فقط name)
-      const apiData = {
-        name: vendorData.name.trim()
-      };
 
-      console.log('📤 Sending to /create_new_vendor:', apiData);
+async createVendor(vendorData) {
+  try {
+    console.log('📤 Creating new vendor:', vendorData);
+    
+    // داده‌های ارسالی به API (فقط name)
+    const apiData = {
+      name: vendorData.name.trim()
+    };
+
+    console.log('📤 Sending to /create_new_vendor:', apiData);
+    
+    const response = await http.post('/create_new_vendor', apiData);
+    console.log('✅ Vendor created successfully:', response.data);
+    
+    // پاسخ API: { "message": "Created new vendor successfully", "data": 4007 }
+    const newVendorId = response.data.data || `vendor-${Date.now()}`;
+    
+    return {
+      id: newVendorId.toString(),
+      name: vendorData.name.trim(),
+      address: vendorData.address || '',
+      phone: vendorData.phone || '',
+      email: vendorData.email || '',
+      isTemp: false
+    };
+  } catch (error) {
+    console.error('❌ Error creating vendor:', error);
+    
+    // مدیریت خطا با فرمت جدید
+    let errorMessage = 'خطا در ایجاد وندور';
+    
+    if (error.response) {
+      const { status, data } = error.response;
       
-      const response = await http.post('/create_new_vendor', apiData);
-      console.log('✅ Vendor created successfully:', response.data);
-      
-      // پاسخ API: { "message": "Created new vendor successfully", "data": 4007 }
-      const newVendorId = response.data.data || `vendor-${Date.now()}`;
-      
-      return {
-        id: newVendorId.toString(),
-        name: vendorData.name.trim(),
-        address: vendorData.address || '',
-        phone: vendorData.phone || '',
-        email: vendorData.email || '',
-        isTemp: false
-      };
-    } catch (error) {
-      console.error('❌ Error creating vendor:', error);
-      
-      // مدیریت خطا
-      let errorMessage = 'خطا در ایجاد وندور';
-      
-      if (error.response) {
-        const { status, data } = error.response;
-        
-        if (status === 400 || status === 409) {
-          if (data.detail) {
-            // خطای تکراری بودن
-            if (data.detail.includes('already exists') || data.detail.includes('تکراری')) {
-              errorMessage = `نام وندور "${vendorData.name}" تکراری است. لطفاً نام دیگری انتخاب کنید.`;
-            } else {
-              errorMessage = data.detail;
-            }
-          } else if (data.message) {
-            errorMessage = data.message;
+      if (status === 400 || status === 409) {
+        if (data.detail) {
+          // **مدیریت خطای تکراری با فرمت جدید: 'Vendor Name "تست" already exists.'**
+          if (data.detail.includes('already exists')) {
+            // استخراج نام وندور از پیام خطا
+            const match = data.detail.match(/Vendor Name "([^"]+)"/);
+            const vendorName = match ? match[1] : vendorData.name;
+            errorMessage = `نام وندور "${vendorName}" تکراری است. لطفاً نام دیگری انتخاب کنید.`;
+          } else {
+            errorMessage = data.detail;
           }
-        } else if (status === 401) {
-          errorMessage = 'دسترسی غیرمجاز. لطفاً دوباره وارد شوید.';
-        } else if (status === 500) {
-          errorMessage = 'خطای سرور. لطفاً دوباره تلاش کنید.';
+        } else if (data.message) {
+          errorMessage = data.message;
         }
+      } else if (status === 401) {
+        errorMessage = 'دسترسی غیرمجاز. لطفاً دوباره وارد شوید.';
+      } else if (status === 500) {
+        errorMessage = 'خطای سرور. لطفاً دوباره تلاش کنید.';
       }
-      
-      const customError = new Error(errorMessage);
-      customError.originalError = error;
-      customError.vendorData = vendorData;
-      
-      throw customError;
     }
+    
+    const customError = new Error(errorMessage);
+    customError.originalError = error;
+    customError.vendorData = vendorData;
+    
+    throw customError;
   }
+}
 
   // تبدیل داده‌های دریافتی از API به فرمت مورد نیاز کامپوننت
   transformVendorsData(apiData) {
