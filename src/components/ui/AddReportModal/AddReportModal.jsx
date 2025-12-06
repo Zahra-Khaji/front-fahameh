@@ -8,8 +8,13 @@ import {
   FaEdit, 
   FaExclamationCircle,
   FaCheckCircle,
-  FaArrowRight
+  FaArrowRight,
+  FaCalendarAlt
 } from 'react-icons/fa';
+import DatePicker from "react-multi-date-picker";
+import DateObject from "react-date-object"; // ✅ اضافه کردن import
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
 import { useCreateReport } from '../../../hooks/useCreateReport';
 import { useUser } from '../../../hooks/useUser';
 import { toast } from 'react-hot-toast';
@@ -21,13 +26,42 @@ import InspectorTable from './InspectorTable';
 import InspectorMobileView from './InspectorMobileView';
 
 const AddReportModal = ({ isOpen, onClose, onAddReport, rfiData }) => {
+  // ✅ تابع اصلاح شده برای گرفتن تاریخ امروز به شمسی
+  const getTodayPersianDate = () => {
+    const today = new Date();
+    // استفاده از DateObject به جای DatePicker
+    const persianDateObj = new DateObject({
+      date: today,
+      calendar: persian,
+      locale: persian_fa
+    });
+    return persianDateObj;
+  };
+
+  // ✅ تابع اصلاح شده برای تبدیل تاریخ به شمسی
+  const convertToPersianDate = (date) => {
+    if (!date) return null;
+    
+    // اگر تاریخ یک DateObject باشد
+    if (date instanceof DateObject) {
+      return date.set({ calendar: persian, locale: persian_fa });
+    }
+    
+    // برای تاریخ‌های استاندارد JavaScript
+    return new DateObject({
+      date: date instanceof Date ? date : new Date(date),
+      calendar: persian,
+      locale: persian_fa
+    });
+  };
+
   const [reports, setReports] = useState([
     {
       id: 1,
       reportNumber: '',
       status: '',
       corrections: '',
-      receivedDate: null,
+      receivedDate: convertToPersianDate(new Date()), // مقدار اولیه: تاریخ امروز
       approvedDays: '',
       unitNumber: '',
       vendorName: rfiData?.VendorName || '',
@@ -44,15 +78,7 @@ const AddReportModal = ({ isOpen, onClose, onAddReport, rfiData }) => {
       approvalStatus: 'تائید شده',
       inspectorName: 'مهدی صدری',
       fee: '11,000,000 تومان'
-    },
-    // {
-    //   id: 2,
-    //   rowNumber: 2,
-    //   inspectionDate: '1403/01/20',
-    //   approvalStatus: 'در انتظار',
-    //   inspectorName: 'مریم کریمی',
-    //   fee: '12,500,000 تومان'
-    // }
+    }
   ]);
   
   const [errors, setErrors] = useState({});
@@ -79,13 +105,15 @@ const AddReportModal = ({ isOpen, onClose, onAddReport, rfiData }) => {
   // ریست فرم وقتی مدال باز می‌شود
   useEffect(() => {
     if (isOpen) {
+      const todayPersianDate = convertToPersianDate(new Date());
+      
       setReports([
         {
           id: 1,
           reportNumber: '',
           status: '',
           corrections: '',
-          receivedDate: null,
+          receivedDate: todayPersianDate, // همیشه تاریخ امروز
           approvedDays: '',
           unitNumber: '',
           vendorName: rfiData?.VendorName || '',
@@ -101,15 +129,7 @@ const AddReportModal = ({ isOpen, onClose, onAddReport, rfiData }) => {
           approvalStatus: 'تائید شده',
           inspectorName: 'مهدی صدری',
           fee: '11,000,000 تومان'
-        },
-        // {
-        //   id: 2,
-        //   rowNumber: 2,
-        //   inspectionDate: '1403/01/20',
-        //   approvalStatus: 'در انتظار',
-        //   inspectorName: 'مریم کریمی',
-        //   fee: '12,500,000 تومان'
-        // }
+        }
       ]);
       setErrors({});
       setLocalError('');
@@ -127,7 +147,7 @@ const AddReportModal = ({ isOpen, onClose, onAddReport, rfiData }) => {
         reportNumber: '',
         status: '',
         corrections: '',
-        receivedDate: null,
+        receivedDate: convertToPersianDate(new Date()), // تاریخ امروز برای سطر جدید
         approvedDays: '',
         unitNumber: '',
         vendorName: rfiData?.VendorName || '',
@@ -152,13 +172,20 @@ const AddReportModal = ({ isOpen, onClose, onAddReport, rfiData }) => {
         {
           ...reportToCopy,
           id: newId,
-          reportNumber: ''
+          reportNumber: '',
+          receivedDate: convertToPersianDate(new Date()) // تاریخ امروز برای کپی
         }
       ]);
     }
   };
 
+  // در handleReportChange، تغییر تاریخ رو غیرفعال می‌کنیم
   const handleReportChange = (id, field, value) => {
+    // اگر کاربر سعی کرد تاریخ رو تغییر بده، تغییر نده
+    if (field === 'receivedDate') {
+      return; // تاریخ قابل تغییر نیست
+    }
+    
     setReports(reports.map(report => 
       report.id === id 
         ? { ...report, [field]: value }
@@ -240,9 +267,10 @@ const AddReportModal = ({ isOpen, onClose, onAddReport, rfiData }) => {
         newErrors[`${report.id}_corrections`] = 'شرح اصلاحات الزامی است';
       }
       
-      if (!report.receivedDate) {
-        newErrors[`${report.id}_receivedDate`] = 'تاریخ دریافت الزامی است';
-      }
+      // تاریخ رو از اعتبارسنجی حذف می‌کنیم چون همیشه مقدار داره
+      // if (!report.receivedDate) {
+      //   newErrors[`${report.id}_receivedDate`] = 'تاریخ دریافت الزامی است';
+      // }
       
       if (report.approvedDays && isNaN(parseInt(report.approvedDays))) {
         newErrors[`${report.id}_approvedDays`] = 'تعداد روز باید عدد باشد';
@@ -266,7 +294,13 @@ const AddReportModal = ({ isOpen, onClose, onAddReport, rfiData }) => {
     
     // فقط اولین گزارش رو ارسال کن
     const report = reports[0];
-    const persianDate = report.receivedDate ? report.receivedDate.format("YYYY/MM/DD") : "";
+    
+    // ✅ فرمت کردن تاریخ به صورت درست
+    const persianDate = report.receivedDate instanceof DateObject 
+      ? report.receivedDate.format("YYYY/MM/DD")
+      : typeof report.receivedDate?.format === 'function'
+      ? report.receivedDate.format("YYYY/MM/DD")
+      : "";
     
     const reportData = {
       rfi_numbering: rfiData?.RFI_Numbering || '',
@@ -323,7 +357,6 @@ const AddReportModal = ({ isOpen, onClose, onAddReport, rfiData }) => {
             <FaFileAlt className="text-blue-500 text-lg" />
             <div>
               <h3 className="text-lg font-bold text-gray-800">ثبت گزارش و صورت وضعیت</h3>
-              {/* <p className="text-xs text-gray-500 mt-1">شماره RFI: {rfiData?.RFI_Number}</p> */}
             </div>
           </div>
           <button
@@ -439,8 +472,6 @@ const AddReportModal = ({ isOpen, onClose, onAddReport, rfiData }) => {
               handleAddNewInspectorRow={handleAddNewInspectorRow}
             />
           </div>
-
-         
 
           {/* دکمه‌های ثبت و انصراف */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">

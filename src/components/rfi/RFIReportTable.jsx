@@ -7,7 +7,6 @@ import { FaTable, FaSearch, FaSync, FaFileAlt, FaArrowRight, FaCheckCircle, FaCl
 import StepHeader from '../common/StepHeader';
 import SelectField from '../ui/SelectField';
 import Button from '../ui/Button';
-// import AddReportModal from '../../components/ui/AddReportModal/AddReportModal';
 import AddReportModal from '../ui/AddReportModal/AddReportModal';
 
 // Hooks
@@ -74,8 +73,6 @@ const RFIReportTable = () => {
   // تابع برای ثبت گزارش جدید
   const handleSubmitReport = (reportData) => {
     console.log('Report data to submit:', reportData);
-    // اینجا سرویس کال می‌شه - فعلا فقط لاگ می‌کنیم
-    // بعداً سرویس رو اضافه می‌کنیم
   };
 
   const handleProjectChange = (e) => {
@@ -99,14 +96,36 @@ const RFIReportTable = () => {
     }
   };
 
-  // تبدیل داده‌های دریافتی به آرایه برای نمایش در جدول
+  // تبدیل داده‌های دریافتی به آرایه برای نمایش در جدول با مرتب‌سازی نزولی RFI_Number
   const tableData = useMemo(() => {
     if (!rfiData || !shouldFetch) return [];
     
-    return Object.values(rfiData).map(item => ({
+    // تبدیل به آرایه
+    const dataArray = Object.values(rfiData).map(item => ({
       ...item,
-      formattedInspectionDate: new Date(item.InspectionDate).toLocaleDateString('fa-IR')
+      formattedInspectionDate: new Date(item.InspectionDate).toLocaleDateString('fa-IR'),
+      // تبدیل RFI_Number به عدد برای مرتب‌سازی
+      rfiNumberNum: parseInt(item.RFI_Number) || 0
     }));
+    
+    // مرتب‌سازی نزولی بر اساس RFI_Number
+    return dataArray.sort((a, b) => {
+      // سعی کن به عدد تبدیل کن
+      const numA = a.rfiNumberNum;
+      const numB = b.rfiNumberNum;
+      
+      // اگر هر دو عدد باشند، مرتب‌سازی عددی نزولی
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numB - numA; // نزولی: b - a
+      }
+      
+      // اگر یکی عدد نبود، عدد اولویت دارد
+      if (!isNaN(numA)) return -1;
+      if (!isNaN(numB)) return 1;
+      
+      // اگر هیچکدام عدد نبودند، بر اساس رشته مقایسه کن
+      return b.RFI_Number.localeCompare(a.RFI_Number);
+    });
   }, [rfiData, shouldFetch]);
 
   // حالت‌های مختلف نمایش
@@ -273,7 +292,7 @@ const RFIReportTable = () => {
                     <th className="p-4 text-right font-semibold text-white text-sm min-w-24">وضعیت RFI</th>
                     <th className="p-4 text-right font-semibold text-white text-sm min-w-28">تاریخ بازرسی</th>
                     <th className="p-4 text-right font-semibold text-white text-sm min-w-32">شماره گزارش</th>
-                    <th className="p-4 text-right font-semibold text-white text-sm min-w-36">RFI Numbering</th>
+                    <th className="p-4 text-right font-semibold text-white text-sm min-w-36">شماره نوتیفیکشن</th>
                     <th className="p-4 text-right font-semibold text-white text-sm min-w-28">نام پروژه</th>
                     <th className="p-4 text-right font-semibold text-white text-sm min-w-24">نوع پروژه</th>
                   </tr>

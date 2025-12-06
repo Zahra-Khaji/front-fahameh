@@ -3,11 +3,10 @@ import React from 'react';
 import { 
   FaCopy, 
   FaTrash, 
-  FaEdit 
+  FaEdit,
+  FaCalendarAlt,
+  FaLock
 } from 'react-icons/fa';
-import DatePicker from "react-multi-date-picker";
-import persian from "react-date-object/calendars/persian";
-import persian_fa from "react-date-object/locales/persian_fa";
 
 const ReportTable = ({ 
   reports, 
@@ -24,14 +23,14 @@ const ReportTable = ({
         <thead>
           <tr className="bg-gradient-to-r from-indigo-700 to-purple-700">
             <th className="p-3 text-center font-semibold text-white min-w-16">ردیف</th>
-            <th className="p-3 text-center font-semibold text-white min-w-24">شماره گزارش</th>
+            <th className="p-3 text-center font-semibold text-white min-w-48">شماره گزارش</th>
             <th className="p-3 text-center font-semibold text-white min-w-28">وضعیت</th>
             <th className="p-3 text-center font-semibold text-white min-w-28">تاریخ دریافت</th>
-            <th className="p-3 text-center font-semibold text-white min-w-32">روز تائید شده</th>
+            <th className="p-3 text-center font-semibold text-white min-w-20">روز تائید شده</th>
             <th className="p-3 text-center font-semibold text-white min-w-24">نام وندور</th>
             <th className="p-3 text-center font-semibold text-white min-w-24">شماره واحد</th>
-            <th className="p-3 text-center font-semibold text-white min-w-24">IRN</th>
-            <th className="p-3 text-center font-semibold text-white min-w-24">SRN</th>
+            <th className="p-3 text-center font-semibold text-white min-w-16">IRN</th>
+            <th className="p-3 text-center font-semibold text-white min-w-16">SRN</th>
             <th className="p-3 text-center font-semibold text-white min-w-24">عملیات</th>
           </tr>
         </thead>
@@ -99,29 +98,23 @@ const ReportTable = ({
                 </div>
               </td>
               
-              {/* ستون تاریخ دریافت */}
+              {/* ستون تاریخ دریافت - غیرقابل تغییر */}
               <td className="p-3">
-                <div className="flex flex-col">
-                  <DatePicker
-                    value={report.receivedDate}
-                    onChange={(date) => handleReportChange(report.id, 'receivedDate', date)}
-                    format="YYYY/MM/DD"
-                    calendar={persian}
-                    locale={persian_fa}
-                    calendarPosition="bottom-right"
-                    inputClass={`w-full px-3 py-2 text-xs border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                      errors[`${report.id}_receivedDate`] ? 'border-red-300' : 'border-gray-300'
-                    } ${isLoading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
-                    placeholder="تاریخ"
-                    disabled={isLoading}
-                  />
-                  {errors[`${report.id}_receivedDate`] && (
-                    <p className="text-red-500 text-xs mt-1 text-center">
-                      {errors[`${report.id}_receivedDate`]}
-                    </p>
-                  )}
-                </div>
-              </td>
+  <div className="flex flex-col">
+    <div className="relative">
+      <input
+        type="text"
+        value={report.receivedDate ? report.receivedDate.format("YYYY/MM/DD") : ""}
+        readOnly
+        className="w-full px-6 py-2 text-xs border border-gray-300 rounded-md bg-gray-100 text-gray-700 text-right cursor-not-allowed"
+        placeholder="تاریخ امروز"
+      />
+      <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+        <FaCalendarAlt className="text-gray-500 text-xs" />
+      </div>
+    </div>
+  </div>
+</td>
               
               {/* ستون روز تائید شده */}
               <td className="p-3">
@@ -130,10 +123,10 @@ const ReportTable = ({
                     type="number"
                     value={report.approvedDays}
                     onChange={(e) => handleReportChange(report.id, 'approvedDays', e.target.value)}
-                    className={`w-full px-3 py-2 text-xs border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                    className={`w-full px-2 py-2 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-transparent text-center ${
                       errors[`${report.id}_approvedDays`] ? 'border-red-300' : 'border-gray-300'
                     } ${isLoading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
-                    placeholder="تعداد روز"
+                    placeholder="روز"
                     min="0"
                     disabled={isLoading}
                   />
@@ -180,7 +173,7 @@ const ReportTable = ({
                     type="text"
                     value={report.irn}
                     onChange={(e) => handleReportChange(report.id, 'irn', e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent bg-white disabled:bg-gray-100"
+                    className="w-full px-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-transparent text-center bg-white disabled:bg-gray-100"
                     placeholder="IRN"
                     disabled={isLoading}
                   />
@@ -194,7 +187,7 @@ const ReportTable = ({
                     type="text"
                     value={report.srn}
                     onChange={(e) => handleReportChange(report.id, 'srn', e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white disabled:bg-gray-100"
+                    className="w-full px-2 py-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-transparent text-center bg-white disabled:bg-gray-100"
                     placeholder="SRN"
                     disabled={isLoading}
                   />
