@@ -59,7 +59,7 @@ const ReportTable = ({
                     className={`w-full px-3 py-2 text-xs border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
                       errors[`${report.id}_reportNumber`] ? 'border-red-300' : 'border-gray-300'
                     } ${isLoading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
-                    placeholder="******"
+                    placeholder="**************************"
                     required
                     disabled={isLoading}
                   />
