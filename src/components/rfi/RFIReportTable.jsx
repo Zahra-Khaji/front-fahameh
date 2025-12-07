@@ -9,6 +9,10 @@ import SelectField from '../ui/SelectField';
 import Button from '../ui/Button';
 import AddReportModal from '../ui/AddReportModal/AddReportModal';
 
+
+import { useNotificationInfo } from '../../hooks/useNotificationNumber';
+import NotificationInfoModal from '../ui/NotificationInfoModal/NotificationInfoModal';
+
 // Hooks
 import { useProjects } from '../../hooks/useProjects';
 import { useRFIReport } from '../../hooks/useRFIReport';
@@ -21,6 +25,28 @@ const RFIReportTable = () => {
   const [isAutoFetch, setIsAutoFetch] = useState(false);
   const [showAddReportModal, setShowAddReportModal] = useState(false);
   const [selectedRFI, setSelectedRFI] = useState(null);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+const [selectedNotification, setSelectedNotification] = useState(null);
+// const [showNotificationModal, setShowNotificationModal] = useState(false);
+const [selectedRFINumber, setSelectedRFINumber] = useState('');
+const [showReportModal, setShowReportModal] = useState(false);
+const [selectedReportRFI, setSelectedReportRFI] = useState(null);
+
+// تابع برای باز کردن مدال نوتیفیکیشن
+const handleOpenNotificationModal = (item) => {
+  if (item.RFI_Numbering && item.RFI_Numbering !== '************') {
+    setSelectedRFINumber(item.RFI_Numbering);
+    setShowNotificationModal(true);
+  } else {
+    toast.error('شماره نوتیفیکیشن معتبر نیست');
+  }
+};
+
+// تابع handler جدید:
+const handleOpenReportModal = (item) => {
+  setSelectedReportRFI(item);
+  setShowReportModal(true);
+};
 
   // استفاده از هوک پروژه‌ها
   const { data: projects, isLoading: projectsLoading, error: projectsError } = useProjects();
@@ -325,23 +351,41 @@ const RFIReportTable = () => {
                         </span>
                       </td>
                       <td className="p-4 text-gray-700">{item.formattedInspectionDate}</td>
-                      <td className="p-4 font-mono text-gray-900 text-xs">
-                        {item.Report_No === '************' ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600">************</span>
-                            <button
-                              onClick={() => handleAddReport(item)}
-                              className="text-green-600 hover:text-green-800 transition duration-200"
-                              title="ثبت گزارش جدید"
-                            >
-                              <FaPlusCircle className="text-sm" />
-                            </button>
-                          </div>
-                        ) : (
-                          item.Report_No
-                        )}
-                      </td>
-                      <td className="p-4 font-mono text-gray-900 text-xs">{item.RFI_Numbering}</td>
+                    
+                     
+<td className="p-4 font-mono text-gray-900 text-xs">
+  {item.Report_No === '************' ? (
+    <button
+      onClick={() => handleOpenReportModal(item)}
+      className="text-gray-600 hover:text-blue-800 hover:underline transition duration-200 font-mono tracking-wider"
+      title="مدیریت گزارش"
+    >
+      ************
+    </button>
+  ) : (
+    <button
+      onClick={() => handleOpenReportModal(item)}
+      className="text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium"
+      title="مشاهده و ویرایش گزارش"
+    >
+      {item.Report_No}
+    </button>
+  )}
+</td>
+                      {/* <td className="p-4 font-mono text-gray-900 text-xs">{item.RFI_Numbering}</td> */}
+                      {/* شماره نوتیفیکشن */}
+<td className="p-4 font-mono text-gray-900 text-xs">
+  <button
+    onClick={() => handleOpenNotificationModal(item)}
+    className={`text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium ${
+      !item.RFI_Numbering || item.RFI_Numbering === '************' ? 'opacity-50 cursor-not-allowed' : ''
+    }`}
+    title={!item.RFI_Numbering || item.RFI_Numbering === '************' ? "شماره نوتیفیکیشن معتبر نیست" : "مشاهده اطلاعات نوتیفیکیشن"}
+    disabled={!item.RFI_Numbering || item.RFI_Numbering === '************'}
+  >
+    {item.RFI_Numbering}
+  </button>
+</td>
                       <td className="p-4 text-gray-700">{item.ProjectTitle}</td>
                       <td className="p-4 text-gray-700">
                         <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium">
@@ -484,13 +528,26 @@ const RFIReportTable = () => {
         </div>
       </div>
 
-      {/* مدال ثبت گزارش جدید */}
       <AddReportModal
-        isOpen={showAddReportModal}
-        onClose={() => setShowAddReportModal(false)}
-        onAddReport={handleSubmitReport}
-        rfiData={selectedRFI}
-      />
+  isOpen={showReportModal}
+  onClose={() => {
+    setShowReportModal(false);
+    setSelectedReportRFI(null);
+  }}
+  rfiData={selectedReportRFI}
+/>
+
+
+
+
+
+      {/* مدال اطلاعات نوتیفیکیشن */}
+<NotificationInfoModal
+  isOpen={showNotificationModal}
+  onClose={() => setShowNotificationModal(false)}
+  notificationData={selectedNotification}
+  rfiNumber={selectedRFINumber}
+/>
     </div>
   );
 };
