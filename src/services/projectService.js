@@ -85,7 +85,30 @@ async createProject(projectData) {
     throw customError;
   }
 }
-
+  // **جدید: دریافت آخرین IRN برای پروژه**
+  async getLastIRN(projectName, projectType) {
+    try {
+      console.log('Getting last IRN for:', { projectName, projectType });
+      
+      const params = {
+        project_name: projectName,
+        Over_Domestic: projectType
+      };
+      
+      const response = await http.get('/irnno', { params });
+      console.log('Last IRN API response:', response.data);
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching last IRN:', error);
+      
+      // در صورت خطا، مقدار پیش‌فرض برگردان
+      return {
+        irnno: 0,
+        next_irnno: 1
+      };
+    }
+  }
   // تبدیل داده‌های دریافتی از API به فرمت مورد نیاز کامپوننت
   transformProjectsData(apiData) {
     // فرمت: { "4": "چهلستون", "5": "عمران ساحل بندرپارسیان", ... }

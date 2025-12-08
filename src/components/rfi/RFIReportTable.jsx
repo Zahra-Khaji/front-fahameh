@@ -13,6 +13,9 @@ import AddReportModal from '../ui/AddReportModal/AddReportModal';
 import { useNotificationInfo } from '../../hooks/useNotificationNumber';
 import NotificationInfoModal from '../ui/NotificationInfoModal/NotificationInfoModal';
 
+import { useLastIRN } from '../../hooks/useProjects';
+import { FaHashtag, FaCalendarCheck } from 'react-icons/fa';
+
 // Hooks
 import { useProjects } from '../../hooks/useProjects';
 import { useRFIReport } from '../../hooks/useRFIReport';
@@ -31,6 +34,13 @@ const [selectedNotification, setSelectedNotification] = useState(null);
 const [selectedRFINumber, setSelectedRFINumber] = useState('');
 const [showReportModal, setShowReportModal] = useState(false);
 const [selectedReportRFI, setSelectedReportRFI] = useState(null);
+const [projectType, setProjectType] = useState('');
+const { data: lastIRNData, isLoading: irnLoading } = useLastIRN(
+  projectName, 
+  projectType
+);
+
+
 
 // تابع برای باز کردن مدال نوتیفیکیشن
 const handleOpenNotificationModal = (item) => {
@@ -58,23 +68,51 @@ const handleOpenReportModal = (item) => {
   );
 
   // اثر برای خواندن query parameters از URL
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const projectFromQuery = searchParams.get('project');
+  // useEffect(() => {
+  //   const searchParams = new URLSearchParams(location.search);
+  //   const projectFromQuery = searchParams.get('project');
     
-    if (projectFromQuery) {
-      const decodedProjectName = decodeURIComponent(projectFromQuery);
-      setProjectName(decodedProjectName);
-      setShouldFetch(true);
-      setIsAutoFetch(true);
+  //   if (projectFromQuery) {
+  //     const decodedProjectName = decodeURIComponent(projectFromQuery);
+  //     setProjectName(decodedProjectName);
+  //     setShouldFetch(true);
+  //     setIsAutoFetch(true);
       
-      // پیدا کردن ID پروژه بر اساس نام
-      const foundProject = projects?.find(project => project.name === decodedProjectName);
-      if (foundProject) {
-        setSelectedProject(foundProject.id);
-      }
+  //     // پیدا کردن ID پروژه بر اساس نام
+  //     const foundProject = projects?.find(project => project.name === decodedProjectName);
+  //     if (foundProject) {
+  //       setSelectedProject(foundProject.id);
+  //     }
+  //   }
+  // }, [location.search, projects]);
+  // تغییر در useEffect
+useEffect(() => {
+  const searchParams = new URLSearchParams(location.search);
+  const projectFromQuery = searchParams.get('project');
+  
+  if (projectFromQuery) {
+    const decodedProjectName = decodeURIComponent(projectFromQuery);
+    setProjectName(decodedProjectName);
+    setShouldFetch(true);
+    setIsAutoFetch(true);
+    
+    // پیدا کردن ID پروژه بر اساس نام
+    const foundProject = projects?.find(project => project.name === decodedProjectName);
+    if (foundProject) {
+      setSelectedProject(foundProject.id);
     }
-  }, [location.search, projects]);
+  }
+}, [location.search, projects]);
+// **جدید: وقتی rfiData بارگذاری شد، نوع پروژه رو استخراج کن**
+useEffect(() => {
+  if (rfiData && Object.keys(rfiData).length > 0) {
+    // از اولین آیتم، نوع پروژه رو بگیر
+    const firstItem = Object.values(rfiData)[0];
+    if (firstItem.Over_Domestic) {
+      setProjectType(firstItem.Over_Domestic);
+    }
+  }
+}, [rfiData]);
 
   // محاسبه آمار گزارش‌ها
   const stats = useMemo(() => {
@@ -241,7 +279,41 @@ const handleOpenReportModal = (item) => {
                 <FaListAlt className="text-blue-500 text-sm" />
                 خلاصه آماری گزارش‌ها
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+
+
+              <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-3 text-white shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-purple-100 text-xs mb-1 flex items-center gap-1">
+              <FaHashtag className="text-xs" />
+              آخرین IRN ثبت شده
+            </p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-xl font-bold">
+                {irnLoading ? (
+                  <FaSync className="animate-spin inline text-sm" />
+                ) : (
+                  lastIRNData?.irnno || 0
+                )}
+              </p>
+              {lastIRNData?.next_irnno && (
+                <span className="text-purple-200 text-xs font-medium">
+                  (بعدی: {lastIRNData.next_irnno})
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="bg-purple-400 bg-opacity-30 p-2 rounded-full">
+            <FaCalendarCheck className="text-lg" />
+          </div>
+        </div>
+        {irnLoading && (
+          <p className="text-purple-200 text-xs mt-1">
+            در حال دریافت...
+          </p>
+        )}
+      </div>
                 {/* کارت تعداد کل */}
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-3 text-white shadow-lg">
                   <div className="flex items-center justify-between">
@@ -295,7 +367,6 @@ const handleOpenReportModal = (item) => {
               </div>
             </div>
           )}
-
           {/* نمایش خطا */}
           {rfiError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -535,6 +606,7 @@ const handleOpenReportModal = (item) => {
     setSelectedReportRFI(null);
   }}
   rfiData={selectedReportRFI}
+  nextIRN={lastIRNData?.next_irnno?.toString() || ''}
 />
 
 

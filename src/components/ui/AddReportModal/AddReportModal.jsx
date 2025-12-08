@@ -19,7 +19,7 @@ import { useReportInfo, useUpdateReport } from '../../../hooks/useCreateReport';
 import { useUser } from '../../../hooks/useUser';
 import { toast } from 'react-hot-toast';
 
-const AddReportModal = ({ isOpen, onClose, rfiData }) => {
+const AddReportModal = ({ isOpen, onClose, rfiData,nextIRN = '' }) => {
   // استفاده از هوک‌ها
   const { data: reportInfo, isLoading: isReportLoading, error } = useReportInfo(rfiData?.RFI_Numbering);
   const { mutate: updateReport, isLoading: isUpdating } = useUpdateReport();
@@ -95,6 +95,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData }) => {
     if (isOpen) {
       if (reportInfo) {
         console.log('📥 Setting report info from API:', reportInfo);
+        const defaultIRN = reportInfo.irn || nextIRN || '';
         
         // اگر داده از API آمد
         setReportRows([{
@@ -133,7 +134,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData }) => {
           approvedDays: '',
           unitNumber: '',
           vendorName: rfiData?.VendorName || '',
-          irn: '',
+          irn: nextIRN,
           srn: '',
           firstPrice: '80000000',
           user: user?.username || '',
@@ -164,7 +165,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData }) => {
         }]);
       }
     }
-  }, [isOpen, rfiData, reportInfo, user, error, isReportLoading]);
+  }, [isOpen, rfiData, reportInfo, user, error, isReportLoading,nextIRN]);
 
   // ========== مدیریت ردیف‌های جدول ==========
   const handleAddNewRow = () => {
@@ -182,7 +183,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData }) => {
         approvedDays: '',
         unitNumber: '',
         vendorName: rfiData?.VendorName || '',
-        irn: '',
+        irn: nextIRN || '',
         srn: '',
         firstPrice: '80000000',
         user: user?.username || '',
@@ -207,7 +208,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData }) => {
         {
           ...rowToCopy,
           id: newId,
-          reportNumber: '' // شماره گزارش جدید باید خالی باشد
+          reportNumber: '', // شماره گزارش جدید باید خالی باشد
+          irn: nextIRN || rowToCopy.irn
         }
       ]);
     }
@@ -497,11 +499,11 @@ const AddReportModal = ({ isOpen, onClose, rfiData }) => {
           disabled={isLoading}
           required={row.status === 'Objection'}
         />
-        {row.status === 'Objection' && !row.corrections.trim() && (
+        {/* {row.status === 'Objection' && !row.corrections.trim() && (
           <p className="text-red-500 text-xs mt-1">
             برای وضعیت "نیاز به اصلاحات"، این فیلد الزامی است
           </p>
-        )}
+        )} */}
       </td>
 
       {/* تاریخ دریافت - 10% */}

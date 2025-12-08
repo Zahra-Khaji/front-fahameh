@@ -21,6 +21,31 @@ export const useProjects = () => {
   });
 };
 
+
+
+// **جدید: هوک برای دریافت آخرین IRN**
+export const useLastIRN = (projectName, projectType) => {
+  return useQuery({
+    queryKey: ['lastIRN', projectName, projectType],
+    queryFn: () => projectService.getLastIRN(projectName, projectType),
+    enabled: !!projectName && !!projectType, // فقط وقتی هر دو مقدار دارند
+    staleTime: 2 * 60 * 1000, // 2 دقیقه
+    retry: 1,
+    onError: (error) => {
+      console.error('Error in useLastIRN hook:', error);
+    }
+  });
+};
+
+
+
+
+
+
+
+
+
+
 // هوک برای گرفتن اطلاعات یک پروژه خاص
 export const useProject = (id) => {
   return useQuery({
