@@ -5,9 +5,7 @@ import {
   FaBuilding, 
   FaSpinner, 
   FaExclamationTriangle, 
-  FaLightbulb,
-  FaCheckCircle,
-  FaInfoCircle
+  FaKey
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import Button from './Button';
@@ -17,8 +15,7 @@ import { showSuccessToast, showErrorToast, showLoadingToast } from '../../utils/
 const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   const [formData, setFormData] = useState({
     name: '',
-    abbreviation: '',
-    subProject: ''
+    project_code: '',
   });
   
   const [localError, setLocalError] = useState('');
@@ -29,78 +26,70 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   // ریست فرم وقتی مدال باز یا بسته می‌شود
   useEffect(() => {
     if (isOpen) {
-      setFormData({ name: '', abbreviation: '', subProject: '' });
+      setFormData({ name: '', project_code: '' });
       setLocalError('');
     }
   }, [isOpen]);
 
-  // ترجمه خطای سرور به فارسی
-  const translateError = (error) => {
-    if (!error) return 'خطای نامشخص';
-    
-    // اگر خطا از قبل ترجمه شده باشد
-    if (typeof error === 'string') {
-      if (error.includes('پروژه') || error.includes('تکراری')) {
-        return error;
-      }
+  // اعتبارسنجی فرم
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      return 'نام پروژه الزامی است';
     }
     
-    // بررسی خطای API
-    if (error?.response?.data?.detail) {
-      const detail = error.response.data.detail;
-      
-      // خطای تکراری بودن نام پروژه
-      if (typeof detail === 'string' && detail.includes('already exists')) {
-        // استخراج نام پروژه از پیام خطا
-        const match = detail.match(/Title "([^"]+)"/);
-        const projectName = match ? match[1] : formData.name;
-        return `نام پروژه "${projectName}" تکراری است.`;
-      }
-      
-      // سایر پیام‌های خطا
-      return detail;
+    if (formData.name.trim().length < 2) {
+      return 'نام پروژه باید حداقل ۲ حرف داشته باشد';
     }
     
-    // خطاهای HTTP
-    if (error?.response) {
-      const { status } = error.response;
-      switch (status) {
-        case 400:
-          return 'درخواست نامعتبر است. لطفاً اطلاعات را بررسی کنید.';
-        case 401:
-          return 'دسترسی غیرمجاز. لطفاً دوباره وارد شوید.';
-        case 409:
-          return 'این پروژه از قبل وجود دارد.';
-        case 500:
-          return 'خطای سرور. لطفاً دوباره تلاش کنید.';
-        default:
-          return `خطای سرور (کد: ${status})`;
-      }
+    if (!formData.project_code.trim()) {
+      return 'کد پروژه الزامی است';
     }
     
-    // خطای شبکه
-    if (error?.request) {
-      return 'ارتباط با سرور برقرار نشد. لطفاً اتصال اینترنت را بررسی کنید.';
+    if (formData.project_code.trim().length < 1) {
+      return 'کد پروژه باید حداقل ۱ کاراکتر داشته باشد';
     }
     
-    // خطای عمومی
-    return error?.message || 'خطای نامشخص در ایجاد پروژه';
+    // اعتبارسنجی کد پروژه (فقط حروف، اعداد و خط تیره مجاز)
+    const codeRegex = /^[A-Za-z0-9\-_]+$/;
+    if (!codeRegex.test(formData.project_code)) {
+      return 'کد پروژه فقط می‌تواند شامل حروف انگلیسی، اعداد، خط تیره و _ باشد';
+    }
+    
+    return null;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // برای کد پروژه - فقط حذف فاصله
+    if (name === 'project_code') {
+      const cleanedValue = value.replace(/\s+/g, '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: cleanedValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+    
+    // پاک کردن خطا هنگام تایپ
+    if (localError) {
+      setLocalError('');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // اعتبارسنجی اولیه
-    if (!formData.name.trim()) {
-      setLocalError('نام پروژه الزامی است');
-      showErrorToast('نام پروژه الزامی است');
-      return;
-    }
-    
-    if (formData.name.trim().length < 2) {
-      setLocalError('نام پروژه باید حداقل ۲ حرف داشته باشد');
-      showErrorToast('نام پروژه باید حداقل ۲ حرف داشته باشد');
+    // اعتبارسنجی فرم
+    const validationError = validateForm();
+    if (validationError) {
+      setLocalError(validationError);
+      showErrorToast(validationError);
       return;
     }
     
@@ -110,8 +99,16 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
     // نمایش toast در حال بارگذاری
     const loadingToast = showLoadingToast('در حال ایجاد پروژه جدید...');
     
+    // **ارسال دقیقاً همان چیزی که کاربر تایپ کرده**
+    const apiData = {
+      Title: formData.name.trim(),
+      project_code: formData.project_code.trim() // همان چیزی که کاربر تایپ کرده
+    };
+    
+    console.log('📤 Sending project data to API:', apiData);
+    
     // ایجاد پروژه در سرور
-    createProject(formData, {
+    createProject(apiData, {
       onSuccess: (newProject) => {
         console.log('✅ پروژه با موفقیت ایجاد شد:', newProject);
         
@@ -128,7 +125,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
         
         // بستن مدال
         setTimeout(() => {
-          setFormData({ name: '', abbreviation: '', subProject: '' });
+          setFormData({ name: '', project_code: '' });
           setIsSubmitting(false);
           onClose();
         }, 500);
@@ -139,12 +136,28 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
         // بستن toast بارگذاری
         toast.dismiss(loadingToast);
         
-        // ترجمه خطا به فارسی
-        const userErrorMessage = translateError(error);
-        setLocalError(userErrorMessage);
+        // مدیریت خطا
+        let errorMessage = 'خطا در ایجاد پروژه';
         
-        // نمایش toast خطا
-        showErrorToast(userErrorMessage);
+        if (error?.response?.data?.detail) {
+          const detail = error.response.data.detail;
+          
+          // خطای تکراری بودن نام پروژه
+          if (typeof detail === 'string') {
+            if (detail.includes('already exists')) {
+              errorMessage = `نام پروژه "${formData.name}" تکراری است. لطفاً نام دیگری انتخاب کنید.`;
+            } else if (detail.includes('project_code')) {
+              errorMessage = 'کد پروژه تکراری است. لطفاً کد دیگری انتخاب کنید.';
+            } else {
+              errorMessage = detail;
+            }
+          }
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+        
+        setLocalError(errorMessage);
+        showErrorToast(errorMessage);
         
         // فوکوس روی فیلد نام برای اصلاح
         setTimeout(() => {
@@ -160,22 +173,9 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
     });
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // پاک کردن خطا هنگام تایپ
-    if (localError) {
-      setLocalError('');
-    }
-  };
-
   const handleClose = () => {
     if (!isSubmitting && !isCreating) {
-      setFormData({ name: '', abbreviation: '', subProject: '' });
+      setFormData({ name: '', project_code: '' });
       setLocalError('');
       onClose();
     }
@@ -206,7 +206,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* نمایش خطا در مدال (اختیاری) */}
+          {/* نمایش خطا در مدال */}
           {localError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               <div className="flex items-start">
@@ -214,8 +214,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
                 <div className="flex-1">
                   <strong className="font-semibold">خطا:</strong>
                   <p className="mt-1">{localError}</p>
-                  
-                
                 </div>
               </div>
             </div>
@@ -224,6 +222,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
           {/* نام پروژه */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+              <FaBuilding className="ml-1 text-blue-500" />
               نام پروژه *
             </label>
             <input
@@ -232,7 +231,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
               value={formData.name}
               onChange={handleChange}
               className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
-                localError ? 'border-red-300' : 'border-gray-300'
+                localError && !formData.name.trim() ? 'border-red-300' : 'border-gray-300'
               } ${isLoading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
               placeholder="نام کامل پروژه را وارد کنید"
               required
@@ -240,40 +239,34 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
               autoFocus
               maxLength={100}
             />
+            {/* <div className="mt-1 text-xs text-gray-500">
+              حداقل ۲ حرف، حداکثر ۱۰۰ کاراکتر
+            </div> */}
           </div>
 
-          {/* مخفف */}
+          {/* کد پروژه */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              مخفف (اختیاری)
+            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+              <FaKey className="ml-1 text-green-500" />
+              کد پروژه *
             </label>
             <input
               type="text"
-              name="abbreviation"
-              value={formData.abbreviation}
+              name="project_code"
+              value={formData.project_code}
               onChange={handleChange}
-              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100"
-              placeholder="مخفف پروژه (اختیاری)"
+              className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
+                localError && !formData.project_code.trim() ? 'border-red-300' : 'border-gray-300'
+              } ${isLoading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+              placeholder=""
+              required
               disabled={isLoading}
               maxLength={20}
+              dir="ltr"
             />
-          </div>
-
-          {/* ساب پروژه */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              ساب پروژه (اختیاری)
-            </label>
-            <input
-              type="text"
-              name="subProject"
-              value={formData.subProject}
-              onChange={handleChange}
-              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100"
-              placeholder="ساب پروژه (اختیاری)"
-              disabled={isLoading}
-              maxLength={50}
-            />
+            <div className="mt-1 text-xs text-gray-500">
+              حروف انگلیسی، اعداد، خط تیره و _ 
+            </div>
           </div>
 
           {/* Buttons */}
@@ -283,7 +276,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
               variant="primary"
               icon={isLoading ? FaSpinner : undefined}
               className="flex-1"
-              disabled={!formData.name.trim() || formData.name.trim().length < 2 || isLoading}
+              disabled={isLoading || !formData.name.trim() || !formData.project_code.trim()}
               isLoading={isLoading}
               spinnerClassName="text-white"
             >
@@ -299,8 +292,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
               انصراف
             </Button>
           </div>
-          
-  
         </form>
       </div>
     </div>
