@@ -1,5 +1,5 @@
 // src/components/rfi/RFIReportTable.jsx
-import React, { useState, useMemo, useEffect,useRef  } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   FaTable, FaSearch, FaSync, FaFileAlt, FaArrowRight, 
@@ -16,14 +16,14 @@ import { useNotificationInfo } from '../../hooks/useNotificationNumber';
 import NotificationInfoModal from '../ui/NotificationInfoModal/NotificationInfoModal';
 import { useLastIRN } from '../../hooks/useProjects';
 import { FaHashtag, FaCalendarCheck } from 'react-icons/fa';
+import PaginationControls from '../ui/PaginationControls'; // اضافه شد
 
 // Hooks
 import { useProjects } from '../../hooks/useProjects';
 import { useRFIReport } from '../../hooks/useRFIReport';
 
 //helper
-import {getPersianProjectType,getStatusColor,getPersianStatus} from "./../../utils/helpers"
-import { fromJSON } from 'postcss';
+import { getPersianProjectType, getStatusColor, getPersianStatus } from "./../../utils/helpers"
 
 const RFIReportTable = () => {
   const location = useLocation();
@@ -53,6 +53,10 @@ const RFIReportTable = () => {
     RFI_Numbering: ''
   });
 
+  // حالت‌های صفحه‌بندی
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // مقدار پیش‌فرض
+
   const { data: lastIRNData, isLoading: irnLoading } = useLastIRN(
     projectName, 
     projectType
@@ -81,6 +85,7 @@ const RFIReportTable = () => {
       Report_No: '',
       RFI_Numbering: ''
     });
+    setCurrentPage(1); // بازگشت به صفحه اول
     
     const selectedProjectObj = projects?.find(project => project.id === projectId);
     if (selectedProjectObj) {
@@ -101,6 +106,7 @@ const RFIReportTable = () => {
         Report_No: '',
         RFI_Numbering: ''
       });
+      setCurrentPage(1); // بازگشت به صفحه اول
     }
   };
 
@@ -122,6 +128,7 @@ const RFIReportTable = () => {
       setProjectName(decodedProjectName);
       setShouldFetch(true);
       setIsAutoFetch(true);
+      setCurrentPage(1); // بازگشت به صفحه اول
       
       const foundProject = projects?.find(project => project.name === decodedProjectName);
       if (foundProject) {
@@ -160,60 +167,60 @@ const RFIReportTable = () => {
     direction: 'asc'
   });
 
-// تابع handleSort - بهبود یافته برای مدیریت انواع داده‌ها
-const handleSort = (key) => {
-  let direction = 'asc';
-  
-  if (sortConfig.key === key) {
-    direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
-  }
-  
-  setSortConfig({ key, direction });
-};
-
-// تابع extractNumberFromString (همان قبلی)
-const extractNumberFromString = (str) => {
-  if (!str || str === '************') return 0;
-  
-  try {
-    const cleanStr = str.replace(/[^\d]/g, '');
-    if (cleanStr) {
-      const num = parseInt(cleanStr, 10);
-      return isNaN(num) ? 0 : num;
-    }
-    return 0;
-  } catch (error) {
-    console.error('Error extracting number:', error);
-    return 0;
-  }
-};
- // تبدیل داده‌های دریافتی به آرایه برای نمایش در جدول
- const tableData = useMemo(() => {
-  if (!rfiData || !shouldFetch) return [];
-  
-  // تبدیل به آرایه
-  const dataArray = Object.values(rfiData).map(item => ({
-    ...item,
-    formattedInspectionDate: new Date(item.InspectionDate).toLocaleDateString('fa-IR'),
-    rfiNumberNum: parseInt(item.RFI_Number) || 0
-  }));
-  
-  // مرتب‌سازی نزولی بر اساس RFI_Number
-  return dataArray.sort((a, b) => {
-    const numA = a.rfiNumberNum;
-    const numB = b.rfiNumberNum;
+  // تابع handleSort
+  const handleSort = (key) => {
+    let direction = 'asc';
     
-    if (!isNaN(numA) && !isNaN(numB)) {
-      return numB - numA;
+    if (sortConfig.key === key) {
+      direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
     }
     
-    if (!isNaN(numA)) return -1;
-    if (!isNaN(numB)) return 1;
-    
-    return b.RFI_Number.localeCompare(a.RFI_Number);
-  });
-}, [rfiData, shouldFetch]);
+    setSortConfig({ key, direction });
+  };
 
+  // تابع extractNumberFromString
+  const extractNumberFromString = (str) => {
+    if (!str || str === '************') return 0;
+    
+    try {
+      const cleanStr = str.replace(/[^\d]/g, '');
+      if (cleanStr) {
+        const num = parseInt(cleanStr, 10);
+        return isNaN(num) ? 0 : num;
+      }
+      return 0;
+    } catch (error) {
+      console.error('Error extracting number:', error);
+      return 0;
+    }
+  };
+
+  // تبدیل داده‌های دریافتی به آرایه برای نمایش در جدول
+  const tableData = useMemo(() => {
+    if (!rfiData || !shouldFetch) return [];
+    
+    // تبدیل به آرایه
+    const dataArray = Object.values(rfiData).map(item => ({
+      ...item,
+      formattedInspectionDate: new Date(item.InspectionDate).toLocaleDateString('fa-IR'),
+      rfiNumberNum: parseInt(item.RFI_Number) || 0
+    }));
+    
+    // مرتب‌سازی نزولی بر اساس RFI_Number
+    return dataArray.sort((a, b) => {
+      const numA = a.rfiNumberNum;
+      const numB = b.rfiNumberNum;
+      
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numB - numA;
+      }
+      
+      if (!isNaN(numA)) return -1;
+      if (!isNaN(numB)) return 1;
+      
+      return b.RFI_Number.localeCompare(a.RFI_Number);
+    });
+  }, [rfiData, shouldFetch]);
 
   // تابع normalizeText برای جستجو (حذف فاصله و کاراکترهای خاص)
   const normalizeText = (text) => {
@@ -238,141 +245,172 @@ const extractNumberFromString = (str) => {
     return numbersInValue.some(num => num.includes(normalizedSearch));
   };
 
- 
-
   // اعمال فیلترها و سورتینگ
-// حذف تابع sortedData اول (خطوط 293-379) و فقط این تابع را نگه دار:
-
-// اعمال فیلترها و سورتینگ - تابع نهایی
-const filteredAndSortedData = useMemo(() => {
-  if (!tableData.length) return [];
-  
-  // اول فیلتر سرچ عمومی
-  let filteredData = tableData;
-  
-  // فیلتر سرچ عمومی
-  if (searchTerm.trim()) {
-    filteredData = filteredData.filter(item => {
-      return (
-        checkMatch(item.RFI_Number, searchTerm) ||
-        checkMatch(item.Report_No, searchTerm) ||
-        checkMatch(item.RFI_Numbering, searchTerm) ||
-        checkMatch(item.ProjectTitle, searchTerm)
-      );
+  const filteredAndSortedData = useMemo(() => {
+    if (!tableData.length) return [];
+    
+    // اول فیلتر سرچ عمومی
+    let filteredData = tableData;
+    
+    // فیلتر سرچ عمومی
+    if (searchTerm.trim()) {
+      filteredData = filteredData.filter(item => {
+        return (
+          checkMatch(item.RFI_Number, searchTerm) ||
+          checkMatch(item.Report_No, searchTerm) ||
+          checkMatch(item.RFI_Numbering, searchTerm) ||
+          checkMatch(item.ProjectTitle, searchTerm)
+        );
+      });
+    }
+    
+    // فیلترهای ستونی
+    Object.keys(columnFilters).forEach(key => {
+      const filterValue = columnFilters[key];
+      if (filterValue.trim()) {
+        filteredData = filteredData.filter(item => 
+          checkMatch(item[key], filterValue)
+        );
+      }
     });
-  }
-  
-  // فیلترهای ستونی
-  Object.keys(columnFilters).forEach(key => {
-    const filterValue = columnFilters[key];
-    if (filterValue.trim()) {
-      filteredData = filteredData.filter(item => 
-        checkMatch(item[key], filterValue)
-      );
-    }
-  });
-  
-  // اگر سورتی انتخاب نشده، برگردان
-  if (!sortConfig.key) return filteredData;
-  
-  // سورتینگ بر اساس ستون انتخاب شده
-  return [...filteredData].sort((a, b) => {
-    let aValue, bValue;
     
-    switch (sortConfig.key) {
-      case 'RFI_Number':
-        aValue = parseInt(a.RFI_Number) || 0;
-        bValue = parseInt(b.RFI_Number) || 0;
-        break;
-        
-      case 'Report_No':
-        aValue = extractNumberFromString(a.Report_No);
-        bValue = extractNumberFromString(b.Report_No);
-        if (aValue === 0 && bValue === 0) {
-          aValue = a.Report_No || '';
-          bValue = b.Report_No || '';
-        }
-        break;
-        
-      case 'RFI_Numbering':
-        aValue = extractNumberFromString(a.RFI_Numbering);
-        bValue = extractNumberFromString(b.RFI_Numbering);
-        if (aValue === 0 && bValue === 0) {
-          aValue = a.RFI_Numbering || '';
-          bValue = b.RFI_Numbering || '';
-        }
-        break;
-        
-      case 'RFI_Status':
-        // تابع برای تشخیص وضعیت - نسخه ساده و قطعی
-        const getStatusPriority = (status) => {
-          if (!status) return 99;
+    // اگر سورتی انتخاب نشده، برگردان
+    if (!sortConfig.key) return filteredData;
+    
+    // سورتینگ بر اساس ستون انتخاب شده
+    return [...filteredData].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortConfig.key) {
+        case 'RFI_Number':
+          aValue = parseInt(a.RFI_Number) || 0;
+          bValue = parseInt(b.RFI_Number) || 0;
+          break;
           
-          const statusStr = String(status).toLowerCase().trim();
+        case 'Report_No':
+          aValue = extractNumberFromString(a.Report_No);
+          bValue = extractNumberFromString(b.Report_No);
+          if (aValue === 0 && bValue === 0) {
+            aValue = a.Report_No || '';
+            bValue = b.Report_No || '';
+          }
+          break;
           
-          // انجام شده
-          if (statusStr === 'done') return 1;
-          // در حال انجام
-          if (statusStr === 'ongoing') return 2;
-          // لغو شده
-          if (statusStr === 'cancel' || statusStr === 'cancelled') return 3;
+        case 'RFI_Numbering':
+          aValue = extractNumberFromString(a.RFI_Numbering);
+          bValue = extractNumberFromString(b.RFI_Numbering);
+          if (aValue === 0 && bValue === 0) {
+            aValue = a.RFI_Numbering || '';
+            bValue = b.RFI_Numbering || '';
+          }
+          break;
           
-          return 99; // سایر
-        };
-        
-        aValue = getStatusPriority(a.RFI_Status);
-        bValue = getStatusPriority(b.RFI_Status);
-        break;
-        
-      case 'InspectionDate':
-        // مرتب‌سازی تاریخ
-        aValue = new Date(a.InspectionDate).getTime();
-        bValue = new Date(b.InspectionDate).getTime();
-        break;
-        
-      case 'ProjectTitle':
-        aValue = a.ProjectTitle || '';
-        bValue = b.ProjectTitle || '';
-        break;
-        
-      case 'Over_Domestic':
-        // ترتیب سفارشی برای نوع پروژه
-        const projectTypeOrder = {
-          'داخلی کالا': 1,
-          'داخلی کشتی': 2,
-          'خارجی': 3,
-          'Domestic Goods': 1,
-          'Domestic Ship': 2,
-          'Foreign': 3
-        };
-        
-        const typeA = a.Over_Domestic || '';
-        const typeB = b.Over_Domestic || '';
-        
-        aValue = projectTypeOrder[typeA] || projectTypeOrder[typeA.toLowerCase()] || 99;
-        bValue = projectTypeOrder[typeB] || projectTypeOrder[typeB.toLowerCase()] || 99;
-        break;
-        
-      default:
-        // برای ستون‌های دیگر، مقایسه رشته‌ای
-        aValue = a[sortConfig.key] || '';
-        bValue = b[sortConfig.key] || '';
-        break;
+        case 'RFI_Status':
+          // تابع برای تشخیص وضعیت
+          const getStatusPriority = (status) => {
+            if (!status) return 99;
+            
+            const statusStr = String(status).toLowerCase().trim();
+            
+            // انجام شده
+            if (statusStr === 'done') return 1;
+            // در حال انجام
+            if (statusStr === 'ongoing') return 2;
+            // لغو شده
+            if (statusStr === 'cancel' || statusStr === 'cancelled') return 3;
+            
+            return 99; // سایر
+          };
+          
+          aValue = getStatusPriority(a.RFI_Status);
+          bValue = getStatusPriority(b.RFI_Status);
+          break;
+          
+        case 'InspectionDate':
+          // مرتب‌سازی تاریخ
+          aValue = new Date(a.InspectionDate).getTime();
+          bValue = new Date(b.InspectionDate).getTime();
+          break;
+          
+        case 'ProjectTitle':
+          aValue = a.ProjectTitle || '';
+          bValue = b.ProjectTitle || '';
+          break;
+          
+        case 'Over_Domestic':
+          // ترتیب سفارشی برای نوع پروژه
+          const projectTypeOrder = {
+            'داخلی کالا': 1,
+            'داخلی کشتی': 2,
+            'خارجی': 3,
+            'Domestic Goods': 1,
+            'Domestic Ship': 2,
+            'Foreign': 3
+          };
+          
+          const typeA = a.Over_Domestic || '';
+          const typeB = b.Over_Domestic || '';
+          
+          aValue = projectTypeOrder[typeA] || projectTypeOrder[typeA.toLowerCase()] || 99;
+          bValue = projectTypeOrder[typeB] || projectTypeOrder[typeB.toLowerCase()] || 99;
+          break;
+          
+        default:
+          // برای ستون‌های دیگر، مقایسه رشته‌ای
+          aValue = a[sortConfig.key] || '';
+          bValue = b[sortConfig.key] || '';
+          break;
+      }
+      
+      let comparison = 0;
+      
+      // مقایسه عددی
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        comparison = aValue - bValue;
+      } else {
+        // مقایسه رشته‌ای
+        comparison = String(aValue).localeCompare(String(bValue), 'fa-IR');
+      }
+      
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [tableData, searchTerm, columnFilters, sortConfig]);
+
+  // ========== منطق صفحه‌بندی ==========
+  
+  // محاسبه داده‌های صفحه فعلی
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAndSortedData.slice(startIndex, endIndex);
+  }, [filteredAndSortedData, currentPage, itemsPerPage]);
+
+  // تعداد کل صفحات
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredAndSortedData.length / itemsPerPage);
+  }, [filteredAndSortedData.length, itemsPerPage]);
+
+  // تغییر صفحه
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    
-    let comparison = 0;
-    
-    // مقایسه عددی
-    if (typeof aValue === 'number' && typeof bValue === 'number') {
-      comparison = aValue - bValue;
-    } else {
-      // مقایسه رشته‌ای
-      comparison = String(aValue).localeCompare(String(bValue), 'fa-IR');
-    }
-    
-    return sortConfig.direction === 'asc' ? comparison : -comparison;
-  });
-}, [tableData, searchTerm, columnFilters, sortConfig]);
+  };
+
+  // تغییر تعداد آیتم در هر صفحه
+  const handleItemsPerPageChange = (e) => {
+    const newItemsPerPage = parseInt(e.target.value);
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // بازگشت به صفحه اول
+  };
+
+  // تغییر صفحه هنگام تغییر داده‌ها
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredAndSortedData]);
+
+  // ========== پایان منطق صفحه‌بندی ==========
 
   // تابع باز کردن مدال نوتیفیکیشن
   const handleOpenNotificationModal = (item) => {
@@ -437,7 +475,6 @@ const filteredAndSortedData = useMemo(() => {
   const showAutoFetchLoading = isAutoFetch && rfiLoading;
   const showManualLoading = !isAutoFetch && rfiLoading;
   const showResults = shouldFetch && tableData.length > 0;
-console.log("filteredAndSortedData5555555555555",filteredAndSortedData)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-1 px-3 sm:px-4 lg:px-4" dir="rtl">
@@ -519,18 +556,6 @@ console.log("filteredAndSortedData5555555555555",filteredAndSortedData)
           {/* جستجوی سریع - فقط وقتی نتایج وجود دارد */}
           {showResults && (
             <div className="mb-4">
-              {/* <div className="flex items-center gap-2 mb-1">
-                {activeFiltersCount > 0 && (
-                  <button
-                    onClick={clearAllFilters}
-                    className="text-red-600 hover:text-red-800 text-xs flex items-center gap-1"
-                  >
-                    <FaTimes className="text-xs" />
-                    حذف فیلترها
-                  </button>
-                )}
-              </div> */}
-              
               <div className="relative">
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                   <FaSearch className="text-sm" />
@@ -551,13 +576,6 @@ console.log("filteredAndSortedData5555555555555",filteredAndSortedData)
                   </button>
                 )}
               </div>
-              
-              {/* نمایش وضعیت جستجو */}
-              {/* {searchTerm && (
-                <div className="text-xs text-gray-500 mt-1">
-                  در حال جستجو برای: <span className="font-semibold text-blue-600">{searchTerm}</span>
-                </div>
-              )} */}
             </div>
           )}
   
@@ -645,213 +663,213 @@ console.log("filteredAndSortedData5555555555555",filteredAndSortedData)
             </div>
           )}
   
-         
-        
-
-{/* Desktop Table */}
-
-{/* Desktop Table */}
-{showResults && (
-  <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200">
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
-          {/* ستون شماره RFI با فیلتر و سورت */}
-          <FilterableSortHeader 
-            title="شماره RFI" 
-            sortKey="RFI_Number" 
-            sortConfig={sortConfig}
-            onSort={handleSort}
-            filterValue={columnFilters.RFI_Number}
-            onFilterChange={(value) => handleColumnFilterChange('RFI_Number', value)}
-            showFilter={showColumnFilters.RFI_Number}
-            onToggleFilter={() => toggleColumnFilter('RFI_Number')}
-            onClearFilter={() => clearColumnFilter('RFI_Number')}
-            placeholder="فیلتر عددی"
-          />
-          
-          {/* ستون وضعیت RFI با سورت */}
-          <SortHeader 
-            title="وضعیت RFI" 
-            sortKey="RFI_Status" 
-            sortConfig={sortConfig}
-            onSort={handleSort}
-          />
-          
-          {/* ستون تاریخ بازرسی با سورت */}
-          <SortHeader 
-            title="تاریخ بازرسی" 
-            sortKey="InspectionDate" 
-            sortConfig={sortConfig}
-            onSort={handleSort}
-          />
-          
-          {/* ستون شماره گزارش با فیلتر و سورت */}
-          <FilterableSortHeader 
-            title="شماره گزارش" 
-            sortKey="Report_No" 
-            sortConfig={sortConfig}
-            onSort={handleSort}
-            filterValue={columnFilters.Report_No}
-            onFilterChange={(value) => handleColumnFilterChange('Report_No', value)}
-            showFilter={showColumnFilters.Report_No}
-            onToggleFilter={() => toggleColumnFilter('Report_No')}
-            onClearFilter={() => clearColumnFilter('Report_No')}
-            placeholder="مثل: FAH-INS-PCH-0480"
-          />
-          
-          {/* ستون شماره نوتیفیکیشن با فیلتر و سورت */}
-          <FilterableSortHeader 
-            title="شماره نوتیفیکشن" 
-            sortKey="RFI_Numbering" 
-            sortConfig={sortConfig}
-            onSort={handleSort}
-            filterValue={columnFilters.RFI_Numbering}
-            onFilterChange={(value) => handleColumnFilterChange('RFI_Numbering', value)}
-            showFilter={showColumnFilters.RFI_Numbering}
-            onToggleFilter={() => toggleColumnFilter('RFI_Numbering')}
-            onClearFilter={() => clearColumnFilter('RFI_Numbering')}
-            placeholder="مثل: FAH-INS-PCH-0480"
-          />
-          
-          {/* ستون نام پروژه با سورت */}
-          <SortHeader 
-            title="نام پروژه" 
-            sortKey="ProjectTitle" 
-            sortConfig={sortConfig}
-            onSort={handleSort}
-          />
-          
-          {/* ستون نوع پروژه با سورت */}
-          <SortHeader 
-            title="نوع پروژه" 
-            sortKey="Over_Domestic" 
-            sortConfig={sortConfig}
-            onSort={handleSort}
-          />
-        </tr>
-      </thead>
-      <tbody>
-        {filteredAndSortedData?.map((item, index) => (
-          <tr 
-            key={index} 
-            className={`border-b border-gray-200 transition duration-150 ${
-              index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-            } hover:bg-blue-50`}
-          >
-            {/* شماره RFI - وسط‌چین */}
-            <td className="p-3 font-semibold text-gray-800 text-center">
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
-                <span>{item.RFI_Number}</span>
-              </div>
-            </td>
-            
-            {/* وضعیت RFI - وسط‌چین */}
-        {/* وضعیت RFI - وسط‌چین */}
-<td className="p-3 text-center">
-  <div className="flex justify-center">
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-      getStatusColor(item.RFI_Status)
-    }`}>
-      {getPersianStatus(item.RFI_Status)}
-    </span>
-  </div>
-</td>
-            
-            {/* تاریخ بازرسی - وسط‌چین */}
-            <td className="p-3 text-gray-700 text-center">{item.formattedInspectionDate}</td>
-          
-            {/* شماره گزارش - وسط‌چین */}
-            <td className="p-3 font-mono text-gray-900 text-xs text-center">
-              <div className="flex justify-center">
-                {item.Report_No === '************' ? (
-                  <button
-                    onClick={() => handleOpenReportModal(item)}
-                    className="text-gray-600 hover:text-blue-800 hover:underline transition duration-200 font-mono tracking-wider"
-                    title="مدیریت گزارش"
-                  >
-                    ************
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleOpenReportModal(item)}
-                    className="text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium"
-                    title="مشاهده و ویرایش گزارش"
-                  >
-                    {item.Report_No}
-                  </button>
+          {/* Desktop Table */}
+          {showResults && (
+            <>
+              <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200 mb-4">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
+                      <FilterableSortHeader 
+                        title="شماره RFI" 
+                        sortKey="RFI_Number" 
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                        filterValue={columnFilters.RFI_Number}
+                        onFilterChange={(value) => handleColumnFilterChange('RFI_Number', value)}
+                        showFilter={showColumnFilters.RFI_Number}
+                        onToggleFilter={() => toggleColumnFilter('RFI_Number')}
+                        onClearFilter={() => clearColumnFilter('RFI_Number')}
+                        placeholder="فیلتر عددی"
+                      />
+                      
+                      <SortHeader 
+                        title="وضعیت RFI" 
+                        sortKey="RFI_Status" 
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                      
+                      <SortHeader 
+                        title="تاریخ بازرسی" 
+                        sortKey="InspectionDate" 
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                      
+                      <FilterableSortHeader 
+                        title="شماره گزارش" 
+                        sortKey="Report_No" 
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                        filterValue={columnFilters.Report_No}
+                        onFilterChange={(value) => handleColumnFilterChange('Report_No', value)}
+                        showFilter={showColumnFilters.Report_No}
+                        onToggleFilter={() => toggleColumnFilter('Report_No')}
+                        onClearFilter={() => clearColumnFilter('Report_No')}
+                        placeholder="مثل: FAH-INS-PCH-0480"
+                      />
+                      
+                      <FilterableSortHeader 
+                        title="شماره نوتیفیکشن" 
+                        sortKey="RFI_Numbering" 
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                        filterValue={columnFilters.RFI_Numbering}
+                        onFilterChange={(value) => handleColumnFilterChange('RFI_Numbering', value)}
+                        showFilter={showColumnFilters.RFI_Numbering}
+                        onToggleFilter={() => toggleColumnFilter('RFI_Numbering')}
+                        onClearFilter={() => clearColumnFilter('RFI_Numbering')}
+                        placeholder="مثل: FAH-INS-PCH-0480"
+                      />
+                      
+                      <SortHeader 
+                        title="نام پروژه" 
+                        sortKey="ProjectTitle" 
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                      
+                      <SortHeader 
+                        title="نوع پروژه" 
+                        sortKey="Over_Domestic" 
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedData?.map((item, index) => (
+                      <tr 
+                        key={index} 
+                        className={`border-b border-gray-200 transition duration-150 ${
+                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                        } hover:bg-blue-50`}
+                      >
+                        {/* شماره RFI - وسط‌چین */}
+                        <td className="p-3 font-semibold text-gray-800 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
+                            <span>{item.RFI_Number}</span>
+                          </div>
+                        </td>
+                        
+                        {/* وضعیت RFI - وسط‌چین */}
+                        <td className="p-3 text-center">
+                          <div className="flex justify-center">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              getStatusColor(item.RFI_Status)
+                            }`}>
+                              {getPersianStatus(item.RFI_Status)}
+                            </span>
+                          </div>
+                        </td>
+                        
+                        {/* تاریخ بازرسی - وسط‌چین */}
+                        <td className="p-3 text-gray-700 text-center">{item.formattedInspectionDate}</td>
+                      
+                        {/* شماره گزارش - وسط‌چین */}
+                        <td className="p-3 font-mono text-gray-900 text-xs text-center">
+                          <div className="flex justify-center">
+                            {item.Report_No === '************' ? (
+                              <button
+                                onClick={() => handleOpenReportModal(item)}
+                                className="text-gray-600 hover:text-blue-800 hover:underline transition duration-200 font-mono tracking-wider"
+                                title="مدیریت گزارش"
+                              >
+                                ************
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleOpenReportModal(item)}
+                                className="text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium"
+                                title="مشاهده و ویرایش گزارش"
+                              >
+                                {item.Report_No}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        
+                        {/* شماره نوتیفیکشن - وسط‌چین */}
+                        <td className="p-3 font-mono text-gray-900 text-xs text-center">
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => handleOpenNotificationModal(item)}
+                              className={`text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium ${
+                                !item.RFI_Numbering || item.RFI_Numbering === '************' ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                              title={!item.RFI_Numbering || item.RFI_Numbering === '************' ? "شماره نوتیفیکیشن معتبر نیست" : "مشاهده اطلاعات نوتیفیکیشن"}
+                              disabled={!item.RFI_Numbering || item.RFI_Numbering === '************'}
+                            >
+                              {item.RFI_Numbering}
+                            </button>
+                          </div>
+                        </td>
+                        
+                        {/* نام پروژه - وسط‌چین */}
+                        <td className="p-3 text-gray-700 text-center">{item.ProjectTitle}</td>
+                        
+                        {/* نوع پروژه - وسط‌چین */}
+                        <td className="p-3 text-gray-700 text-center">
+                          <div className="flex justify-center">
+                            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium inline-block">
+                              {getPersianProjectType(item.Over_Domestic)}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                {/* خلاصه فیلترها */}
+                {activeFiltersCount > 0 && (
+                  <div className="bg-blue-50 border-t border-blue-200 p-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-blue-700 font-semibold">
+                          نتایج فیلتر شده:
+                        </span>
+                        <span className="text-blue-600">
+                          {filteredAndSortedData.length} از {tableData.length} مورد
+                        </span>
+                        {searchTerm && (
+                          <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-xs">
+                            جستجو: {searchTerm}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={clearAllFilters}
+                        className="text-red-600 hover:text-red-800 text-xs flex items-center gap-1"
+                      >
+                        <FaTimes className="text-xs" />
+                        حذف همه فیلترها
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
-            </td>
-            
-            {/* شماره نوتیفیکشن - وسط‌چین */}
-            <td className="p-3 font-mono text-gray-900 text-xs text-center">
-              <div className="flex justify-center">
-                <button
-                  onClick={() => handleOpenNotificationModal(item)}
-                  className={`text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium ${
-                    !item.RFI_Numbering || item.RFI_Numbering === '************' ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                  title={!item.RFI_Numbering || item.RFI_Numbering === '************' ? "شماره نوتیفیکیشن معتبر نیست" : "مشاهده اطلاعات نوتیفیکیشن"}
-                  disabled={!item.RFI_Numbering || item.RFI_Numbering === '************'}
-                >
-                  {item.RFI_Numbering}
-                </button>
-              </div>
-            </td>
-            
-            {/* نام پروژه - وسط‌چین */}
-            <td className="p-3 text-gray-700 text-center">{item.ProjectTitle}</td>
-            
-            {/* نوع پروژه - وسط‌چین */}
-      {/* نوع پروژه - وسط‌چین */}
-<td className="p-3 text-gray-700 text-center">
-  <div className="flex justify-center">
-    <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium inline-block">
-      {getPersianProjectType(item.Over_Domestic)}
-    </span>
-  </div>
-</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-    
-    {/* خلاصه فیلترها */}
-    {activeFiltersCount > 0 && (
-      <div className="bg-blue-50 border-t border-blue-200 p-2 text-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-blue-700 font-semibold">
-              نتایج فیلتر شده:
-            </span>
-            <span className="text-blue-600">
-              {filteredAndSortedData.length} از {tableData.length} مورد
-            </span>
-            {searchTerm && (
-              <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-xs">
-                جستجو: {searchTerm}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={clearAllFilters}
-            className="text-red-600 hover:text-red-800 text-xs flex items-center gap-1"
-          >
-            <FaTimes className="text-xs" />
-            حذف همه فیلترها
-          </button>
-        </div>
-      </div>
-    )}
-  </div>
-)}
+              
+              {/* صفحه‌بندی */}
+              {totalPages > 1 && (
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={filteredAndSortedData.length}
+                  onPageChange={handlePageChange}
+                  onItemsPerPageChange={handleItemsPerPageChange}
+                />
+              )}
+            </>
+          )}
   
           {/* Mobile View */}
           {showResults && (
             <div className="md:hidden space-y-3">
-              {filteredAndSortedData.map((item, index) => (
+              {paginatedData.map((item, index) => (
                 <div key={index} className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
                   <div className="space-y-2">
                     <div className="flex justify-between items-start border-b pb-2">
@@ -866,9 +884,7 @@ console.log("filteredAndSortedData5555555555555",filteredAndSortedData)
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {item.RFI_Status === 'Done' ? 'انجام شده' : 
-                         item.RFI_Status === 'Ongoing' ? 'در حال انجام' : 
-                         item.RFI_Status}
+                        {getPersianStatus(item.RFI_Status)}
                       </span>
                     </div>
                     
@@ -906,7 +922,7 @@ console.log("filteredAndSortedData5555555555555",filteredAndSortedData)
                         <span className="text-gray-600 font-medium">نوع پروژه:</span>
                         <p className="text-gray-800">
                           <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs font-medium">
-                            {item.Over_Domestic}
+                            {getPersianProjectType(item.Over_Domestic)}
                           </span>
                         </p>
                       </div>
@@ -914,6 +930,18 @@ console.log("filteredAndSortedData5555555555555",filteredAndSortedData)
                   </div>
                 </div>
               ))}
+              
+              {/* صفحه‌بندی برای موبایل */}
+              {totalPages > 1 && (
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={filteredAndSortedData.length}
+                  onPageChange={handlePageChange}
+                  onItemsPerPageChange={handleItemsPerPageChange}
+                />
+              )}
             </div>
           )}
   
@@ -1006,7 +1034,6 @@ console.log("filteredAndSortedData5555555555555",filteredAndSortedData)
 export default RFIReportTable;
 
 // 1. کامپوننت SortIcon 
-// 1. کامپوننت SortIcon 
 const SortIcon = ({ columnKey, sortConfig }) => {
   if (sortConfig.key !== columnKey) {
     return (
@@ -1022,8 +1049,7 @@ const SortIcon = ({ columnKey, sortConfig }) => {
     : <FaSortDown className="text-yellow-300 text-xs" />;
 };
 
-// 2. کامپوننت FilterableSortHeader (جدید)
-
+// 2. کامپوننت FilterableSortHeader
 const FilterableSortHeader = ({ 
   title, 
   sortKey, 
