@@ -8,6 +8,8 @@ import StepHeader from '../common/StepHeader';
 import SelectField from '../ui/SelectField';
 import Button from '../ui/Button';
 import AddReportModal from '../ui/AddReportModal/AddReportModal';
+import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+
 
 
 import { useNotificationInfo } from '../../hooks/useNotificationNumber';
@@ -198,6 +200,87 @@ useEffect(() => {
   const showAutoFetchLoading = isAutoFetch && rfiLoading;
   const showManualLoading = !isAutoFetch && rfiLoading;
   const showResults = shouldFetch && tableData.length > 0;
+  // state برای سورتینگ
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
+
+  // تابع handleSort
+  const handleSort = (key) => {
+    let direction = 'asc';
+    
+    if (sortConfig.key === key) {
+      direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+    }
+    
+    setSortConfig({ key, direction });
+  };
+
+  // تابع extractNumberFromString
+  const extractNumberFromString = (str) => {
+    if (!str || str === '************') return 0;
+    
+    try {
+      const cleanStr = str.replace(/[^\d]/g, '');
+      if (cleanStr) {
+        const num = parseInt(cleanStr, 10);
+        return isNaN(num) ? 0 : num;
+      }
+      return 0;
+    } catch (error) {
+      console.error('Error extracting number:', error);
+      return 0;
+    }
+  };
+
+  // محاسبه sortedData
+  const sortedData = useMemo(() => {
+    if (!tableData.length || !sortConfig.key) return tableData;
+    
+    return [...tableData].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortConfig.key) {
+        case 'RFI_Number':
+          aValue = parseInt(a.RFI_Number) || 0;
+          bValue = parseInt(b.RFI_Number) || 0;
+          break;
+          
+        case 'Report_No':
+          aValue = extractNumberFromString(a.Report_No);
+          bValue = extractNumberFromString(b.Report_No);
+          if (aValue === 0 && bValue === 0) {
+            aValue = a.Report_No || '';
+            bValue = b.Report_No || '';
+          }
+          break;
+          
+        case 'RFI_Numbering':
+          aValue = extractNumberFromString(a.RFI_Numbering);
+          bValue = extractNumberFromString(b.RFI_Numbering);
+          if (aValue === 0 && bValue === 0) {
+            aValue = a.RFI_Numbering || '';
+            bValue = b.RFI_Numbering || '';
+          }
+          break;
+          
+        default:
+          return 0;
+      }
+      
+      let comparison = 0;
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        comparison = aValue - bValue;
+      } else {
+        comparison = String(aValue).localeCompare(String(bValue), 'fa-IR');
+      }
+      
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [tableData, sortConfig]);
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-1 px-3 sm:px-4 lg:px-4" dir="rtl">
@@ -383,19 +466,47 @@ useEffect(() => {
           {showResults && (
             <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
-                    <th className="p-4 text-right font-semibold text-white text-sm min-w-24">شماره RFI</th>
-                    <th className="p-4 text-right font-semibold text-white text-sm min-w-24">وضعیت RFI</th>
-                    <th className="p-4 text-right font-semibold text-white text-sm min-w-28">تاریخ بازرسی</th>
-                    <th className="p-4 text-right font-semibold text-white text-sm min-w-32">شماره گزارش</th>
-                    <th className="p-4 text-right font-semibold text-white text-sm min-w-36">شماره نوتیفیکشن</th>
-                    <th className="p-4 text-right font-semibold text-white text-sm min-w-28">نام پروژه</th>
-                    <th className="p-4 text-right font-semibold text-white text-sm min-w-24">نوع پروژه</th>
-                  </tr>
-                </thead>
+              <thead>
+        <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
+          {/* ستون شماره RFI با سورت */}
+          <SortHeader 
+            title="شماره RFI" 
+            sortKey="RFI_Number" 
+            sortConfig={sortConfig}
+            onSort={handleSort}
+          />
+          
+          {/* ستون وضعیت RFI */}
+          <th className="p-4 text-right font-semibold text-white text-sm min-w-24">وضعیت RFI</th>
+          
+          {/* ستون تاریخ بازرسی */}
+          <th className="p-4 text-right font-semibold text-white text-sm min-w-28">تاریخ بازرسی</th>
+          
+          {/* ستون شماره گزارش با سورت */}
+          <SortHeader 
+            title="شماره گزارش" 
+            sortKey="Report_No" 
+            sortConfig={sortConfig}
+            onSort={handleSort}
+          />
+          
+          {/* ستون شماره نوتیفیکیشن با سورت */}
+          <SortHeader 
+            title="شماره نوتیفیکشن" 
+            sortKey="RFI_Numbering" 
+            sortConfig={sortConfig}
+            onSort={handleSort}
+          />
+          
+          {/* ستون نام پروژه */}
+          <th className="p-4 text-right font-semibold text-white text-sm min-w-28">نام پروژه</th>
+          
+          {/* ستون نوع پروژه */}
+          <th className="p-4 text-right font-semibold text-white text-sm min-w-24">نوع پروژه</th>
+        </tr>
+      </thead>
                 <tbody>
-                  {tableData.map((item, index) => (
+                  {sortedData?.map((item, index) => (
                     <tr 
                       key={index} 
                       className={`border-b border-gray-200 transition duration-150 ${
@@ -625,3 +736,42 @@ useEffect(() => {
 };
 
 export default RFIReportTable;
+
+
+// 1. کامپوننت SortIcon 
+const SortIcon = ({ columnKey, sortConfig }) => {
+  if (sortConfig.key !== columnKey) {
+    return (
+      <div className="flex flex-col items-center">
+        <FaSortUp className="text-gray-300 hover:text-gray-400 text-sm -mb-1" />
+        <FaSortDown className="text-gray-300 hover:text-gray-400 text-sm -mt-1" />
+      </div>
+    );
+  }
+  
+  return sortConfig.direction === 'asc' 
+    ? <FaSortUp className="text-blue-500 text-sm" />
+    : <FaSortDown className="text-blue-500 text-sm" />;
+};
+
+// 2. کامپوننت SortHeader:
+const SortHeader = ({ title, sortKey, sortConfig, onSort }) => {
+  const isActive = sortConfig.key === sortKey;
+  
+  return (
+    <th className="p-4 text-right font-semibold text-white text-sm min-w-24">
+      <div className="flex items-center justify-end gap-2">
+        <span>{title}</span>
+        <button 
+          onClick={() => onSort(sortKey)}
+          className={`p-1 rounded transition-colors duration-200 flex items-center ${
+            isActive ? 'bg-blue-700' : 'hover:bg-blue-700'
+          }`}
+          title={`مرتب‌سازی ${title}`}
+        >
+          <SortIcon columnKey={sortKey} sortConfig={sortConfig} />
+        </button>
+      </div>
+    </th>
+  );
+};
