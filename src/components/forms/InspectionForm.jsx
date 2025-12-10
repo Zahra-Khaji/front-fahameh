@@ -566,28 +566,33 @@ const InspectionForm = ({ onComplete }) => {
                 {isForeignProject ? (
                   // حالت پروژه خارجی - نمایش کشور
                   <div className="flex flex-col">
-                    <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
-                      {/* <FaGlobe className="ml-1 text-green-500 text-xs" /> */}
-                      کشور *
-                    </label>
-                    <SearchableSelect
-                      value={selectedCountryId}
-                      onChange={handleCountryChange}
-                      options={countryOptions}
-                      placeholder="جستجو و انتخاب کشور"
-                      error={isSubmitted && errors.projectInfo?.country}
-                    />
-                    <input 
-                      type="hidden" 
-                      {...register('projectInfo.country')} 
-                    />
-                    {isSubmitted && errors.projectInfo?.country && (
-                      <p className="text-red-500 text-xs mt-1 flex items-center">
-                        <FaExclamationTriangle className="ml-1 text-xs" />
-                        {errors.projectInfo.country.message}
-                      </p>
-                    )}
-                  </div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
+                    {/* <FaGlobe className="ml-1 text-green-500 text-xs" /> */}
+                    کشور *
+                  </label>
+                  <SearchableSelect
+                    value={selectedCountryId}
+                    onChange={handleCountryChange}
+                    options={countryOptions}
+                    placeholder="جستجو و انتخاب کشور"
+                    error={isSubmitted && errors.projectInfo?.country}
+                    disabled={!isForeignProject} // فقط وقتی پروژه خارجیه فعال باشه
+                    searchable={true} // فعال کردن قابلیت سرچ
+                    noOptionsMessage="کشوری یافت نشد"
+                    loadingMessage="در حال بارگذاری کشورها..."
+                    searchPlaceholder="جستجوی کشور..."
+                  />
+                  <input 
+                    type="hidden" 
+                    {...register('projectInfo.country')} 
+                  />
+                  {isSubmitted && errors.projectInfo?.country && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center">
+                      <FaExclamationTriangle className="ml-1 text-xs" />
+                      {errors.projectInfo.country.message}
+                    </p>
+                  )}
+                </div>
                 ) : (
                   // حالت پروژه داخلی - نمایش استان و شهر
                   <>
