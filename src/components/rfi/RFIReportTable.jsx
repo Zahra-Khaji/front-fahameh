@@ -815,11 +815,11 @@ case 'Duration':
                       <span className="font-semibold text-gray-800">
                         {item.Duration} روز
                       </span>
-                      {parseInt(item.Duration) > 0 && (
+                      {/* {parseInt(item.Duration) > 0 && (
                         <span className="text-xs text-gray-500 mt-0.5">
                           ({item.Duration} روز)
                         </span>
-                      )}
+                      )} */}
                     </>
                   ) : (
                     <span className="text-gray-400 text-xs">-</span>
