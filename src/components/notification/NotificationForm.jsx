@@ -1,10 +1,10 @@
 // src/components/notification/NotificationForm.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import DatePicker from "react-multi-date-picker";
 import Toolbar from "react-multi-date-picker/plugins/toolbar";
-import { FaCalendarAlt, FaHashtag, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
+import { FaCalendarAlt, FaHashtag, FaExclamationTriangle, FaSpinner, FaCalculator } from 'react-icons/fa';
 
 // Components
 import Button from '../ui/Button';
@@ -29,6 +29,7 @@ const NotificationForm = ({
   const [inspectionRange, setInspectionRange] = useState([]);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [daysError, setDaysError] = useState('');
+  const [isDaysManuallyEdited, setIsDaysManuallyEdited] = useState(false);
 
   const projectId = previousData?.projectInfo?.projectId;
   const projectTypeId = previousData?.projectInfo?.projectTypeId || previousData?.projectInfo?.projectType;
@@ -38,6 +39,7 @@ const NotificationForm = ({
     projectTypeId,
     previousData: previousData?.projectInfo
   });
+
   // استفاده از هوک برای دریافت شماره نوتیفیکیشن از بک‌اند
   const { 
     data: notificationData, 
@@ -59,8 +61,20 @@ const NotificationForm = ({
     }
   }, []);
 
+  // محاسبه خودکار تعداد روزها بر اساس تاریخ‌های انتخاب شده
+  useEffect(() => {
+    if (!isDaysManuallyEdited && inspectionRange.length > 0) {
+      // تعداد روز = تعداد تاریخ‌های انتخاب شده
+      const calculatedDays = inspectionRange.length.toString();
+      setInspectionDays(calculatedDays);
+    }
+  }, [inspectionRange, isDaysManuallyEdited]);
+
+  // وقتی کاربر دستی فیلد روزها رو ویرایش کرد، دیگه خودکار تغییر نکن
   const handleInspectionDaysChange = (e) => {
     const value = e.target.value;
+    
+    setIsDaysManuallyEdited(true);
     
     if (value === '') {
       setInspectionDays(value);
@@ -75,6 +89,14 @@ const NotificationForm = ({
 
   const handleInspectionRangeChange = (dates) => {
     setInspectionRange(dates);
+  };
+
+  // دکمه "بازنشانی خودکار" برای بازگشت به محاسبه خودکار
+  const handleResetAutoCalculate = () => {
+    setIsDaysManuallyEdited(false);
+    if (inspectionRange.length > 0) {
+      setInspectionDays(inspectionRange.length.toString());
+    }
   };
 
   const handleSubmit = () => {
@@ -181,32 +203,9 @@ const NotificationForm = ({
             </div>
           </div>
 
-          {/* بقیه کد بدون تغییر */}
+          {/* سطر دوم: تاریخ بازرسی و تعداد روز بازرسی */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {/* Inspection Days */}
-            <div className="flex flex-col">
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2">
-                تعداد روز بازرسی *
-              </label>
-              <input
-                type="text"
-                value={inspectionDays}
-                onChange={handleInspectionDaysChange}
-                inputMode="numeric"
-                className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white ${
-                  daysError ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'
-                }`}
-                placeholder="تعداد روز را وارد کنید"
-              />
-              {daysError && (
-                <p className="text-red-500 text-xs mt-1 flex items-center">
-                  <FaExclamationTriangle className="ml-1 text-xs" />
-                  {daysError}
-                </p>
-              )}
-            </div>
-
-            {/* Inspection Range */}
+            {/* Inspection Range - حالا اولویت اول */}
             <div className="flex flex-col">
               <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2 flex items-center">
                 <FaCalendarAlt className="ml-1 text-blue-500 text-xs sm:text-sm" />
@@ -223,16 +222,86 @@ const NotificationForm = ({
                 placeholder="انتخاب تاریخ"
               />
               {inspectionRange.length > 0 && (
-                <p className="text-xs text-green-600 mt-1 sm:mt-2 mr-1">
-                  {inspectionRange.length === 1 
-                    ? `تاریخ انتخاب شده: ${formatPersianDate(inspectionRange[0])}`
-                    : `تاریخ‌های انتخاب شده: ${formatMultipleDates(inspectionRange)}`
-                  }
-                </p>
+                <div className="mt-1 flex items-center justify-between">
+                  <p className="text-xs text-green-600">
+                    {inspectionRange.length} تاریخ انتخاب شده
+                  </p>
+                  {/* <div className="flex items-center text-xs text-blue-600">
+                    <FaCalculator className="ml-1 text-xs" />
+                    <span className="font-semibold">محاسبه خودکار: {inspectionRange.length} روز</span>
+                  </div> */}
+                </div>
               )}
               <p className="text-xs text-gray-500 mt-1">
                 می‌توانید یک یا چند تاریخ انتخاب کنید
               </p>
+            </div>
+
+            {/* Inspection Days - حالا دوم */}
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 flex items-center">
+                  تعداد روز بازرسی *
+                </label>
+                {isDaysManuallyEdited && (
+                  <button
+                    type="button"
+                    onClick={handleResetAutoCalculate}
+                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    title="بازنشانی به محاسبه خودکار"
+                  >
+                    <FaCalculator className="text-xs" />
+                    بازنشانی خودکار
+                  </button>
+                )}
+              </div>
+              
+              <div className="relative">
+                <input
+                  type="text"
+                  value={inspectionDays}
+                  onChange={handleInspectionDaysChange}
+                  inputMode="numeric"
+                  className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-white pr-8 ${
+                    daysError ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'
+                  }`}
+                  placeholder="تعداد روز را وارد کنید"
+                />
+                
+                {/* آیکون وضعیت */}
+                <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
+                  {isDaysManuallyEdited ? (
+                    <FaExclamationTriangle className="text-yellow-500 text-xs" title="ویرایش دستی" />
+                  ) : inspectionRange.length > 0 ? (
+                    <FaCalculator className="text-green-500 text-xs" title="محاسبه خودکار" />
+                  ) : null}
+                </div>
+              </div>
+              
+              <div className="mt-1">
+                {daysError ? (
+                  <p className="text-red-500 text-xs flex items-center">
+                    <FaExclamationTriangle className="ml-1 text-xs" />
+                    {daysError}
+                  </p>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">
+                      {isDaysManuallyEdited 
+                        ? 'ویرایش دستی فعال' 
+                        : inspectionRange.length > 0 
+                          ? 'محاسبه خودکار بر اساس تاریخ‌ها' 
+                          : 'انتخاب تاریخ برای محاسبه خودکار'
+                      }
+                    </p>
+                    {inspectionDays && !daysError && (
+                      <p className="text-xs font-semibold text-green-600">
+                        {inspectionDays} روز
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -291,6 +360,9 @@ const NotificationForm = ({
             <div className="flex justify-between items-center pb-2 border-b border-gray-200">
               <span className="text-gray-600">تعداد روز بازرسی:</span>
               <span className="font-semibold">{inspectionDays} روز</span>
+              <span className="text-xs text-gray-500">
+                {isDaysManuallyEdited ? '(ویرایش دستی)' : '(محاسبه خودکار)'}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">
@@ -298,6 +370,9 @@ const NotificationForm = ({
               </span>
               <span className="font-semibold text-left text-xs sm:text-sm">
                 {formatMultipleDates(inspectionRange)}
+                <span className="block text-xs text-gray-500 mt-1">
+                  ({inspectionRange.length} تاریخ)
+                </span>
               </span>
             </div>
           </div>
