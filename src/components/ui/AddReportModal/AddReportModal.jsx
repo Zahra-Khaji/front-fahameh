@@ -230,7 +230,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
       
       // مهم: اگر وضعیت "نیاز به اصلاحات" (Objection) باشد، شرح اصلاحات الزامی است
       if (row.status === 'Objection' && !row.corrections.trim()) {
-        toast.error('❌ برای وضعیت "نیاز به اصلاحات"، شرح اصلاحات الزامی است');
+        toast.error('❌ برای وضعیت "نیاز به اصلاحات"، شرح نظرات الزامی است');
         return false;
       }
       
@@ -399,7 +399,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
     <th className="p-3 text-right font-bold text-white text-xs min-w-[180px]">شماره گزارش</th>
     <th className="p-3 text-right font-bold text-white text-xs min-w-[90px]">نوع گزارش</th>
     <th className="p-3 text-right font-bold text-white text-xs min-w-[130px]">وضعیت *</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-[350px]">شرح اصلاحات *</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-[350px]">نظرات *</th>
     <th className="p-3 text-right font-bold text-white text-xs min-w-[120px]">تاریخ دریافت</th>
     <th className="p-3 text-right font-bold text-white text-xs min-w-[160px]">نام وندور</th>
     <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>تائید‌شده(روز)</th>
@@ -480,7 +480,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
       [&::-webkit-scrollbar-thumb]:bg-blue-300
       [&::-webkit-scrollbar-thumb]:rounded-full
       [&::-webkit-scrollbar-thumb:hover]:bg-blue-400`}
-    placeholder={row.status === 'Objection' ? 'شرح اصلاحات الزامی است' : 'شرح اصلاحات'}
+    placeholder={row.status === 'Objection' ? 'شرح نظرات الزامی است' : 'شرح نظرات'}
     disabled={isLoading}
     required={row.status === 'Objection'}
     rows="2"
@@ -689,7 +689,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
                     </div>
 
                     <div>
-                      <span className="text-gray-600 block mb-1">شرح اصلاحات</span>
+                      <span className="text-gray-600 block mb-1">شرح نظرات</span>
                       <input
                         type="text"
                         value={row.corrections}
@@ -699,7 +699,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
                             ? 'border-red-300 bg-red-50' 
                             : 'border-gray-300'
                         }`}
-                        placeholder="شرح اصلاحات"
+                        placeholder="شرح نظرات"
                         disabled={isLoading}
                       />
                     </div>

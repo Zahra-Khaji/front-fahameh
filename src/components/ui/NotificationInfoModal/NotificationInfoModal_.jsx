@@ -377,7 +377,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
         <div className="sticky top-0 bg-white z-10 flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <FaHashtag className="text-gray-700 text-xl" />
+              <FaHashtag className="text-blue-500 text-xl" />
               <div>
                 <h3 className="text-lg font-bold text-gray-800">
                   اطلاعات نوتیفیکیشن شماره {rfiNumber}
@@ -417,42 +417,42 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-6 bg-blue-100 rounded-r"></div>
+                <div className="w-3 h-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-r"></div>
                 <h4 className="text-base font-bold text-gray-800">اطلاعات نوتیفیکیشن</h4>
-                <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
+                <span className="text-xs text-gray-500 bg-blue-100 px-2 py-1 rounded">
                   {notificationRows.length} مورد
                 </span>
               </div>
               
-              {/* <button
+              <button
                 type="button"
                 onClick={handleAddNotificationRow}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-gray-800 border border-blue-200 text-sm font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading || isUpdating}
               >
-                <FaPlusCircle className="text-base text-gray-700" />
+                <FaPlusCircle className="text-base" />
                 افزودن سطر جدید
-              </button> */}
+              </button>
             </div>
 
             {/* Desktop Table - نوتیفیکیشن */}
             <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm mb-4">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-blue-100">
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-40">شماره نوتیفیکشن</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-24">وضعیت</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-28">بازرس</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-48">توضیحات</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-28">تاریخ دریافت</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-24">لوکیشن</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-28">تاریخ بازرسی</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-32">نام وندور</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-20">مدت</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-28">نام بازرس</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-32">Remark</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-24">شماره فولدر</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-24">عملیات</th>
+                  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-40">شماره نوتیفیکشن</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-24">وضعیت</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-28">بازرس</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-48">توضیحات</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-28">تاریخ دریافت</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-24">لوکیشن</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-28">تاریخ بازرسی</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-32">نام وندور</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-20">مدت</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-28">نام بازرس</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-32">Remark</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-24">شماره فولدر</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-24">عملیات</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -469,7 +469,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           type="text"
                           value={row.notificationNumber}
                           onChange={(e) => handleNotificationRowChange(row.id, 'notificationNumber', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="شماره نوتیفیکشن"
                           disabled={isLoading || isUpdating}
                         />
@@ -480,7 +480,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                         <select
                           value={row.status}
                           onChange={(e) => handleNotificationRowChange(row.id, 'status', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           disabled={isLoading || isUpdating}
                         >
                           {statusOptions.map(option => (
@@ -496,7 +496,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                         <select
                           value={row.inspectorType}
                           onChange={(e) => handleNotificationRowChange(row.id, 'inspectorType', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           disabled={isLoading || isUpdating}
                         >
                           {inspectorTypeOptions.map(option => (
@@ -513,7 +513,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           type="text"
                           value={row.description}
                           onChange={(e) => handleNotificationRowChange(row.id, 'description', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="توضیحات"
                           disabled={isLoading || isUpdating}
                         />
@@ -527,7 +527,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           calendar={persian}
                           locale={persian_fa}
                           format="YYYY/MM/DD"
-                          inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           disabled={isLoading || isUpdating}
                         />
                       </td>
@@ -538,7 +538,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           type="text"
                           value={row.location}
                           onChange={(e) => handleNotificationRowChange(row.id, 'location', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="شهر"
                           disabled={isLoading || isUpdating}
                         />
@@ -552,7 +552,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           calendar={persian}
                           locale={persian_fa}
                           format="YYYY/MM/DD"
-                          inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           disabled={isLoading || isUpdating}
                         />
                       </td>
@@ -563,7 +563,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           type="text"
                           value={row.vendorName}
                           onChange={(e) => handleNotificationRowChange(row.id, 'vendorName', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="نام وندور"
                           disabled={isLoading || isUpdating}
                         />
@@ -575,7 +575,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           type="text"
                           value={row.duration}
                           onChange={(e) => handleNotificationRowChange(row.id, 'duration', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="مدت"
                           disabled={isLoading || isUpdating}
                         />
@@ -587,7 +587,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           type="text"
                           value={row.inspectorName}
                           onChange={(e) => handleNotificationRowChange(row.id, 'inspectorName', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="نام بازرس"
                           disabled={isLoading || isUpdating}
                         />
@@ -599,7 +599,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           type="text"
                           value={row.remark}
                           onChange={(e) => handleNotificationRowChange(row.id, 'remark', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="توضیحات تکمیلی"
                           disabled={isLoading || isUpdating}
                         />
@@ -611,7 +611,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           type="text"
                           value={row.folderNumber}
                           onChange={(e) => handleNotificationRowChange(row.id, 'folderNumber', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="شماره فولدر"
                           disabled={isLoading || isUpdating}
                         />
@@ -623,7 +623,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           <button
                             type="button"
                             onClick={() => handleCopyNotificationRow(row.id)}
-                            className="text-gray-700 hover:text-gray-900 p-1.5 rounded hover:bg-blue-100 transition duration-200"
+                            className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200"
                             title="کپی کردن سطر"
                             disabled={isLoading || isUpdating}
                           >
@@ -632,7 +632,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           <button
                             type="button"
                             onClick={() => handleDeleteNotificationRow(row.id)}
-                            className="text-gray-700 hover:text-gray-900 p-1.5 rounded hover:bg-blue-100 transition duration-200"
+                            className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200"
                             title="حذف سطر"
                             disabled={notificationRows.length === 1 || isLoading || isUpdating}
                           >
@@ -652,14 +652,14 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                 <div key={row.id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2">
-                      <FaHashtag className="text-gray-700" />
+                      <FaHashtag className="text-blue-500" />
                       <span className="font-semibold">سطر #{index + 1}</span>
                     </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => handleCopyNotificationRow(row.id)}
-                        className="text-gray-700 hover:text-gray-900 p-1"
+                        className="text-blue-600 hover:text-blue-800 p-1"
                         title="کپی"
                         disabled={isLoading || isUpdating}
                       >
@@ -668,7 +668,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       <button
                         type="button"
                         onClick={() => handleDeleteNotificationRow(row.id)}
-                        className="text-gray-700 hover:text-gray-900 p-1"
+                        className="text-red-600 hover:text-red-800 p-1"
                         title="حذف"
                         disabled={notificationRows.length === 1 || isLoading || isUpdating}
                       >
@@ -844,10 +844,10 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               <button
                 type="button"
                 onClick={handleAddNotificationRow}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-gray-800 border border-blue-200 font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading || isUpdating}
               >
-                <FaPlusCircle className="text-base text-gray-700" />
+                <FaPlusCircle className="text-base" />
                 افزودن سطر جدید
               </button>
             </div>
@@ -857,9 +857,9 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-6 bg-blue-100 rounded-r"></div>
+                <div className="w-3 h-6 bg-gradient-to-r from-green-600 to-emerald-600 rounded-r"></div>
                 <h4 className="text-base font-bold text-gray-800">اطلاعات تاریخ های بازرسی</h4>
-                <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
+                <span className="text-xs text-gray-500 bg-green-100 px-2 py-1 rounded">
                   {rfiDatesRows.length} مورد
                 </span>
               </div>
@@ -867,10 +867,10 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               <button
                 type="button"
                 onClick={handleAddRfiDatesRow}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-gray-800 border border-blue-200 text-sm font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading || isUpdating}
               >
-                <FaPlusCircle className="text-base text-gray-700" />
+                <FaPlusCircle className="text-base" />
                 افزودن سطر جدید
               </button>
             </div>
@@ -879,12 +879,12 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-blue-100">
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-32">شروع تاریخ بازرسی</th>
-                    {/* <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-28">تائید/عدم تائید</th> */}
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-40">بازرس اول</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-36">دستمزد</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-20">عملیات</th>
+                  <tr className="bg-gradient-to-r from-green-700 to-emerald-600">
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-32">تاریخ بازرسی</th>
+                    {/* <th className="p-3 text-right font-bold text-white text-xs min-w-28">تائید/عدم تائید</th> */}
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-40">بازرس اول</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-36">دستمزد</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-20">عملیات</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -893,7 +893,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       key={row.id} 
                       className={`border-b border-gray-200 transition duration-150 ${
                         index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                      } hover:bg-blue-50`}
+                      } hover:bg-emerald-50`}
                     >
                       {/* تاریخ بازرسی */}
                       <td className="p-3">
@@ -903,7 +903,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           calendar={persian}
                           locale={persian_fa}
                           format="YYYY/MM/DD"
-                          inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                           disabled={isLoading || isUpdating}
                         />
                       </td>
@@ -913,7 +913,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                         <select
                           value={row.approvalStatus}
                           onChange={(e) => handleRfiDatesRowChange(row.id, 'approvalStatus', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                           disabled={isLoading || isUpdating}
                         >
                           {approvalOptions.map(option => (
@@ -930,7 +930,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           type="text"
                           value={row.inspectorName}
                           onChange={(e) => handleRfiDatesRowChange(row.id, 'inspectorName', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
+                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                           placeholder="نام بازرس"
                           disabled={isLoading || isUpdating}
                         />
@@ -943,7 +943,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                             type="text"
                             value={row.fee}
                             onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent pl-8"
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent pl-8"
                             placeholder="مبلغ"
                             disabled={isLoading || isUpdating}
                           />
@@ -957,21 +957,21 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           <button
                             type="button"
                             onClick={() => handleCopyRfiDatesRow(row.id)}
-                            className="text-gray-700 hover:text-gray-900 p-1.5 rounded hover:bg-blue-100 transition duration-200"
+                            className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200"
                             title="کپی کردن سطر"
                             disabled={isLoading || isUpdating}
                           >
                             <FaCopy className="text-xs" />
                           </button>
-                          {/* <button
+                          <button
                             type="button"
                             onClick={() => handleDeleteRfiDatesRow(row.id)}
-                            className="text-gray-700 hover:text-gray-900 p-1.5 rounded hover:bg-blue-100 transition duration-200"
+                            className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200"
                             title="حذف سطر"
                             disabled={rfiDatesRows.length === 1 || isLoading || isUpdating}
                           >
                             <FaTrash className="text-xs" />
-                          </button> */}
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -986,14 +986,14 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                 <div key={row.id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-2">
-                      <FaCalendarAlt className="text-gray-700" />
+                      <FaCalendarAlt className="text-emerald-500" />
                       <span className="font-semibold">سطر #{index + 1}</span>
                     </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => handleCopyRfiDatesRow(row.id)}
-                        className="text-gray-700 hover:text-gray-900 p-1"
+                        className="text-blue-600 hover:text-blue-800 p-1"
                         title="کپی"
                         disabled={isLoading || isUpdating}
                       >
@@ -1002,7 +1002,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       <button
                         type="button"
                         onClick={() => handleDeleteRfiDatesRow(row.id)}
-                        className="text-gray-700 hover:text-gray-900 p-1"
+                        className="text-red-600 hover:text-red-800 p-1"
                         title="حذف"
                         disabled={rfiDatesRows.length === 1 || isLoading || isUpdating}
                       >
@@ -1076,10 +1076,10 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               <button
                 type="button"
                 onClick={handleAddRfiDatesRow}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-gray-800 border border-blue-200 font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading || isUpdating}
               >
-                <FaPlusCircle className="text-base text-gray-700" />
+                <FaPlusCircle className="text-base" />
                 افزودن سطر جدید
               </button>
             </div>
@@ -1090,16 +1090,16 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             <button
               type="submit"
               disabled={isLoading || isUpdating}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-gray-800 border border-blue-200 font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUpdating ? (
                 <>
-                  <FaSync className="animate-spin text-lg text-gray-700" />
+                  <FaSync className="animate-spin text-lg" />
                   در حال ذخیره...
                 </>
               ) : (
                 <>
-                  <FaCheckCircle className="text-lg text-gray-700" />
+                  <FaCheckCircle className="text-lg" />
                   ذخیره اطلاعات
                 </>
               )}
@@ -1109,9 +1109,9 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               type="button"
               onClick={handleCancel}
               disabled={isUpdating}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300 font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <FaTimes className="text-lg text-gray-700" />
+              <FaTimes className="text-lg" />
               انصراف
             </button>
           </div>
