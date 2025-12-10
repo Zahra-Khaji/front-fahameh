@@ -354,7 +354,17 @@ const RFIReportTable = () => {
           aValue = projectTypeOrder[typeA] || projectTypeOrder[typeA.toLowerCase()] || 99;
           bValue = projectTypeOrder[typeB] || projectTypeOrder[typeB.toLowerCase()] || 99;
           break;
-          
+        
+          // در switch statement خط 280:
+case 'IRNNO':
+  aValue = parseInt(a.IRNNO) || 0;
+  bValue = parseInt(b.IRNNO) || 0;
+  break;
+  
+case 'Duration':
+  aValue = parseInt(a.Duration) || 0;
+  bValue = parseInt(b.Duration) || 0;
+  break;
         default:
           // برای ستون‌های دیگر، مقایسه رشته‌ای
           aValue = a[sortConfig.key] || '';
@@ -665,285 +675,366 @@ const RFIReportTable = () => {
   
           {/* Desktop Table */}
           {showResults && (
-            <>
-              <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200 mb-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
-                      <FilterableSortHeader 
-                        title="شماره RFI" 
-                        sortKey="RFI_Number" 
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                        filterValue={columnFilters.RFI_Number}
-                        onFilterChange={(value) => handleColumnFilterChange('RFI_Number', value)}
-                        showFilter={showColumnFilters.RFI_Number}
-                        onToggleFilter={() => toggleColumnFilter('RFI_Number')}
-                        onClearFilter={() => clearColumnFilter('RFI_Number')}
-                        placeholder="فیلتر عددی"
-                      />
-                      
-                      <SortHeader 
-                        title="وضعیت RFI" 
-                        sortKey="RFI_Status" 
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                      
-                      <SortHeader 
-                        title="تاریخ بازرسی" 
-                        sortKey="InspectionDate" 
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                      
-                      <FilterableSortHeader 
-                        title="شماره گزارش" 
-                        sortKey="Report_No" 
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                        filterValue={columnFilters.Report_No}
-                        onFilterChange={(value) => handleColumnFilterChange('Report_No', value)}
-                        showFilter={showColumnFilters.Report_No}
-                        onToggleFilter={() => toggleColumnFilter('Report_No')}
-                        onClearFilter={() => clearColumnFilter('Report_No')}
-                        placeholder="مثل: FAH-INS-PCH-0480"
-                      />
-                      
-                      <FilterableSortHeader 
-                        title="شماره نوتیفیکشن" 
-                        sortKey="RFI_Numbering" 
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                        filterValue={columnFilters.RFI_Numbering}
-                        onFilterChange={(value) => handleColumnFilterChange('RFI_Numbering', value)}
-                        showFilter={showColumnFilters.RFI_Numbering}
-                        onToggleFilter={() => toggleColumnFilter('RFI_Numbering')}
-                        onClearFilter={() => clearColumnFilter('RFI_Numbering')}
-                        placeholder="مثل: FAH-INS-PCH-0480"
-                      />
-                      
-                      <SortHeader 
-                        title="نام پروژه" 
-                        sortKey="ProjectTitle" 
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                      
-                      <SortHeader 
-                        title="نوع پروژه" 
-                        sortKey="Over_Domestic" 
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedData?.map((item, index) => (
-                      <tr 
-                        key={index} 
-                        className={`border-b border-gray-200 transition duration-150 ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                        } hover:bg-blue-50`}
-                      >
-                        {/* شماره RFI - وسط‌چین */}
-                        <td className="p-3 font-semibold text-gray-800 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
-                            <span>{item.RFI_Number}</span>
-                          </div>
-                        </td>
-                        
-                        {/* وضعیت RFI - وسط‌چین */}
-                        <td className="p-3 text-center">
-                          <div className="flex justify-center">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                              getStatusColor(item.RFI_Status)
-                            }`}>
-                              {getPersianStatus(item.RFI_Status)}
-                            </span>
-                          </div>
-                        </td>
-                        
-                        {/* تاریخ بازرسی - وسط‌چین */}
-                        <td className="p-3 text-gray-700 text-center">{item.formattedInspectionDate}</td>
-                      
-                        {/* شماره گزارش - وسط‌چین */}
-                        <td className="p-3 font-mono text-gray-900 text-xs text-center">
-                          <div className="flex justify-center">
-                            {item.Report_No === '************' ? (
-                              <button
-                                onClick={() => handleOpenReportModal(item)}
-                                className="text-gray-600 hover:text-blue-800 hover:underline transition duration-200 font-mono tracking-wider"
-                                title="مدیریت گزارش"
-                              >
-                                ************
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleOpenReportModal(item)}
-                                className="text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium"
-                                title="مشاهده و ویرایش گزارش"
-                              >
-                                {item.Report_No}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        
-                        {/* شماره نوتیفیکشن - وسط‌چین */}
-                        <td className="p-3 font-mono text-gray-900 text-xs text-center">
-                          <div className="flex justify-center">
-                            <button
-                              onClick={() => handleOpenNotificationModal(item)}
-                              className={`text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium ${
-                                !item.RFI_Numbering || item.RFI_Numbering === '************' ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                              title={!item.RFI_Numbering || item.RFI_Numbering === '************' ? "شماره نوتیفیکیشن معتبر نیست" : "مشاهده اطلاعات نوتیفیکیشن"}
-                              disabled={!item.RFI_Numbering || item.RFI_Numbering === '************'}
-                            >
-                              {item.RFI_Numbering}
-                            </button>
-                          </div>
-                        </td>
-                        
-                        {/* نام پروژه - وسط‌چین */}
-                        <td className="p-3 text-gray-700 text-center">{item.ProjectTitle}</td>
-                        
-                        {/* نوع پروژه - وسط‌چین */}
-                        <td className="p-3 text-gray-700 text-center">
-                          <div className="flex justify-center">
-                            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium inline-block">
-                              {getPersianProjectType(item.Over_Domestic)}
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                
-                {/* خلاصه فیلترها */}
-                {activeFiltersCount > 0 && (
-                  <div className="bg-blue-50 border-t border-blue-200 p-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-blue-700 font-semibold">
-                          نتایج فیلتر شده:
-                        </span>
-                        <span className="text-blue-600">
-                          {filteredAndSortedData.length} از {tableData.length} مورد
-                        </span>
-                        {searchTerm && (
-                          <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-xs">
-                            جستجو: {searchTerm}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={clearAllFilters}
-                        className="text-red-600 hover:text-red-800 text-xs flex items-center gap-1"
-                      >
-                        <FaTimes className="text-xs" />
-                        حذف همه فیلترها
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* صفحه‌بندی */}
-              {totalPages > 1 && (
-                <PaginationControls
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  itemsPerPage={itemsPerPage}
-                  totalItems={filteredAndSortedData.length}
-                  onPageChange={handlePageChange}
-                  onItemsPerPageChange={handleItemsPerPageChange}
-                />
-              )}
-            </>
-          )}
-  
-          {/* Mobile View */}
-          {showResults && (
-            <div className="md:hidden space-y-3">
-              {paginatedData.map((item, index) => (
-                <div key={index} className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start border-b pb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        <span className="font-semibold text-gray-800">شماره RFI: {item.RFI_Number}</span>
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        item.RFI_Status === 'Done' 
-                          ? 'bg-green-100 text-green-800'
-                          : item.RFI_Status === 'Ongoing'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {getPersianStatus(item.RFI_Status)}
-                      </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-gray-600 font-medium">تاریخ بازرسی:</span>
-                        <p className="text-gray-800">{item.formattedInspectionDate}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600 font-medium">شماره گزارش:</span>
-                        {item.Report_No === '********' ? (
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className="text-gray-400">********</span>
-                            <button
-                              onClick={() => handleAddReport(item)}
-                              className="text-green-600 hover:text-green-800 transition duration-200 text-xs flex items-center gap-1"
-                            >
-                              <FaPlusCircle className="text-xs" />
-                              <span>ثبت گزارش</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <p className="text-gray-800 font-mono text-xs">{item.Report_No}</p>
-                        )}
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-gray-600 font-medium">RFI Numbering:</span>
-                        <p className="text-gray-800 font-mono text-xs">{item.RFI_Numbering}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600 font-medium">نام پروژه:</span>
-                        <p className="text-gray-800">{item.ProjectTitle}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600 font-medium">نوع پروژه:</span>
-                        <p className="text-gray-800">
-                          <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs font-medium">
-                            {getPersianProjectType(item.Over_Domestic)}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+  <>
+    <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200 mb-4">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
+            <FilterableSortHeader 
+              title="RFI" 
+              sortKey="RFI_Number" 
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              filterValue={columnFilters.RFI_Number}
+              onFilterChange={(value) => handleColumnFilterChange('RFI_Number', value)}
+              showFilter={showColumnFilters.RFI_Number}
+              onToggleFilter={() => toggleColumnFilter('RFI_Number')}
+              onClearFilter={() => clearColumnFilter('RFI_Number')}
+              placeholder="فیلتر عددی"
+            />
+            
+            <SortHeader 
+              title="وضعیت" 
+              sortKey="RFI_Status" 
+              sortConfig={sortConfig}
+              onSort={handleSort}
+            />
+            
+            <SortHeader 
+              title="تاریخ بازرسی" 
+              sortKey="InspectionDate" 
+              sortConfig={sortConfig}
+              onSort={handleSort}
+            />
+            
+            {/* ستون جدید: IRN */}
+            <SortHeader 
+              title="IRN" 
+              sortKey="IRNNO" 
+              sortConfig={sortConfig}
+              onSort={handleSort}
+            />
+            
+            {/* ستون جدید: Duration */}
+            <SortHeader 
+              title="مدت" 
+              sortKey="Duration" 
+              sortConfig={sortConfig}
+              onSort={handleSort}
+            />
+            
+            <FilterableSortHeader 
+              title="شماره گزارش" 
+              sortKey="Report_No" 
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              filterValue={columnFilters.Report_No}
+              onFilterChange={(value) => handleColumnFilterChange('Report_No', value)}
+              showFilter={showColumnFilters.Report_No}
+              onToggleFilter={() => toggleColumnFilter('Report_No')}
+              onClearFilter={() => clearColumnFilter('Report_No')}
+              placeholder="مثل: FAH-INS-PCH-0480"
+            />
+            
+            <FilterableSortHeader 
+              title="شماره نوتیفیکشن" 
+              sortKey="RFI_Numbering" 
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              filterValue={columnFilters.RFI_Numbering}
+              onFilterChange={(value) => handleColumnFilterChange('RFI_Numbering', value)}
+              showFilter={showColumnFilters.RFI_Numbering}
+              onToggleFilter={() => toggleColumnFilter('RFI_Numbering')}
+              onClearFilter={() => clearColumnFilter('RFI_Numbering')}
+              placeholder="مثل: FAH-INS-PCH-0480"
+            />
+            
+            {/* <SortHeader 
+              title="نام پروژه" 
+              sortKey="ProjectTitle" 
+              sortConfig={sortConfig}
+              onSort={handleSort}
+            /> */}
+            
+            <SortHeader 
+              title="نوع پروژه" 
+              sortKey="Over_Domestic" 
+              sortConfig={sortConfig}
+              onSort={handleSort}
+            />
+          </tr>
+        </thead>
+        <tbody>
+          {paginatedData?.map((item, index) => (
+            <tr 
+              key={index} 
+              className={`border-b border-gray-200 transition duration-150 ${
+                index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+              } hover:bg-blue-50`}
+            >
+              {/* شماره RFI */}
+              <td className="p-3 font-semibold text-gray-800 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
+                  <span>{item.RFI_Number}</span>
                 </div>
-              ))}
+              </td>
               
-              {/* صفحه‌بندی برای موبایل */}
-              {totalPages > 1 && (
-                <PaginationControls
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  itemsPerPage={itemsPerPage}
-                  totalItems={filteredAndSortedData.length}
-                  onPageChange={handlePageChange}
-                  onItemsPerPageChange={handleItemsPerPageChange}
-                />
+              {/* وضعیت RFI */}
+              <td className="p-3 text-center">
+                <div className="flex justify-center">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    getStatusColor(item.RFI_Status)
+                  }`}>
+                    {getPersianStatus(item.RFI_Status)}
+                  </span>
+                </div>
+              </td>
+              
+              {/* تاریخ بازرسی */}
+              <td className="p-3 text-gray-700 text-center">{item.formattedInspectionDate}</td>
+              
+              {/* ستون جدید: IRN */}
+              <td className="p-3 text-center">
+                <div className="flex items-center justify-center">
+                  {item.IRNNO ? (
+                    <span className="bg-gradient-to-r from-purple-100 to-purple-50 text-purple-800 px-2 py-1 rounded text-xs font-medium border border-purple-200">
+                      {item.IRNNO}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-xs">-</span>
+                  )}
+                </div>
+              </td>
+              
+              {/* ستون جدید: Duration */}
+              <td className="p-3 text-center">
+                <div className="flex flex-col items-center">
+                  {item.Duration ? (
+                    <>
+                      <span className="font-semibold text-gray-800">
+                        {item.Duration} روز
+                      </span>
+                      {parseInt(item.Duration) > 0 && (
+                        <span className="text-xs text-gray-500 mt-0.5">
+                          ({item.Duration} روز)
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-gray-400 text-xs">-</span>
+                  )}
+                </div>
+              </td>
+              
+              {/* شماره گزارش */}
+              <td className="p-3 font-mono text-gray-900 text-xs text-center">
+                <div className="flex justify-center">
+                  {item.Report_No === '************' ? (
+                    <button
+                      onClick={() => handleOpenReportModal(item)}
+                      className="text-gray-600 hover:text-blue-800 hover:underline transition duration-200 font-mono tracking-wider"
+                      title="مدیریت گزارش"
+                    >
+                      ************
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleOpenReportModal(item)}
+                      className="text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium"
+                      title="مشاهده و ویرایش گزارش"
+                    >
+                      {item.Report_No}
+                    </button>
+                  )}
+                </div>
+              </td>
+              
+              {/* شماره نوتیفیکشن */}
+              <td className="p-3 font-mono text-gray-900 text-xs text-center">
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => handleOpenNotificationModal(item)}
+                    className={`text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium ${
+                      !item.RFI_Numbering || item.RFI_Numbering === '************' ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    title={!item.RFI_Numbering || item.RFI_Numbering === '************' ? "شماره نوتیفیکیشن معتبر نیست" : "مشاهده اطلاعات نوتیفیکیشن"}
+                    disabled={!item.RFI_Numbering || item.RFI_Numbering === '************'}
+                  >
+                    {item.RFI_Numbering}
+                  </button>
+                </div>
+              </td>
+              
+              {/* نام پروژه */}
+              {/* <td className="p-3 text-gray-700 text-center">{item.ProjectTitle}</td> */}
+              
+              {/* نوع پروژه */}
+              <td className="p-3 text-gray-700 text-center">
+                <div className="flex justify-center">
+                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium inline-block">
+                    {getPersianProjectType(item.Over_Domestic)}
+                  </span>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      
+      {/* خلاصه فیلترها */}
+      {activeFiltersCount > 0 && (
+        <div className="bg-blue-50 border-t border-blue-200 p-2 text-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-blue-700 font-semibold">
+                نتایج فیلتر شده:
+              </span>
+              <span className="text-blue-600">
+                {filteredAndSortedData.length} از {tableData.length} مورد
+              </span>
+              {searchTerm && (
+                <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-xs">
+                  جستجو: {searchTerm}
+                </span>
               )}
             </div>
-          )}
+            <button
+              onClick={clearAllFilters}
+              className="text-red-600 hover:text-red-800 text-xs flex items-center gap-1"
+            >
+              <FaTimes className="text-xs" />
+              حذف همه فیلترها
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+    
+    {/* صفحه‌بندی */}
+    {totalPages > 1 && (
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        itemsPerPage={itemsPerPage}
+        totalItems={filteredAndSortedData.length}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
+      />
+    )}
+  </>
+)}
+  
+          {/* Mobile View */}
+         
+{showResults && (
+  <div className="md:hidden space-y-3">
+    {paginatedData.map((item, index) => (
+      <div key={index} className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+        <div className="space-y-2">
+          <div className="flex justify-between items-start border-b pb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <span className="font-semibold text-gray-800">شماره RFI: {item.RFI_Number}</span>
+            </div>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+              getStatusColor(item.RFI_Status)
+            }`}>
+              {getPersianStatus(item.RFI_Status)}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {/* تاریخ بازرسی */}
+            <div>
+              <span className="text-gray-600 font-medium">تاریخ بازرسی:</span>
+              <p className="text-gray-800">{item.formattedInspectionDate}</p>
+            </div>
+            
+            {/* IRN جدید */}
+            <div>
+              <span className="text-gray-600 font-medium">IRN:</span>
+              <p className="text-gray-800 font-semibold">
+                {item.IRNNO ? (
+                  <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs font-medium">
+                    {item.IRNNO}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">-</span>
+                )}
+              </p>
+            </div>
+            
+            {/* Duration جدید */}
+            <div>
+              <span className="text-gray-600 font-medium">مدت بازرسی:</span>
+              <p className="text-gray-800 font-semibold">
+                {item.Duration ? (
+                  <span className="text-blue-600">{item.Duration} روز</span>
+                ) : (
+                  <span className="text-gray-400">-</span>
+                )}
+              </p>
+            </div>
+            
+            {/* شماره گزارش */}
+            <div>
+              <span className="text-gray-600 font-medium">شماره گزارش:</span>
+              {item.Report_No === '********' ? (
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="text-gray-400">********</span>
+                  <button
+                    onClick={() => handleAddReport(item)}
+                    className="text-green-600 hover:text-green-800 transition duration-200 text-xs flex items-center gap-1"
+                  >
+                    <FaPlusCircle className="text-xs" />
+                    <span>ثبت گزارش</span>
+                  </button>
+                </div>
+              ) : (
+                <p className="text-gray-800 font-mono text-xs">{item.Report_No}</p>
+              )}
+            </div>
+            
+            {/* شماره نوتیفیکیشن */}
+            <div className="col-span-2">
+              <span className="text-gray-600 font-medium">RFI Numbering:</span>
+              <p className="text-gray-800 font-mono text-xs">{item.RFI_Numbering}</p>
+            </div>
+            
+            {/* نام پروژه */}
+            <div>
+              <span className="text-gray-600 font-medium">نام پروژه:</span>
+              <p className="text-gray-800">{item.ProjectTitle}</p>
+            </div>
+            
+            {/* نوع پروژه */}
+            <div>
+              <span className="text-gray-600 font-medium">نوع پروژه:</span>
+              <p className="text-gray-800">
+                <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs font-medium">
+                  {getPersianProjectType(item.Over_Domestic)}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    ))}
+    
+    {/* صفحه‌بندی برای موبایل */}
+    {totalPages > 1 && (
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        itemsPerPage={itemsPerPage}
+        totalItems={filteredAndSortedData.length}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
+      />
+    )}
+  </div>
+)}
   
           {/* Results Count */}
           {showResults && (
