@@ -35,6 +35,7 @@ import { useProjects } from '../../hooks/useProjects';
 import { useProvinces, useCities } from '../../hooks/useProvinces';
 import { useVendors } from '../../hooks/useVendors'; 
 import { useProjectTypes } from '../../hooks/useProjectTypes';
+import { useCountries } from '../../hooks/useCountries';
 
 const InspectionForm = ({ onComplete }) => {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
@@ -81,7 +82,11 @@ const InspectionForm = ({ onComplete }) => {
     isLoading: projectTypesLoading, 
     error: projectTypesError 
   } = useProjectTypes();
-
+  const { 
+    data: countries, 
+    isLoading: countriesLoading, 
+    error: countriesError 
+  } = useCountries();
   const { 
     data: provinces, 
     isLoading: provincesLoading, 
@@ -94,19 +99,7 @@ const InspectionForm = ({ onComplete }) => {
     error: vendorsError 
   } = useVendors();
 
-  // داده‌های استاتیک کشورها (قبل از اتصال به API)
-  const countries = useMemo(() => [
-    { id: '1', name: 'چین' },
-    { id: '2', name: 'هند' },
-    { id: '3', name: 'ترکیه' },
-    { id: '4', name: 'امارات' },
-    { id: '5', name: 'آلمان' },
-    { id: '6', name: 'ایتالیا' },
-    { id: '7', name: 'روسیه' },
-    { id: '8', name: 'کره جنوبی' },
-    { id: '9', name: 'ژاپن' },
-    { id: '10', name: 'کشورهای دیگر' }
-  ], []);
+
 
   // ترکیب پروژه‌های اصلی و موقت
   const allProjects = useMemo(() => {
@@ -470,15 +463,15 @@ const InspectionForm = ({ onComplete }) => {
 
   // نمایش خطا در صورت مشکل در دریافت داده‌ها
   useEffect(() => {
-    if (inspectorsError || projectsError || provincesError || vendorsError || projectTypesError) {
+    if (inspectorsError || projectsError || provincesError || vendorsError || projectTypesError || countriesError) {
       setErrorMessage('خطا در دریافت داده‌ها از سرور');
       setShowErrorPopup(true);
     }
-  }, [inspectorsError, projectsError, provincesError, vendorsError, projectTypesError]);
+  }, [inspectorsError, projectsError, provincesError, vendorsError, projectTypesError, countriesError]);
 
   // وضعیت لودینگ کلی
   const isLoading = inspectorsLoading || projectsLoading || provincesLoading || vendorsLoading;
-  const hasError = inspectorsError || projectsError || provincesError || vendorsError;
+  const hasError = inspectorsError || projectsError || provincesError || vendorsError || countriesLoading;
 
   return (
     <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-1 px-3 sm:px-4 lg:px-4" dir="rtl">
@@ -567,17 +560,19 @@ const InspectionForm = ({ onComplete }) => {
                   // حالت پروژه خارجی - نمایش کشور
                   <div className="flex flex-col">
                   <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
-                    {/* <FaGlobe className="ml-1 text-green-500 text-xs" /> */}
                     کشور *
                   </label>
                   <SearchableSelect
                     value={selectedCountryId}
                     onChange={handleCountryChange}
                     options={countryOptions}
-                    placeholder="جستجو و انتخاب کشور"
+                    placeholder={
+                      countriesLoading ? "در حال دریافت لیست کشورها..." : 
+                      countriesError ? "خطا در دریافت داده‌ها" : "جستجو و انتخاب کشور"
+                    }
                     error={isSubmitted && errors.projectInfo?.country}
-                    disabled={!isForeignProject} // فقط وقتی پروژه خارجیه فعال باشه
-                    searchable={true} // فعال کردن قابلیت سرچ
+                    disabled={countriesLoading || !!countriesError || !isForeignProject}
+                    searchable={true}
                     noOptionsMessage="کشوری یافت نشد"
                     loadingMessage="در حال بارگذاری کشورها..."
                     searchPlaceholder="جستجوی کشور..."
