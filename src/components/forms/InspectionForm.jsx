@@ -10,7 +10,8 @@ import {
   FaMapMarkerAlt,
   FaBuilding,
   FaUser,
-  FaPlusCircle
+  FaPlusCircle,
+  FaGlobe
 } from 'react-icons/fa';
 
 // Components
@@ -42,6 +43,7 @@ const InspectionForm = ({ onComplete }) => {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedProvinceId, setSelectedProvinceId] = useState('');
   const [selectedVendorId, setSelectedVendorId] = useState('');
+  const [selectedCountryId, setSelectedCountryId] = useState('');
   const [touchedFields, setTouchedFields] = useState({});
   const [inspectorFieldStatus, setInspectorFieldStatus] = useState({
     location: false,
@@ -92,6 +94,20 @@ const InspectionForm = ({ onComplete }) => {
     error: vendorsError 
   } = useVendors();
 
+  // داده‌های استاتیک کشورها (قبل از اتصال به API)
+  const countries = useMemo(() => [
+    { id: '1', name: 'چین' },
+    { id: '2', name: 'هند' },
+    { id: '3', name: 'ترکیه' },
+    { id: '4', name: 'امارات' },
+    { id: '5', name: 'آلمان' },
+    { id: '6', name: 'ایتالیا' },
+    { id: '7', name: 'روسیه' },
+    { id: '8', name: 'کره جنوبی' },
+    { id: '9', name: 'ژاپن' },
+    { id: '10', name: 'کشورهای دیگر' }
+  ], []);
+
   // ترکیب پروژه‌های اصلی و موقت
   const allProjects = useMemo(() => {
     return [...(projects || []), ...tempProjects];
@@ -118,6 +134,14 @@ const InspectionForm = ({ onComplete }) => {
       ...province
     })) || [];
   }, [provinces]);
+
+  const countryOptions = useMemo(() => {
+    return countries?.map(country => ({
+      value: country.id,
+      label: country.name,
+      ...country
+    })) || [];
+  }, [countries]);
 
   const vendorOptions = useMemo(() => {
     return allVendors?.map(vendor => ({
@@ -151,6 +175,7 @@ const InspectionForm = ({ onComplete }) => {
         projectTypeId: '', // ID عددی
         province: '',
         city: '',
+        country: '', // اضافه شد
         vendor: '',
       },
       inspectorInfo: {
@@ -166,7 +191,29 @@ const InspectionForm = ({ onComplete }) => {
   });
 
   const currentProvince = watch('projectInfo.province');
+  const currentProjectType = watch('projectInfo.projectType');
   
+  // بررسی آیا پروژه خارجی است
+  // const isForeignProject = useMemo(() => {
+  //   console.log("currentProjectType",currentProjectType)
+  //   return currentProjectType === 'خارجی' || currentProjectType === 'Foreign';
+  // }, [currentProjectType]);
+    // پیدا کردن نوع پروژه بر اساس ID
+    const getProjectTypeNameById = (id) => {
+      if (!projectTypes || !id) return '';
+      const projectType = projectTypes.find(type => type.id === id || type.id?.toString() === id?.toString());
+      return projectType?.name || '';
+    };
+    
+    const isForeignProject = useMemo(() => {
+      if (!currentProjectType) return false;
+      
+      const typeName = getProjectTypeNameById(currentProjectType);
+      console.log("Project Type Name:", typeName, "ID:", currentProjectType);
+      
+      return typeName === 'خارجی' || typeName === 'Foreign';
+    }, [currentProjectType, projectTypes]);
+
   const { 
     data: cities, 
     isLoading: citiesLoading, 
@@ -191,26 +238,24 @@ const InspectionForm = ({ onComplete }) => {
       console.log('Auto-selected new project:', newProject);
     }, 150);
   };
-  
 
   // تابع برای افزودن وندور جدید
-// تابع برای افزودن وندور جدید
-const handleAddVendor = (newVendor) => {
-  console.log('New vendor added:', newVendor);
-  
-  // **اضافه کردن به لیست tempVendors برای نمایش فوری**
-  setTempVendors(prev => [...prev, newVendor]);
-  
-  // **انتخاب فوری وندور جدید در فیلد**
-  setTimeout(() => {
-    handleVendorChange(newVendor.id);
+  const handleAddVendor = (newVendor) => {
+    console.log('New vendor added:', newVendor);
     
-    // **همچنین مقدار رو در react-hook-form هم ست کنیم**
-    setValue('projectInfo.vendor', newVendor.id, { shouldValidate: true });
+    // **اضافه کردن به لیست tempVendors برای نمایش فوری**
+    setTempVendors(prev => [...prev, newVendor]);
     
-    console.log('Auto-selected new vendor:', newVendor);
-  }, 150);
-};
+    // **انتخاب فوری وندور جدید در فیلد**
+    setTimeout(() => {
+      handleVendorChange(newVendor.id);
+      
+      // **همچنین مقدار رو در react-hook-form هم ست کنیم**
+      setValue('projectInfo.vendor', newVendor.id, { shouldValidate: true });
+      
+      console.log('Auto-selected new vendor:', newVendor);
+    }, 150);
+  };
 
   // تابع برای حذف فرمت از عدد
   const removeFormatting = (formattedValue) => {
@@ -323,6 +368,12 @@ const handleAddVendor = (newVendor) => {
     setValue('projectInfo.city', '');
   };
 
+  // مدیریت تغییر کشور
+  const handleCountryChange = (countryId) => {
+    setSelectedCountryId(countryId);
+    setValue('projectInfo.country', countryId, { shouldValidate: true });
+  };
+
   // مدیریت تغییر پروژه
   const handleProjectChange = (projectId) => {
     setSelectedProjectId(projectId);
@@ -368,6 +419,18 @@ const handleAddVendor = (newVendor) => {
       });
     }
   };
+
+  // وقتی نوع پروژه تغییر کرد، فیلدهای موقعیت را ریست کن
+  useEffect(() => {
+    if (currentProjectType) {
+      // ریست فیلدهای موقعیت
+      setSelectedProvinceId('');
+      setSelectedCountryId('');
+      setValue('projectInfo.province', '');
+      setValue('projectInfo.city', '');
+      setValue('projectInfo.country', '');
+    }
+  }, [currentProjectType, setValue]);
 
   // تابع برای گرفتن کلاس CSS بر اساس وضعیت readonly
   const getFieldClassName = (isReadOnly) => {
@@ -481,8 +544,9 @@ const handleAddVendor = (newVendor) => {
                     label=" داخلی/‌خارجی *"
                     {...register('projectInfo.projectType')}
                     onChange={(e) => {
-                      setValue('projectInfo.projectType', e.target.value, { shouldValidate: true });
-                      setValue('projectInfo.projectTypeId', e.target.value, { shouldValidate: true });
+                      const value = e.target.value;
+                      setValue('projectInfo.projectType', value, { shouldValidate: true });
+                      setValue('projectInfo.projectTypeId', value, { shouldValidate: true });
                     }}
                     error={isSubmitted && errors.projectInfo?.projectType}
                     options={projectTypes || []}
@@ -496,55 +560,88 @@ const handleAddVendor = (newVendor) => {
                 </div>
               </div>
 
-              {/* سطر دوم: استان، شهر و وندور */}
+              {/* سطر دوم: موقعیت (استان/شهر یا کشور) و وندور */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 lg:gap-2">
-                {/* استان */}
-                <div className="flex flex-col">
-                  <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
-                    استان *
-                  </label>
-                  <SearchableSelect
-                    value={selectedProvinceId}
-                    onChange={handleProvinceChange}
-                    options={provinceOptions}
-                    placeholder={
-                      provincesLoading ? "در حال دریافت لیست استان‌ها..." : 
-                      provincesError ? "خطا در دریافت داده‌ها" : "جستجو و انتخاب استان"
-                    }
-                    disabled={provincesLoading || !!provincesError}
-                    error={isSubmitted && errors.projectInfo?.province}
-                  />
-                  <input 
-                    type="hidden" 
-                    {...register('projectInfo.province')} 
-                  />
-                  {isSubmitted && errors.projectInfo?.province && (
-                    <p className="text-red-500 text-xs mt-1 flex items-center">
-                      <FaExclamationTriangle className="ml-1 text-xs" />
-                      {errors.projectInfo.province.message}
-                    </p>
-                  )}
-                </div>
+                {/* نمایش داینامیک بر اساس نوع پروژه */}
+                {isForeignProject ? (
+                  // حالت پروژه خارجی - نمایش کشور
+                  <div className="flex flex-col">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
+                      {/* <FaGlobe className="ml-1 text-green-500 text-xs" /> */}
+                      کشور *
+                    </label>
+                    <SearchableSelect
+                      value={selectedCountryId}
+                      onChange={handleCountryChange}
+                      options={countryOptions}
+                      placeholder="جستجو و انتخاب کشور"
+                      error={isSubmitted && errors.projectInfo?.country}
+                    />
+                    <input 
+                      type="hidden" 
+                      {...register('projectInfo.country')} 
+                    />
+                    {isSubmitted && errors.projectInfo?.country && (
+                      <p className="text-red-500 text-xs mt-1 flex items-center">
+                        <FaExclamationTriangle className="ml-1 text-xs" />
+                        {errors.projectInfo.country.message}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  // حالت پروژه داخلی - نمایش استان و شهر
+                  <>
+                    {/* استان */}
+                    <div className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
+                        {/* <FaMapMarkerAlt className="ml-1 text-blue-500 text-xs" /> */}
+                        استان *
+                      </label>
+                      <SearchableSelect
+                        value={selectedProvinceId}
+                        onChange={handleProvinceChange}
+                        options={provinceOptions}
+                        placeholder={
+                          provincesLoading ? "در حال دریافت لیست استان‌ها..." : 
+                          provincesError ? "خطا در دریافت داده‌ها" : "جستجو و انتخاب استان"
+                        }
+                        disabled={provincesLoading || !!provincesError}
+                        error={isSubmitted && errors.projectInfo?.province}
+                      />
+                      <input 
+                        type="hidden" 
+                        {...register('projectInfo.province')} 
+                      />
+                      {isSubmitted && errors.projectInfo?.province && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <FaExclamationTriangle className="ml-1 text-xs" />
+                          {errors.projectInfo.province.message}
+                        </p>
+                      )}
+                    </div>
 
-                {/* شهر */}
-                <SelectField
-                  label="شهر *"
-                  {...register('projectInfo.city')}
-                  error={isSubmitted && errors.projectInfo?.city}
-                  disabled={!currentProvince || citiesLoading}
-                  options={cities || []}
-                  placeholder={
-                    !currentProvince ? "ابتدا استان را انتخاب کنید" :
-                    citiesLoading ? "در حال دریافت لیست شهرها..." :
-                    citiesError ? "خطا در دریافت داده‌ها" : "انتخاب شهر"
-                  }
-                  className="py-1.5 sm:py-1.5 lg:py-1.5"
-                />
+                    {/* شهر */}
+                    <SelectField
+                      label="شهر *"
+                      {...register('projectInfo.city')}
+                      error={isSubmitted && errors.projectInfo?.city}
+                      disabled={!currentProvince || citiesLoading}
+                      options={cities || []}
+                      placeholder={
+                        !currentProvince ? "ابتدا استان را انتخاب کنید" :
+                        citiesLoading ? "در حال دریافت لیست شهرها..." :
+                        citiesError ? "خطا در دریافت داده‌ها" : "انتخاب شهر"
+                      }
+                      className="py-1.5 sm:py-1.5 lg:py-1.5"
+                    />
+                  </>
+                )}
 
                 {/* وندور */}
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1 mb-1">
                     <label className="block text-xs font-semibold text-gray-700 flex items-center gap-1">
+                      {/* <FaBuilding className="text-blue-500 text-xs" /> */}
                       وندور *
                       <button
                         type="button"
@@ -590,6 +687,7 @@ const handleAddVendor = (newVendor) => {
               {/* بازرس */}
               <div className="mb-2 lg:mb-2">
                 <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
+                  <FaUser className="ml-1 text-blue-500 text-xs" />
                   نام بازرس *
                 </label>
                 <SearchableSelect
