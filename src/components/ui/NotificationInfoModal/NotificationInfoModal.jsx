@@ -858,7 +858,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-6 bg-gradient-to-r from-green-600 to-emerald-600 rounded-r"></div>
-                <h4 className="text-base font-bold text-gray-800">اطلاعات صورت وضعیت بازرس</h4>
+                <h4 className="text-base font-bold text-gray-800">اطلاعات تاریخ های بازرسی</h4>
                 <span className="text-xs text-gray-500 bg-green-100 px-2 py-1 rounded">
                   {rfiDatesRows.length} مورد
                 </span>
