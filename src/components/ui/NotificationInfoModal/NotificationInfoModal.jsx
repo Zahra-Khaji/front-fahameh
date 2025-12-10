@@ -881,7 +881,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                 <thead>
                   <tr className="bg-gradient-to-r from-green-700 to-emerald-600">
                     <th className="p-3 text-right font-bold text-white text-xs min-w-32">تاریخ بازرسی</th>
-                    <th className="p-3 text-right font-bold text-white text-xs min-w-28">تائید/عدم تائید</th>
+                    {/* <th className="p-3 text-right font-bold text-white text-xs min-w-28">تائید/عدم تائید</th> */}
                     <th className="p-3 text-right font-bold text-white text-xs min-w-40">بازرس اول</th>
                     <th className="p-3 text-right font-bold text-white text-xs min-w-36">دستمزد</th>
                     <th className="p-3 text-right font-bold text-white text-xs min-w-20">عملیات</th>
@@ -909,7 +909,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* تائید/عدم تائید */}
-                      <td className="p-3">
+                      {/* <td className="p-3">
                         <select
                           value={row.approvalStatus}
                           onChange={(e) => handleRfiDatesRowChange(row.id, 'approvalStatus', e.target.value)}
@@ -922,7 +922,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                             </option>
                           ))}
                         </select>
-                      </td>
+                      </td> */}
 
                       {/* بازرس اول */}
                       <td className="p-3">
