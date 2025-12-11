@@ -436,11 +436,28 @@ const InspectionForm = ({ onComplete }) => {
   const onSubmit = (data) => {
     console.log('Form Data:', data);
     
+    // پیدا کردن اسم وندور
+    let vendorName = data.projectInfo.vendor; // این الان ID هست
+    
+    // اگر vendor یک ID عددی هست، اسمش رو از لیست پیدا کن
+    if (selectedVendorId && allVendors) {
+      const selectedVendor = allVendors.find(v => 
+        v.id === selectedVendorId || 
+        v.value === selectedVendorId
+      );
+      
+      if (selectedVendor) {
+        vendorName = selectedVendor.name || selectedVendor.label || selectedVendorId;
+        console.log('✅ Found vendor name:', vendorName, 'for ID:', selectedVendorId);
+      }
+    }
+    
     const formattedData = {
       ...data,
       projectInfo: {
         ...data.projectInfo,
-        projectId: selectedProjectId
+        projectId: selectedProjectId,
+        vendor: vendorName // اینجا اسم وندور رو می‌فرستیم
       },
       inspectorInfo: {
         ...data.inspectorInfo,
@@ -448,7 +465,7 @@ const InspectionForm = ({ onComplete }) => {
       }
     };
     
-    console.log('Formatted Data with projectId:', formattedData);
+    console.log('✅ Formatted Data with vendor NAME (not ID):', formattedData);
     onComplete(formattedData);
   };
 
