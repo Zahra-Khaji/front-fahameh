@@ -1,15 +1,14 @@
-// src/services/projectService.js
-import http from './httpService';
+import http from "./httpService";
 
 class ProjectService {
   // گرفتن لیست تمام پروژه‌ها
   async getAllProjects() {
     try {
-      const response = await http.get('/projects');
-      console.log('Projects API Response:', response.data);
+      const response = await http.get("/projects");
+      console.log("Projects API Response:", response.data);
       return this.transformProjectsData(response.data);
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error("Error fetching projects:", error);
       throw error;
     }
   }
@@ -28,44 +27,55 @@ class ProjectService {
   // **افزودن پروژه جدید**
   async createProject(projectData) {
     try {
-      console.log('Creating new project:', projectData);
-      
+      console.log("Creating new project:", projectData);
+
       // **ارسال داده به فرمت مورد نیاز بک‌اند**
       const apiData = {
-        Title: projectData.Title, // نام پروژه
-        project_code: projectData.project_code // کد پروژه
+        Title: projectData.Title,
+        project_code: projectData.project_code,
       };
-      
-      console.log('📤 Sending to API:', apiData);
-      
-      const response = await http.post('/create_new_project', apiData);
-      console.log('✅ Project created successfully:', response.data);
-      
-      // تبدیل پاسخ API به فرمت مورد نیاز فرانت‌اند
+
+      console.log("📤 Sending to API:", apiData);
+
+      const response = await http.post("/create_new_project", apiData);
+      console.log("✅ Project created successfully:", response.data);
+
+      // **تغییر مهم: استفاده از ID واقعی از API**
+      const apiResponse = response.data;
+
+      // ایجاد پروژه جدید با ID واقعی
       const newProject = {
-        id: response.data.id || `db-${Date.now()}`,
+        id:
+          apiResponse.data?.toString() ||
+          apiResponse.message?.match(/\d+/) ||
+          `temp-${Date.now()}`,
         name: projectData.Title,
         project_code: projectData.project_code,
-        isTemp: false
+        // **اضافه کردن دو فیلد جدید برای سرویس نوتیفیکیشن**
+        actualId: apiResponse.data || apiResponse.id, // ID عددی واقعی
+        isTemp: false,
+        isNew: true, // پرچم برای تشخیص پروژه جدید
       };
-      
-      console.log('📦 Formatted project:', newProject);
+
+      console.log("📦 Formatted project:", newProject);
       return newProject;
     } catch (error) {
-      console.error('❌ Error creating project:', error);
-      
-      let errorMessage = 'خطا در ایجاد پروژه';
-      
+      console.error("❌ Error creating project:", error);
+
+      let errorMessage = "خطا در ایجاد پروژه";
+
       if (error.response) {
         const { status, data } = error.response;
-        
+
         if (status === 400 || status === 409) {
           if (data.detail) {
-            // بررسی خطای تکراری بودن
-            if (data.detail.includes('already exists') || data.detail.includes('تکراری')) {
-              if (data.detail.includes('Title')) {
+            if (
+              data.detail.includes("already exists") ||
+              data.detail.includes("تکراری")
+            ) {
+              if (data.detail.includes("Title")) {
                 errorMessage = `نام پروژه "${projectData.Title}" تکراری است.`;
-              } else if (data.detail.includes('project_code')) {
+              } else if (data.detail.includes("project_code")) {
                 errorMessage = `کد پروژه "${projectData.project_code}" تکراری است.`;
               } else {
                 errorMessage = data.detail;
@@ -77,16 +87,16 @@ class ProjectService {
             errorMessage = data.message;
           }
         } else if (status === 401) {
-          errorMessage = 'دسترسی غیرمجاز';
+          errorMessage = "دسترسی غیرمجاز";
         } else if (status === 500) {
-          errorMessage = 'خطای سرور';
+          errorMessage = "خطای سرور";
         }
       }
-      
+
       const customError = new Error(errorMessage);
       customError.originalError = error;
       customError.projectData = projectData;
-      
+
       throw customError;
     }
   }
@@ -94,37 +104,41 @@ class ProjectService {
   // دریافت آخرین IRN برای پروژه
   async getLastIRN(projectName, projectType) {
     try {
-      console.log('Getting last IRN for:', { projectName, projectType });
-      
+      console.log("Getting last IRN for:", { projectName, projectType });
+
       const params = {
         project_name: projectName,
-        Over_Domestic: projectType
+        Over_Domestic: projectType,
       };
-      
-      const response = await http.get('/irnno', { params });
-      console.log('Last IRN API response:', response.data);
-      
+
+      const response = await http.get("/irnno", { params });
+      console.log("Last IRN API response:", response.data);
+
       return response.data;
     } catch (error) {
-      console.error('Error fetching last IRN:', error);
-      
+      console.error("Error fetching last IRN:", error);
+
       return {
         irnno: 0,
-        next_irnno: 1
+        next_irnno: 1,
       };
     }
   }
-  
+
   // تبدیل داده‌های دریافتی از API به فرمت مورد نیاز کامپوننت
   transformProjectsData(apiData) {
-    if (typeof apiData === 'object' && apiData !== null) {
+    if (typeof apiData === "object" && apiData !== null) {
       return Object.entries(apiData).map(([id, name]) => ({
         id: id.toString(),
-        name: name || 'بدون نام'
+        name: name || "بدون نام",
+        // برای پروژه‌های موجود از API
+        actualId: id.toString(),
+        isTemp: false,
+        isNew: false,
       }));
     }
-    
-    console.warn('Invalid projects data format:', apiData);
+
+    console.warn("Invalid projects data format:", apiData);
     return [];
   }
 }
