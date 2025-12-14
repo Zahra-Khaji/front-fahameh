@@ -12,7 +12,9 @@ export const useRFIReport = (projectName, enabled = false) => {
       }
 
       try {
-        const BASE_URL = "http://192.168.0.4:8001";
+        // const BASE_URL = "http://192.168.0.4:8001";
+        const BASE_URL = "http://127.0.0.1:8001";
+
         const response = await axios.get(
           `${BASE_URL}/api/rfi/report?project_name=${encodeURIComponent(projectName)}`,
           {
