@@ -28,17 +28,20 @@ class ReportService {
   async getReportInfo(rfiNumbering) {
     try {
       console.log("🎯 ReportService: Fetching report for RFI:", rfiNumbering);
-      
+
       // const response = await http.get(`/report?rfi_number=${rfiNumbering}`);
       const response = await http.get(`/reports/${rfiNumbering}`);
-      
+
       console.log("✅ ReportService: API response:", response.data);
       return response.data;
     } catch (error) {
       console.error("❌ ReportService: Error fetching report:", error);
       console.error("❌ ReportService: Error URL:", error.config?.url);
-      console.error("❌ ReportService: Full URL:", error.config?.baseURL + error.config?.url);
-      
+      console.error(
+        "❌ ReportService: Full URL:",
+        error.config?.baseURL + error.config?.url
+      );
+
       if (error.response) {
         console.error("❌ ReportService: Error status:", error.response.status);
         console.error("❌ ReportService: Error data:", error.response.data);
@@ -51,14 +54,14 @@ class ReportService {
   async updateReport(reportData) {
     try {
       console.log("🎯 ReportService: Updating report:", reportData);
-      
-      const response = await http.put("/report", reportData);
-      
+
+      const response = await http.put("/reports", reportData);
+
       console.log("✅ ReportService: Update response:", response.data);
       return response.data;
     } catch (error) {
       console.error("❌ ReportService: Error updating report:", error);
-      
+
       if (error.response) {
         console.error("❌ ReportService: Error status:", error.response.status);
         console.error("❌ ReportService: Error data:", error.response.data);
@@ -69,29 +72,29 @@ class ReportService {
 
   // جدید: تبدیل داده‌های API به فرمت مورد نیاز
   transformReportData(apiData) {
-    console.log('📦 Transforming report data:', apiData);
-    
+    console.log("📦 Transforming report data:", apiData);
+
     if (!apiData) {
       return null;
     }
 
     return {
-      reportNumber: apiData.Report_No || '',
-      revNumber: apiData.RevNO || '',
-      status: apiData.Doc_Status || '',
-      corrections: apiData.Remark || '',
+      reportNumber: apiData.Report_No || "",
+      revNumber: apiData.RevNO || "",
+      status: apiData.Doc_Status || "",
+      corrections: apiData.Remark || "",
       issueDate: apiData.IssueDate || null,
       receivedDate: apiData.ReportReceivedDate || null,
-      approvedDays: apiData.App_manday_1stPrice || '',
-      unitNumber: apiData.UnitNo || '',
-      vendorName: apiData.VendorName || '',
-      irn: apiData.IRNNO || '',
-      srn: apiData.SRNNO || '',
-      user: apiData.User || '',
-      dateShamsi: apiData.DateShamsi || '',
-      rfiNumbering: apiData.RFI_Numbering || '',
-      firstPrice: apiData.FirstPrice || '',
-      idre: apiData.IDRE || ''
+      approvedDays: apiData.App_manday_1stPrice || "",
+      unitNumber: apiData.UnitNo || "",
+      vendorName: apiData.VendorName || "",
+      irn: apiData.IRNNO || "",
+      srn: apiData.SRNNO || "",
+      user: apiData.User || "",
+      dateShamsi: apiData.DateShamsi || "",
+      rfiNumbering: apiData.RFI_Numbering || "",
+      firstPrice: apiData.FirstPrice || "",
+      idre: apiData.IDRE || "",
     };
   }
 
@@ -100,53 +103,56 @@ class ReportService {
     const updateData = {
       rfi_number: rfiNumbering,
       Report_No: formData.reportNumber,
-      RevNO: formData.revNumber || '',
+      RevNO: formData.revNumber || "",
       Doc_Status: formData.status,
-      Remark: formData.corrections || '',
+      Remark: formData.corrections || "",
       IssueDate: this.formatDateForAPI(formData.issueDate),
       ReportReceivedDate: this.formatDateForAPI(formData.receivedDate),
       App_manday_1stPrice: parseInt(formData.approvedDays) || 0,
-      UnitNo: formData.unitNumber || '',
-      VendorName: formData.vendorName || '',
-      IRNNO: formData.irn || '',
-      SRNNO: formData.srn || '',
-      User: formData.user || '',
-      DateShamsi: formData.dateShamsi || '',
-      FirstPrice: parseInt(formData.firstPrice) || 80000000
+      UnitNo: formData.unitNumber || "",
+      VendorName: formData.vendorName || "",
+      IRNNO: formData.irn || "",
+      SRNNO: formData.srn || "",
+      User: formData.user || "",
+      DateShamsi: formData.dateShamsi || "",
+      FirstPrice: parseInt(formData.firstPrice) || 80000000,
     };
 
-    console.log('📤 Prepared report update data:', updateData);
+    console.log("📤 Prepared report update data:", updateData);
     return updateData;
   }
 
   // جدید: فرمت تاریخ برای ارسال به API
   formatDateForAPI(date) {
     if (!date) return null;
-    
+
     // اگر DateObject هست
     if (date instanceof DateObject && date.format) {
       const persianDate = date.format("YYYY-MM-DD");
-      console.log('📅 Persian date for API:', persianDate);
+      console.log("📅 Persian date for API:", persianDate);
       return persianDate;
     }
-    
+
     // اگر Date هست
     if (date instanceof Date) {
-      return date.toISOString().split('T')[0];
+      return date.toISOString().split("T")[0];
     }
-    
+
     // اگر رشته هست
-    if (typeof date === 'string') {
-      if (date.includes('/')) {
-        const parts = date.split('/');
+    if (typeof date === "string") {
+      if (date.includes("/")) {
+        const parts = date.split("/");
         if (parts.length === 3) {
-          return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+          return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(
+            2,
+            "0"
+          )}`;
         }
       }
       return date;
     }
-    
-    console.warn('⚠️ Unknown date format for report:', date);
+
+    console.warn("⚠️ Unknown date format for report:", date);
     return null;
   }
 }
