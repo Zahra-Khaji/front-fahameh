@@ -12,6 +12,7 @@ import {
   FaTrash
 } from 'react-icons/fa';
 import DatePicker from "react-multi-date-picker";
+// import DateObject from "react-date-object";
 import DateObject from "react-date-object";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
@@ -38,20 +39,24 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
     }
     
     try {
+      // اگر از قبل DateObject باشد
+      if (dateString instanceof DateObject) {
+        return dateString;
+      }
+      
       // اگر رشته تاریخ داریم
       if (typeof dateString === 'string') {
         // بررسی فرمت های مختلف
         if (dateString.includes('/')) {
           // فرمت شمسی: 1403/10/15
           const [year, month, day] = dateString.split('/').map(Number);
-          const date = new DateObject({
+          return new DateObject({
             year: year,
             month: month,
             day: day,
             calendar: persian,
             locale: persian_fa
           });
-          return date;
         } else if (dateString.includes('-')) {
           // فرمت میلادی: 2024-12-25
           const date = new Date(dateString);
@@ -61,6 +66,15 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
             locale: persian_fa
           });
         }
+      }
+      
+      // برای تاریخ‌های Date
+      if (dateString instanceof Date) {
+        return new DateObject({
+          date: dateString,
+          calendar: persian,
+          locale: persian_fa
+        });
       }
       
       // روش fallback
@@ -78,6 +92,38 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
         calendar: persian,
         locale: persian_fa
       });
+    }
+  };
+
+  // تابع برای فرمت کردن تاریخ به فرمت مورد نیاز API
+  const formatDateForAPI = (dateObj) => {
+    if (!dateObj) return '';
+    
+    try {
+      // اگر DateObject باشد
+      if (dateObj instanceof DateObject) {
+        return dateObj.format("YYYY/MM/DD");
+      }
+      
+      // اگر رشته باشد
+      if (typeof dateObj === 'string') {
+        return dateObj;
+      }
+      
+      // اگر Date باشد
+      if (dateObj instanceof Date) {
+        const date = new DateObject({
+          date: dateObj,
+          calendar: persian,
+          locale: persian_fa
+        });
+        return date.format("YYYY/MM/DD");
+      }
+      
+      return '';
+    } catch (err) {
+      console.error('Error formatting date:', err);
+      return '';
     }
   };
 
@@ -101,7 +147,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
           id: 1,
           reportNumber: reportInfo.reportNumber || '',
           revNumber: reportInfo.revNumber || '', // RevNO از API
-          status: reportInfo.status || '',
+          status: reportInfo.status || 'approved', // پیش‌فرض approved
           corrections: reportInfo.corrections || '',
           receivedDate: convertToPersianDate(reportInfo.receivedDate),
           approvedDays: reportInfo.approvedDays || '',
@@ -122,7 +168,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
           id: 1,
           reportNumber: '',
           revNumber: '', // RevNO خالی
-          status: '',
+          status: 'approved', // پیش‌فرض approved
           corrections: '',
           receivedDate: todayPersianDate,
           approvedDays: '',
@@ -141,7 +187,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
           id: 1,
           reportNumber: '',
           revNumber: '', // RevNO خالی
-          status: '',
+          status: 'approved', // پیش‌فرض approved
           corrections: '',
           receivedDate: todayPersianDate,
           approvedDays: '',
@@ -165,7 +211,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
         id: newId,
         reportNumber: '',
         revNumber: '', // RevNO خالی
-        status: '',
+        status: 'approved', // پیش‌فرض approved
         corrections: '',
         receivedDate: convertToPersianDate(new Date()),
         approvedDays: '',
@@ -218,25 +264,31 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
     }
 
     for (const row of reportRows) {
-      if (!row.reportNumber.trim()) {
+      // **فقط شماره گزارش اجباری است**
+      if (!row.reportNumber || !row.reportNumber.trim()) {
         toast.error('❌ شماره گزارش الزامی است');
         return false;
       }
       
+      // وضعیت اختیاری - اگر خالی بود به عنوان approved در نظر بگیر
       if (!row.status) {
-        toast.error('❌ وضعیت گزارش الزامی است');
-        return false;
+        // اگر وضعیت خالی است، به صورت پیش‌فرض approved بذار
+        handleRowChange(row.id, 'status', 'approved');
       }
       
-      // مهم: اگر وضعیت "نیاز به اصلاحات" (Objection) باشد، شرح اصلاحات الزامی است
-      if (row.status === 'Objection' && !row.corrections.trim()) {
+      // **اگر وضعیت "نیاز به اصلاحات" (Objection) باشد، شرح اصلاحات الزامی است**
+      if (row.status === 'Objection' && (!row.corrections || !row.corrections.trim())) {
         toast.error('❌ برای وضعیت "نیاز به اصلاحات"، شرح نظرات الزامی است');
         return false;
       }
       
-      if (row.approvedDays && isNaN(parseInt(row.approvedDays))) {
-        toast.error('❌ تعداد روز تأیید باید عدد باشد');
-        return false;
+      // اعتبارسنجی عددی برای approvedDays
+      if (row.approvedDays && row.approvedDays.trim() !== '') {
+        const days = parseInt(row.approvedDays);
+        if (isNaN(days) || days < 0) {
+          toast.error('❌ تعداد روز تأیید باید عدد مثبت باشد');
+          return false;
+        }
       }
     }
 
@@ -250,38 +302,41 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
       return;
     }
     
-    // فیلتر ردیف‌های خالی
+    // فیلتر ردیف‌های معتبر (فقط آنهایی که شماره گزارش دارند)
     const validRows = reportRows.filter(row => 
-      row.reportNumber.trim() !== '' || 
-      row.vendorName.trim() !== ''
+      row.reportNumber && row.reportNumber.trim() !== ''
     );
 
     if (validRows.length === 0) {
-      toast.error('❌ هیچ داده‌ای برای ذخیره وجود ندارد');
+      toast.error('❌ هیچ گزارش معتبری برای ذخیره وجود ندارد');
       return;
     }
 
     console.log('🚀 Submitting report data for RFI:', rfiData?.RFI_Numbering);
-    console.log('📋 Report rows to submit:', validRows);
 
     // فقط اولین ردیف معتبر را ارسال کن
     const rowToSubmit = validRows[0];
     
+    // **فرمت تاریخ برای ارسال به API**
+    const formattedReceivedDate = formatDateForAPI(rowToSubmit.receivedDate);
+    
     // آماده‌سازی داده برای ارسال
     const reportData = {
-      reportNumber: rowToSubmit.reportNumber,
-      revNumber: rowToSubmit.revNumber, // RevNO
-      status: rowToSubmit.status,
-      corrections: rowToSubmit.corrections,
-      receivedDate: rowToSubmit.receivedDate,
-      approvedDays: rowToSubmit.approvedDays,
-      unitNumber: rowToSubmit.unitNumber,
-      vendorName: rowToSubmit.vendorName,
-      irn: rowToSubmit.irn,
-      srn: rowToSubmit.srn,
-      firstPrice: rowToSubmit.firstPrice,
+      reportNumber: rowToSubmit.reportNumber.trim(),
+      revNumber: rowToSubmit.revNumber || '', // RevNO - اختیاری
+      status: rowToSubmit.status || 'approved', // اگر خالی بود approved بذار
+      corrections: rowToSubmit.corrections || '',
+      receivedDate: formattedReceivedDate, // تاریخ فرمت شده
+      approvedDays: rowToSubmit.approvedDays || '',
+      unitNumber: rowToSubmit.unitNumber || '',
+      vendorName: rowToSubmit.vendorName || '',
+      irn: rowToSubmit.irn || '',
+      srn: rowToSubmit.srn || '',
+      firstPrice: rowToSubmit.firstPrice || '80000000',
       rfiNumbering: rowToSubmit.rfiNumbering || rfiData?.RFI_Numbering
     };
+
+    console.log('📋 Report data to submit:', reportData);
 
     updateReport(
       {
@@ -396,10 +451,10 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
             
             <thead>
   <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
-    <th className="p-3 text-right font-bold text-white text-xs min-w-[180px]">شماره گزارش</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-[180px]">شماره گزارش *</th>
     <th className="p-3 text-right font-bold text-white text-xs min-w-[90px]">نوع گزارش</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-[130px]">وضعیت *</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-[350px]">نظرات *</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-[130px]">وضعیت</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-[350px]">نظرات <span className="text-yellow-300 text-xs">*</span></th>
     <th className="p-3 text-right font-bold text-white text-xs min-w-[120px]">تاریخ دریافت</th>
     <th className="p-3 text-right font-bold text-white text-xs min-w-[160px]">نام وندور</th>
     <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>تائید‌شده(روز)</th>
@@ -454,14 +509,9 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
           }}
           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           disabled={isLoading}
-          required
         >
-          <option value="">انتخاب وضعیت</option>
-          {statusOptions.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
+          <option value="approved">تائید شده</option>
+          <option value="Objection">نیاز به اصلاحات</option>
         </select>
       </td>
 
@@ -480,7 +530,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
       [&::-webkit-scrollbar-thumb]:bg-blue-300
       [&::-webkit-scrollbar-thumb]:rounded-full
       [&::-webkit-scrollbar-thumb:hover]:bg-blue-400`}
-    placeholder={row.status === 'Objection' ? 'شرح نظرات الزامی است' : 'شرح نظرات'}
+    placeholder={row.status === 'Objection' ? 'شرح نظرات الزامی است' : 'شرح نظرات (اختیاری)'}
     disabled={isLoading}
     required={row.status === 'Objection'}
     rows="2"
@@ -625,7 +675,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
                   <div className="grid grid-cols-1 gap-3 text-xs">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <span className="text-gray-600 block mb-1">شماره گزارش</span>
+                        <span className="text-gray-600 block mb-1">شماره گزارش *</span>
                         <input
                           type="text"
                           value={row.reportNumber}
@@ -664,14 +714,9 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
                           }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
                           disabled={isLoading}
-                          required
                         >
-                          <option value="">انتخاب</option>
-                          {statusOptions.map(option => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
+                          <option value="approved">تائید شده</option>
+                          <option value="Objection">نیاز به اصلاحات</option>
                         </select>
                       </div>
                       <div>
@@ -699,7 +744,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
                             ? 'border-red-300 bg-red-50' 
                             : 'border-gray-300'
                         }`}
-                        placeholder="شرح نظرات"
+                        placeholder={row.status === 'Objection' ? 'شرح نظرات الزامی است' : 'شرح نظرات (اختیاری)'}
                         disabled={isLoading}
                       />
                     </div>
