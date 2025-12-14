@@ -104,7 +104,7 @@ const ProjectsTable = () => {
     const fetchData = async () => {
       console.log("its 22222");
       try {
-       const response = await fetch('http://127.0.0.1:8001/api/projects', {
+       const response = await fetch('http://192.168.0.4:8001/api/projects', {
            method: 'GET',
            headers: {
                'accept': 'application/json',

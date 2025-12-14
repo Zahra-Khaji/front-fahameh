@@ -5,7 +5,7 @@ class AuthService {
   // لاگین کاربر
   async login(username, password) {
     try {
-      const BASE_URL = "http://127.0.0.1:8001";
+      const BASE_URL = "http://192.168.0.4:8001";
 
       const formData = new URLSearchParams();
       formData.append("username", username);
@@ -58,7 +58,7 @@ class AuthService {
   // دریافت اطلاعات کاربر از endpoint جدید
   async getCurrentUser() {
     try {
-      const BASE_URL = "http://127.0.0.1:8001";
+      const BASE_URL = "http://192.168.0.4:8001";
       console.log("در حال دریافت اطلاعات کاربر از:", `${BASE_URL}/users/me`);
       
       const response = await axios.get(`${BASE_URL}/users/me`, {
@@ -215,7 +215,7 @@ class AuthService {
   // رفرش توکن (اگر backend پشتیبانی می‌کند)
   async refreshToken() {
     try {
-      const BASE_URL = "http://127.0.0.1:8001";
+      const BASE_URL = "http://192.168.0.4:8001";
       // این endpoint بستگی به backend دارد
       const response = await axios.post(
         `${BASE_URL}/refresh-token`,
@@ -256,7 +256,7 @@ class AuthService {
   // بررسی اتصال به سرور
   async checkServerConnection() {
     try {
-      const BASE_URL = "http://127.0.0.1:8001";
+      const BASE_URL = "http://192.168.0.4:8001";
       const response = await axios.get(`${BASE_URL}/health`, {
         timeout: 5000
       });
