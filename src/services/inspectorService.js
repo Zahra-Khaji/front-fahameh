@@ -16,7 +16,8 @@ class InspectorService {
   // گرفتن اطلاعات یک بازرس خاص
   async getInspectorById(id) {
     try {
-      const response = await http.get(`/inspector/?inspector_id=${id}`);
+      // const response = await http.get(`/inspector/?inspector_id=${id}`);
+      const response = await http.get(`/inspectors/${id}`);
       console.log(`Inspector details API Response for ID ${id}:`, response.data);
       return this.transformInspectorDetails(response.data, id);
     } catch (error) {

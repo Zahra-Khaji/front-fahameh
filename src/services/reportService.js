@@ -8,7 +8,7 @@ class ReportService {
       console.log("🎯 ReportService: Sending request to /api/create_report");
       console.log("📋 ReportService: Request data:", reportData);
 
-      const response = await http.post("/create_report", reportData);
+      const response = await http.post("/reports", reportData);
 
       console.log("✅ ReportService: API response:", response.data);
       return response.data;
@@ -28,7 +28,8 @@ class ReportService {
     try {
       console.log("🎯 ReportService: Fetching report for RFI:", rfiNumbering);
       
-      const response = await http.get(`/report?rfi_number=${rfiNumbering}`);
+      // const response = await http.get(`/report?rfi_number=${rfiNumbering}`);
+      const response = await http.get(`/reports/${rfiNumbering}`);
       
       console.log("✅ ReportService: API response:", response.data);
       return response.data;

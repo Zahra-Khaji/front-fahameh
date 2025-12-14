@@ -5,12 +5,17 @@ class NotificationService {
   // گرفتن شماره نوتیفیکیشن بعدی از بک‌اند
   async getNextNotificationNumber(projectId, projectTypeId) {
     try {
-      const response = await http.get('/next-rfi-full', {
-        params: {
-          idp: projectId,
-          in_out: projectTypeId
-        }
-      });
+      // const response = await http.get('/next-rfi-full', {
+      //   params: {
+      //     idp: projectId,
+      //     in_out: projectTypeId
+      //   }
+      // }
+      
+      // )
+      const response = await http.get(`/projects/${projectId}/rfi/next?in_out=${projectTypeId}`);
+      
+      ;
       
       console.log('Next notification API response:', response.data);
       return response.data;
@@ -25,7 +30,8 @@ class NotificationService {
     try {
       console.log("🎯 NotificationService: Fetching notification for RFI:", rfiNumber);
       
-      const response = await http.get(`/notification?rfi_number=${rfiNumber}`);
+      // const response = await http.get(`/notification?rfi_number=${rfiNumber}`);
+      const response = await http.get(`/notifications/${rfiNumber}`);
       
       console.log("✅ NotificationService: API response:", response.data);
       return response.data;

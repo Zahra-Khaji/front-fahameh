@@ -37,7 +37,7 @@ class ProjectService {
 
       console.log("📤 Sending to API:", apiData);
 
-      const response = await http.post("/create_new_project", apiData);
+      const response = await http.post("/projects/projects", apiData);
       console.log("✅ Project created successfully:", response.data);
 
       // **تغییر مهم: استفاده از ID واقعی از API**
@@ -111,7 +111,11 @@ class ProjectService {
         Over_Domestic: projectType,
       };
 
-      const response = await http.get("/irnno", { params });
+      // const response = await http.get("/irnno", { params });
+      // const response = await http.get(`/projects/${projectName}/irnno?type=${projectType}`);
+      const response = await http.get(
+        `/projects/${projectName}/irnno?Over_Domestic=${projectType}`
+      );
       console.log("Last IRN API response:", response.data);
 
       return response.data;

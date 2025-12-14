@@ -5,7 +5,7 @@ class ProvinceService {
   // گرفتن لیست تمام استان‌ها
   async getAllProvinces() {
     try {
-      const response = await http.get('/provinces');
+      const response = await http.get('/locations/provinces');
       console.log('Provinces API Response:', response.data);
       return this.transformProvincesData(response.data);
     } catch (error) {
@@ -17,7 +17,7 @@ class ProvinceService {
   // گرفتن لیست شهرهای یک استان
   async getCitiesByProvince(provinceId) {
     try {
-      const response = await http.get(`/cities/?province_id=${provinceId}`); // آدرس اصلاح شد
+      const response = await http.get(`/locations/cities/?province_id=${provinceId}`); // آدرس اصلاح شد
       console.log(`Cities API Response for province ${provinceId}:`, response.data);
       return this.transformCitiesData(response.data);
     } catch (error) {

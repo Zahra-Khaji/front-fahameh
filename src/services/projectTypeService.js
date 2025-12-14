@@ -5,7 +5,7 @@ class ProjectTypeService {
   // گرفتن لیست انواع پروژه
   async getAllProjectTypes() {
     try {
-      const response = await http.get('/in-out');
+      const response = await http.get('/lookups');
       console.log('Project Types API Response:', response.data);
       return this.transformProjectTypesData(response.data);
     } catch (error) {

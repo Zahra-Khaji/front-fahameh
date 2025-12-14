@@ -16,7 +16,7 @@ export const useRFIReport = (projectName, enabled = false) => {
         const BASE_URL = "http://127.0.0.1:8001";
 
         const response = await axios.get(
-          `${BASE_URL}/api/rfi/report?project_name=${encodeURIComponent(projectName)}`,
+          `${BASE_URL}/reports/rfi/?project_name=${encodeURIComponent(projectName)}`,
           {
             headers: authService.getAuthHeader(),
             timeout: 10000,

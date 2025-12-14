@@ -103,7 +103,7 @@ const ProjectsTable = () => {
     const fetchData = async () => {
   
       try {
-       const response = await fetch('http://127.0.0.1:8001/api/projects', {
+       const response = await fetch('http://127.0.0.1:8001/projects', {
            method: 'GET',
            headers: {
                'accept': 'application/json',

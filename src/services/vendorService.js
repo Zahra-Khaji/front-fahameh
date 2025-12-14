@@ -37,7 +37,7 @@ async createVendor(vendorData) {
 
     console.log('📤 Sending to /create_new_vendor:', apiData);
     
-    const response = await http.post('/create_new_vendor', apiData);
+    const response = await http.post('/vendors', apiData);
     console.log('✅ Vendor created successfully:', response.data);
     
     // پاسخ API: { "message": "Created new vendor successfully", "data": 4007 }

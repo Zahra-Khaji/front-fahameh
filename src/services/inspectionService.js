@@ -8,7 +8,7 @@ class InspectionService {
       console.log("🎯 InspectionService: Sending request to /api/create_note");
 
      
-      const response = await http.post("/create_note", inspectionData);
+      const response = await http.post("/notifications/", inspectionData);
 
       console.log("✅ InspectionService: API response:", response.data);
       return response.data;

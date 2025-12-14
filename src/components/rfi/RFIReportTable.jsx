@@ -107,6 +107,10 @@ const RFIReportTable = () => {
         RFI_Numbering: ''
       });
       setCurrentPage(1); // بازگشت به صفحه اول
+       // به‌روزرسانی URL
+    const searchParams = new URLSearchParams(location.search);
+    searchParams.set('project', encodeURIComponent(projectName));
+    window.history.replaceState({}, '', `${location.pathname}?${searchParams.toString()}`);
     }
   };
 
@@ -128,12 +132,16 @@ const RFIReportTable = () => {
       setProjectName(decodedProjectName);
       setShouldFetch(true);
       setIsAutoFetch(true);
-      setCurrentPage(1); // بازگشت به صفحه اول
+      setCurrentPage(1);
       
       const foundProject = projects?.find(project => project.name === decodedProjectName);
       if (foundProject) {
         setSelectedProject(foundProject.id);
       }
+    } else {
+      // اگر query parameter وجود نداشته باشد، حالت AutoFetch را غیرفعال کن
+      setIsAutoFetch(false);
+      setShouldFetch(false);
     }
   }, [location.search, projects]);
 
@@ -500,25 +508,43 @@ case 'Duration':
           
           {/* نمایش اطلاعات پروژه وقتی از بیرون میاد */}
           {isAutoFetch && (
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 mb-4 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FaArrowRight className="text-xl" />
-                  <div>
-                    <h3 className="text-lg font-semibold mb-1">
-                      پروژه: {projectName}
-                    </h3>
-                    <p className="text-blue-100 text-sm">
-                      در حال بارگذاری اطلاعات پروژه...
-                    </p>
-                  </div>
-                </div>
-                {rfiLoading && (
-                  <FaSync className="animate-spin text-white text-xl" />
-                )}
-              </div>
-            </div>
-          )}
+  <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 mb-4 text-white">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => {
+            setIsAutoFetch(false);
+            setShouldFetch(false);
+            setProjectName('');
+            setSelectedProject('');
+            setSearchTerm('');
+            setColumnFilters({
+              RFI_Number: '',
+              Report_No: '',
+              RFI_Numbering: ''
+            });
+            setCurrentPage(1);
+          }}
+          className="hover:bg-blue-700 p-1.5 rounded-full transition duration-200"
+          title="خروج از حالت خودکار و انتخاب پروژه جدید"
+        >
+          <FaArrowRight className="text-xl rotate-180" />
+        </button>
+        <div>
+          <h3 className="text-lg font-semibold mb-1">
+            پروژه: {projectName}
+          </h3>
+          {/* <p className="text-blue-100 text-sm">
+            برای انتخاب پروژه دیگر، روی آیکون ← کلیک کنید
+          </p> */}
+        </div>
+      </div>
+      {rfiLoading && (
+        <FaSync className="animate-spin text-white text-xl" />
+      )}
+    </div>
+  </div>
+)}
   
           {/* فرم انتخاب پروژه */}
           {!isAutoFetch && (
@@ -830,7 +856,7 @@ case 'Duration':
               {/* شماره گزارش */}
               <td className="p-3 font-mono text-gray-900 text-xs text-center">
                 <div className="flex justify-center">
-                  {item.Report_No === '************' ? (
+                  {(item.Report_No === '************' || !item.Report_No ) ? (
                     <button
                       onClick={() => handleOpenReportModal(item)}
                       className="text-gray-600 hover:text-blue-800 hover:underline transition duration-200 font-mono tracking-wider"
@@ -1081,7 +1107,7 @@ case 'Duration':
           {showAutoFetchLoading && (
             <div className="text-center py-8 text-gray-500 bg-white rounded-lg border border-gray-200">
               <FaSync className="text-3xl mx-auto mb-2 text-blue-400 animate-spin" />
-              <p className="text-base font-semibold">در حال بارگذاری خودکار...</p>
+              {/* <p className="text-base font-semibold">در حال بارگذاری خودکار...</p> */}
               <p className="text-xs text-gray-400 mt-1">
                 گزارش برای پروژه <span className="font-semibold text-gray-600">{projectName}</span> در حال بارگذاری است.
               </p>

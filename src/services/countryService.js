@@ -4,7 +4,7 @@ class CountryService {
   // گرفتن لیست تمام کشورها
   async getAllCountries() {
     try {
-      const response = await http.get('/countries');
+      const response = await http.get('/locations/countries');
       console.log('Countries API Response:', response.data);
       return this.transformCountriesData(response.data);
     } catch (error) {
