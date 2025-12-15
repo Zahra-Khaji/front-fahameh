@@ -36,42 +36,43 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
   };
 
   // تابع برای ساخت داده‌های سرویس ثبت
-  const prepareInspectionData = () => {
-    if (!notificationData || !previousData) return null;
+// در تابع prepareInspectionData:
+const prepareInspectionData = () => {
+  if (!notificationData || !previousData) return null;
 
-    const projectInfo = previousData.projectInfo;
-    const inspectorInfo = previousData.inspectorInfo;
+  const projectInfo = previousData.projectInfo;
+  const inspectorInfo = previousData.inspectorInfo;
 
-    // تبدیل نوع پروژه عددی به متن فارسی
-    const projectTypeMap = {
-      '0': 'خارجی', 
-      '1': 'داخلی کالا',
-      '2': 'داخلی کشتی'
-    };
-
-    return {
-      IDP: parseInt(projectInfo.projectId) || 0,
-      IDOM: notificationData.idom || 1,
-      InspectionDate: formatPersianDate(notificationData.inspectionRange[0]), // تاریخ اول بازرسی
-      Over_Domestic: projectTypeMap[projectInfo.projectType] || projectInfo.projectType,
-      InspectionLocation: projectInfo.province, // نام استان
-      RFI_Number: notificationData.number?.toString(),
-      RFI_Recived_Date: "1404/09/04", // فعلاً ثابت
-      RFI_Status: "در حال انجام",
-      VendorName: projectInfo.vendor,
-      Inspection_Duration: notificationData.inspectionDays?.toString(),
-      Inspector_Name: inspectorInfo.inspectorName,
-      Remark: "",
-      QTY_3rdpartinspector: "",
-      approved_Duration: "",
-      Material: "",
-      User_Name: user?.username || "m-sadri",
-      NotificationNo: "",
-      DateShamsi: "",
-      Inspector_Type: "",
-      Goods_Description: ""
-    };
+  // تبدیل نوع پروژه عددی به متن فارسی
+  const projectTypeMap = {
+    '0': 'خارجی', 
+    '1': 'داخلی کالا',
+    '2': 'داخلی کشتی'
   };
+
+  return {
+    IDP: parseInt(projectInfo.projectId) || 0,
+    IDOM: notificationData.idom || 1,
+    InspectionDate: formatPersianDate(notificationData.inspectionRange[0]), // تاریخ اول بازرسی
+    Over_Domestic: projectTypeMap[projectInfo.projectType] || projectInfo.projectType,
+    InspectionLocation: inspectorInfo.inspectorLocation, // **تغییر اینجا: از بازرس بگیر**
+    RFI_Number: notificationData.number?.toString(),
+    RFI_Recived_Date: "1404/09/04", // فعلاً ثابت
+    RFI_Status: "در حال انجام",
+    VendorName: projectInfo.vendor,
+    Inspection_Duration: notificationData.inspectionDays?.toString(),
+    Inspector_Name: inspectorInfo.inspectorName,
+    Remark: "",
+    QTY_3rdpartinspector: "",
+    approved_Duration: "",
+    Material: "",
+    User_Name: user?.username || "m-sadri",
+    NotificationNo: "",
+    DateShamsi: "",
+    Inspector_Type: "",
+    Goods_Description: ""
+  };
+};
 
   // تابع ثبت نهایی در دیتابیس
  // در NotificationStep.jsx - تابع handleFinalCreate را اصلاح کنید:
