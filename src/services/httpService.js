@@ -1,10 +1,9 @@
 // src/services/httpService.js
 import axios from "axios";
 
-export const BASE_URL = import.meta.env.VITE_BASE_URL || "http://127.0.0.1:8001"; 
-// export const BASE_URL = import.meta.env.VITE_BASE_URL || "http://192.168.0.4:8001"; 
-
-
+// export const BASE_URL = import.meta.env.VITE_BASE_URL || "http://127.0.0.1:8001";
+export const BASE_URL =
+  import.meta.env.VITE_BASE_URL || "http://192.168.0.4:8001";
 
 const app = axios.create({
   baseURL: BASE_URL,
@@ -15,12 +14,12 @@ const app = axios.create({
 app.interceptors.request.use(
   (config) => {
     // استفاده از توکن واقعی از localStorage
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    config.headers.Accept = 'application/json';
+
+    config.headers.Accept = "application/json";
     return config;
   },
   (error) => Promise.reject(error)
@@ -36,12 +35,12 @@ app.interceptors.response.use(
       originalConfig._retry = true;
       try {
         // در صورت انقضای توکن، کاربر به صفحه لاگین هدایت شود
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('token_type');
-        window.location.href = '/login';
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        window.location.href = "/login";
         return Promise.reject(error);
       } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
+        console.error("Token refresh failed:", refreshError);
         return Promise.reject(refreshError);
       }
     }
