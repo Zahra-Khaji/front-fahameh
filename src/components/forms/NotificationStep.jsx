@@ -166,7 +166,7 @@ const handleFinalCreate = () => {
           {/* Main Content */}
           <div className="lg:col-span-3">
             {/* نمایش فرم نوتیفیکیشن */}
-            {!showFinalConfirmation && (
+            { (
               <NotificationForm
                 lastNotificationNumber={null} // اگر نیاز دارید می‌توانید مقدار قبلی را پاس دهید
                 onSubmit={handleNotificationSubmit}
