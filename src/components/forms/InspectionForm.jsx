@@ -37,14 +37,20 @@ import { useVendors } from '../../hooks/useVendors';
 import { useProjectTypes } from '../../hooks/useProjectTypes';
 import { useCountries } from '../../hooks/useCountries';
 
-const InspectionForm = ({ onComplete }) => {
+const InspectionForm = ({ onComplete, onBack, previousData }) => {
+  // خواندن stateهای ذخیره شده از previousData
+  const savedFormState = previousData?.formState || {};
+  
+  const [selectedInspectorId, setSelectedInspectorId] = useState(savedFormState.selectedInspectorId || '');
+  const [selectedProjectId, setSelectedProjectId] = useState(savedFormState.selectedProjectId || '');
+  const [selectedProvinceId, setSelectedProvinceId] = useState(savedFormState.selectedProvinceId || '');
+  const [selectedVendorId, setSelectedVendorId] = useState(savedFormState.selectedVendorId || '');
+  const [selectedCountryId, setSelectedCountryId] = useState(savedFormState.selectedCountryId || '');
+  const [feeDisplayValue, setFeeDisplayValue] = useState(savedFormState.feeDisplayValue || '');
+  const [isFeeFocused, setIsFeeFocused] = useState(savedFormState.isFeeFocused || false);
+  
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [selectedInspectorId, setSelectedInspectorId] = useState('');
-  const [selectedProjectId, setSelectedProjectId] = useState('');
-  const [selectedProvinceId, setSelectedProvinceId] = useState('');
-  const [selectedVendorId, setSelectedVendorId] = useState('');
-  const [selectedCountryId, setSelectedCountryId] = useState('');
   const [touchedFields, setTouchedFields] = useState({});
   const [inspectorFieldStatus, setInspectorFieldStatus] = useState({
     location: false,
@@ -52,12 +58,35 @@ const InspectionForm = ({ onComplete }) => {
     email: false,
     expertise: false
   });
-  const [feeDisplayValue, setFeeDisplayValue] = useState('');
-  const [isFeeFocused, setIsFeeFocused] = useState(false);
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const [showAddVendorModal, setShowAddVendorModal] = useState(false);
   const [tempProjects, setTempProjects] = useState([]);
   const [tempVendors, setTempVendors] = useState([]);
+
+  // وقتی previousData عوض شد، stateها را آپدیت کن
+  useEffect(() => {
+    if (savedFormState.selectedInspectorId && savedFormState.selectedInspectorId !== selectedInspectorId) {
+      setSelectedInspectorId(savedFormState.selectedInspectorId);
+    }
+    if (savedFormState.selectedProjectId && savedFormState.selectedProjectId !== selectedProjectId) {
+      setSelectedProjectId(savedFormState.selectedProjectId);
+    }
+    if (savedFormState.selectedVendorId && savedFormState.selectedVendorId !== selectedVendorId) {
+      setSelectedVendorId(savedFormState.selectedVendorId);
+    }
+    if (savedFormState.selectedProvinceId && savedFormState.selectedProvinceId !== selectedProvinceId) {
+      setSelectedProvinceId(savedFormState.selectedProvinceId);
+    }
+    if (savedFormState.selectedCountryId && savedFormState.selectedCountryId !== selectedCountryId) {
+      setSelectedCountryId(savedFormState.selectedCountryId);
+    }
+    if (savedFormState.feeDisplayValue && savedFormState.feeDisplayValue !== feeDisplayValue) {
+      setFeeDisplayValue(savedFormState.feeDisplayValue);
+    }
+    if (savedFormState.isFeeFocused !== isFeeFocused) {
+      setIsFeeFocused(savedFormState.isFeeFocused || false);
+    }
+  }, [previousData]);
 
   // استفاده از هوک برای دریافت داده‌ها
   const { 
@@ -186,26 +215,21 @@ const InspectionForm = ({ onComplete }) => {
   const currentProvince = watch('projectInfo.province');
   const currentProjectType = watch('projectInfo.projectType');
   
-  // بررسی آیا پروژه خارجی است
-  // const isForeignProject = useMemo(() => {
-  //   console.log("currentProjectType",currentProjectType)
-  //   return currentProjectType === 'خارجی' || currentProjectType === 'Foreign';
-  // }, [currentProjectType]);
-    // پیدا کردن نوع پروژه بر اساس ID
-    const getProjectTypeNameById = (id) => {
-      if (!projectTypes || !id) return '';
-      const projectType = projectTypes.find(type => type.id === id || type.id?.toString() === id?.toString());
-      return projectType?.name || '';
-    };
+  // پیدا کردن نوع پروژه بر اساس ID
+  const getProjectTypeNameById = (id) => {
+    if (!projectTypes || !id) return '';
+    const projectType = projectTypes.find(type => type.id === id || type.id?.toString() === id?.toString());
+    return projectType?.name || '';
+  };
+  
+  const isForeignProject = useMemo(() => {
+    if (!currentProjectType) return false;
     
-    const isForeignProject = useMemo(() => {
-      if (!currentProjectType) return false;
-      
-      const typeName = getProjectTypeNameById(currentProjectType);
-      console.log("Project Type Name:", typeName, "ID:", currentProjectType);
-      
-      return typeName === 'خارجی' || typeName === 'Foreign';
-    }, [currentProjectType, projectTypes]);
+    const typeName = getProjectTypeNameById(currentProjectType);
+    console.log("Project Type Name:", typeName, "ID:", currentProjectType);
+    
+    return typeName === 'خارجی' || typeName === 'Foreign';
+  }, [currentProjectType, projectTypes]);
 
   const { 
     data: cities, 
@@ -433,6 +457,146 @@ const InspectionForm = ({ onComplete }) => {
       : `${baseClass} bg-white border-gray-300`;
   };
 
+  // پر کردن فرم با داده‌های ذخیره شده
+// در InspectionForm.jsx - پیدا کردن useEffect مربوط به پر کردن فرم با داده‌های ذخیره شده
+// (حدوداً خط 480-510)
+
+// پر کردن فرم با داده‌های ذخیره شده
+// اضافه کردن لاگ‌های تشخیصی
+useEffect(() => {
+  console.log('🔍 useEffect for restoring form values started');
+  console.log('📋 savedFormState:', savedFormState);
+  console.log('📦 previousData?.projectInfo:', previousData?.projectInfo);
+  console.log('🏙️ All provinces:', provinces?.length, 'items');
+  console.log('🌆 All cities:', cities?.length, 'items');
+  console.log('🌍 All countries:', countries?.length, 'items');
+  
+  if (savedFormState.selectedProjectId) {
+    const selectedProject = allProjects?.find(project => project.id === savedFormState.selectedProjectId);
+    console.log('🎯 Found project:', selectedProject?.name, 'for ID:', savedFormState.selectedProjectId);
+    if (selectedProject) {
+      setValue('projectInfo.projectName', selectedProject.name);
+      setValue('projectInfo.projectId', selectedProject.id);
+      console.log('✅ Project name set to:', selectedProject.name);
+    }
+  }
+  
+  if (savedFormState.selectedInspectorId) {
+    const selectedInspector = inspectors?.find(insp => insp.id === savedFormState.selectedInspectorId);
+    console.log('👤 Found inspector:', selectedInspector?.name, 'for ID:', savedFormState.selectedInspectorId);
+    if (selectedInspector) {
+      setValue('inspectorInfo.inspectorName', selectedInspector.name);
+      console.log('✅ Inspector name set to:', selectedInspector.name);
+    }
+  }
+  
+  if (savedFormState.selectedVendorId) {
+    console.log('🏭 Setting vendor ID:', savedFormState.selectedVendorId);
+    setValue('projectInfo.vendor', savedFormState.selectedVendorId);
+    console.log('✅ Vendor set');
+  }
+  
+  // اصلاح این بخش برای استان
+  if (savedFormState.selectedProvinceId) {
+    console.log('📍 Trying to set province ID:', savedFormState.selectedProvinceId);
+    
+    // بررسی آیا استان در لیست وجود دارد
+    const provinceExists = provinces?.some(p => 
+      p.id === savedFormState.selectedProvinceId || 
+      p.id?.toString() === savedFormState.selectedProvinceId?.toString()
+    );
+    console.log('📌 Province exists in list?', provinceExists);
+    
+    if (provinceExists) {
+      setValue('projectInfo.province', savedFormState.selectedProvinceId);
+      console.log('✅ Province ID set to:', savedFormState.selectedProvinceId);
+    } else {
+      console.log('❌ Province not found in list, checking previousData...');
+      // شاید در previousData نام استان ذخیره شده باشد
+      if (previousData?.projectInfo?.province) {
+        console.log('🔄 Using province from previousData:', previousData.projectInfo.province);
+        setValue('projectInfo.province', previousData.projectInfo.province);
+      }
+    }
+  } else if (previousData?.projectInfo?.province) {
+    console.log('📦 Setting province from previousData:', previousData.projectInfo.province);
+    setValue('projectInfo.province', previousData.projectInfo.province);
+  }
+  
+  // اصلاح این بخش برای کشور
+  if (savedFormState.selectedCountryId) {
+    console.log('🌍 Trying to set country ID:', savedFormState.selectedCountryId);
+    
+    const countryExists = countries?.some(c => 
+      c.id === savedFormState.selectedCountryId || 
+      c.id?.toString() === savedFormState.selectedCountryId?.toString()
+    );
+    console.log('📌 Country exists in list?', countryExists);
+    
+    if (countryExists) {
+      setValue('projectInfo.country', savedFormState.selectedCountryId);
+      console.log('✅ Country ID set to:', savedFormState.selectedCountryId);
+    }
+  } else if (previousData?.projectInfo?.country) {
+    console.log('📦 Setting country from previousData:', previousData.projectInfo.country);
+    setValue('projectInfo.country', previousData.projectInfo.country);
+  }
+  
+  // اضافه کردن شهر
+  if (previousData?.projectInfo?.city) {
+    console.log('🏙️ Trying to set city ID:', previousData.projectInfo.city);
+    
+    // صبر کن تا شهرها بارگذاری شوند
+    if (cities && cities.length > 0) {
+      const cityExists = cities?.some(c => 
+        c.id === previousData.projectInfo.city || 
+        c.id?.toString() === previousData.projectInfo.city?.toString()
+      );
+      console.log('📌 City exists in list?', cityExists);
+      
+      if (cityExists) {
+        setValue('projectInfo.city', previousData.projectInfo.city);
+        console.log('✅ City ID set to:', previousData.projectInfo.city);
+      } else {
+        console.log('⚠️ City not found in current cities list');
+      }
+    } else {
+      console.log('⏳ Cities not loaded yet, will try again...');
+      // یک تایم‌اوت برای تلاش مجدد
+      setTimeout(() => {
+        if (cities && cities.length > 0) {
+          const cityExists = cities?.some(c => 
+            c.id === previousData.projectInfo.city || 
+            c.id?.toString() === previousData.projectInfo.city?.toString()
+          );
+          console.log('🔄 Retry - City exists?', cityExists);
+          if (cityExists) {
+            setValue('projectInfo.city', previousData.projectInfo.city);
+            console.log('✅ City ID set (retry):', previousData.projectInfo.city);
+          }
+        }
+      }, 1000);
+    }
+  }
+  
+  if (previousData?.projectInfo?.projectType) {
+    console.log('🏷️ Setting project type:', previousData.projectInfo.projectType);
+    setValue('projectInfo.projectType', previousData.projectInfo.projectType);
+    setValue('projectInfo.projectTypeId', previousData.projectInfo.projectType);
+    console.log('✅ Project type set');
+  }
+  
+  // لاگ وضعیت نهایی فرم
+  setTimeout(() => {
+    console.log('📊 Final form values:');
+    console.log('- Province:', watch('projectInfo.province'));
+    console.log('- City:', watch('projectInfo.city'));
+    console.log('- Country:', watch('projectInfo.country'));
+    console.log('- Project Type:', watch('projectInfo.projectType'));
+  }, 500);
+  
+}, [savedFormState, allProjects, inspectors, setValue, provinces, cities, countries]);
+
   const onSubmit = (data) => {
     console.log('Form Data:', data);
     
@@ -462,10 +626,20 @@ const InspectionForm = ({ onComplete }) => {
       inspectorInfo: {
         ...data.inspectorInfo,
         fee: formatToPersian(data.inspectorInfo.fee)
+      },
+      // ذخیره stateهای فعلی برای استفاده در برگشت
+      formState: {
+        selectedInspectorId,
+        selectedProjectId,
+        selectedProvinceId,
+        selectedVendorId,
+        selectedCountryId,
+        feeDisplayValue,
+        isFeeFocused
       }
     };
     
-    console.log('✅ Formatted Data with vendor NAME (not ID):', formattedData);
+    console.log('✅ Formatted Data with formState:', formattedData);
     onComplete(formattedData);
   };
 
@@ -611,7 +785,6 @@ const InspectionForm = ({ onComplete }) => {
                     {/* استان */}
                     <div className="flex flex-col">
                       <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
-                        {/* <FaMapMarkerAlt className="ml-1 text-blue-500 text-xs" /> */}
                         استان *
                       </label>
                       <SearchableSelect
@@ -658,7 +831,6 @@ const InspectionForm = ({ onComplete }) => {
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1 mb-1">
                     <label className="block text-xs font-semibold text-gray-700 flex items-center gap-1">
-                      {/* <FaBuilding className="text-blue-500 text-xs" /> */}
                       وندور *
                       <button
                         type="button"
