@@ -65,15 +65,15 @@ const ConfirmationModal = ({
           
           {/* Title & Message - وسط‌چین */}
           <div className="flex-1 text-center">
-            <h2 className="text-sm font-bold">{title}</h2>
+            <h2 className="text-lg font-bold">{title}</h2>
             {message && (
-              <p className="text-white text-xs opacity-90 mt-0.5">{message}</p>
+              <p className="text-white text-md opacity-90 mt-0.5">{message}</p>
             )}
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1    overflow-y-auto p-3">
           {children}
         </div>
 

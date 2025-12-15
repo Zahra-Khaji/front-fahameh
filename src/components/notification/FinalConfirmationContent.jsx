@@ -110,7 +110,7 @@ const FinalConfirmationContent = ({ previousData, notification }) => {
       <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 shadow-sm">
         <div className="flex items-center gap-1.5 mb-2">
           <FaBuilding className="text-blue-600 text-xs" />
-          <h5 className="text-xs font-bold text-blue-800">اطلاعات پروژه</h5>
+          <h5 className="text-sm font-bold text-blue-800">اطلاعات پروژه</h5>
         </div>
         
         <div className="grid grid-cols-2 gap-1.5 text-xs">
@@ -163,7 +163,7 @@ const FinalConfirmationContent = ({ previousData, notification }) => {
       <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-3 border border-green-200 shadow-sm">
         <div className="flex items-center gap-1.5 mb-2">
           <FaUserTie className="text-green-600 text-xs" />
-          <h5 className="text-xs font-bold text-green-800">اطلاعات بازرس</h5>
+          <h5 className="text-sm font-bold text-green-800">اطلاعات بازرس</h5>
         </div>
         
         <div className="grid grid-cols-2 gap-1.5 text-xs">
@@ -213,7 +213,7 @@ const FinalConfirmationContent = ({ previousData, notification }) => {
       <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-3 border border-purple-200 shadow-sm">
         <div className="flex items-center gap-1.5 mb-2">
           <FaHashtag className="text-purple-600 text-xs" />
-          <h5 className="text-xs font-bold text-purple-800">اطلاعات نوتیفیکیشن</h5>
+          <h5 className="text-sm font-bold text-purple-800">اطلاعات نوتیفیکیشن</h5>
         </div>
         
         <div className="grid grid-cols-2 gap-1.5 text-xs">
@@ -262,13 +262,13 @@ const FinalConfirmationContent = ({ previousData, notification }) => {
             <div className="flex items-start gap-1 text-gray-600">
               <FaCalendarDay className="text-purple-500 text-xs mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <div className="font-medium mb-0.5 flex items-center gap-1">
-                  <span>تاریخ‌های بازرسی:</span>
-                  <span className="text-purple-600 text-[10px] bg-purple-100 px-1 py-0.5 rounded">
+                <div className="font-medium text-sm mb-0.5 flex items-center gap-1">
+                  <span className=''>تاریخ‌های بازرسی:</span>
+                  <span className=" text-purple-600 text-[10px] bg-purple-100 px-1 py-0.5 rounded">
                     {notification.inspectionRange?.length || 0} تاریخ
                   </span>
                 </div>
-                <div className="font-bold text-purple-900 text-[10px] leading-tight bg-purple-50 p-1.5 rounded">
+                <div className="text-xs font-bold text-purple-900 text-[10px] leading-tight bg-purple-50 p-1.5 rounded">
                   {notification.inspectionRange?.length > 0 
                     ? formatMultipleDates(notification.inspectionRange)
                     : '—'
