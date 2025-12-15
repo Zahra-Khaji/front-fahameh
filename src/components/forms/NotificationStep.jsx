@@ -38,6 +38,12 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
 
   // تابع برای ساخت داده‌های سرویس ثبت
 // در تابع prepareInspectionData:
+// src/components/forms/NotificationStep.jsx
+// (در تابع prepareInspectionData)
+
+// src/components/forms/NotificationStep.jsx
+// (در تابع prepareInspectionData)
+
 const prepareInspectionData = () => {
   if (!notificationData || !previousData) return null;
 
@@ -51,23 +57,41 @@ const prepareInspectionData = () => {
     '2': 'داخلی کشتی'
   };
 
-  // **گزینه ۱: آرایه تاریخ‌ها**
+  // آرایه تاریخ‌های بازرسی
   const inspectionDatesArray = formatPersianDatesList(notificationData.inspectionRange);
   
-  console.log('📅 Inspection dates to send:', {
-    rawDates: notificationData.inspectionRange,
-    formattedArray: inspectionDatesArray,
-    arrayLength: inspectionDatesArray.length
+  // **تبدیل تاریخ ارسال نوتیفیکیشن به فرمت فارسی**
+  // استفاده از تابع formatPersianDate بهبود یافته
+  let sendDatePersian = "1404/09/04"; // مقدار پیش‌فرض برای پشتیبانی
+  
+  if (notificationData.sendDate) {
+    try {
+      sendDatePersian = formatPersianDate(notificationData.sendDate);
+      console.log('📅 تاریخ ارسال تبدیل شد:', {
+        original: notificationData.sendDate,
+        formatted: sendDatePersian,
+        type: typeof notificationData.sendDate
+      });
+    } catch (error) {
+      console.error('❌ خطا در تبدیل تاریخ ارسال:', error);
+      // استفاده از مقدار پیش‌فرض
+    }
+  }
+
+  console.log('📊 اطلاعات ارسالی به API:', {
+    sendDate: sendDatePersian,
+    inspectionDatesCount: inspectionDatesArray.length,
+    inspectionDates: inspectionDatesArray
   });
 
   return {
     IDP: parseInt(projectInfo.projectId) || 0,
     IDOM: notificationData.idom || 1,
-    InspectionDate: inspectionDatesArray, // **این حالا یک آرایه است**
+    InspectionDate: inspectionDatesArray,
     Over_Domestic: projectTypeMap[projectInfo.projectType] || projectInfo.projectType,
     InspectionLocation: inspectorInfo.inspectorLocation,
     RFI_Number: notificationData.number?.toString(),
-    RFI_Recived_Date: "1404/09/04",
+    RFI_Recived_Date: sendDatePersian, // **اصلاح شده: استفاده از تاریخ انتخاب شده کاربر**
     RFI_Status: "در حال انجام",
     VendorName: projectInfo.vendor,
     Inspection_Duration: notificationData.inspectionDays?.toString(),

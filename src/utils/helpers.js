@@ -1,11 +1,49 @@
 // src/utils/helpers.js
 // تابع فرمت تاریخ شمسی
+// export const formatPersianDate = (date) => {
+//   if (!date) return "-";
+//   try {
+//     return new Date(date).toLocaleDateString("fa-IR");
+//   } catch (error) {
+//     console.error("خطا در فرمت تاریخ:", error);
+//     return "-";
+//   }
+// };
+
+// src/utils/helpers.js
+// تابع فرمت تاریخ شمسی (بهبود یافته)
 export const formatPersianDate = (date) => {
   if (!date) return "-";
+
   try {
+    // اگر تاریخ از react-multi-date-picker باشد
+    if (date && typeof date === "object") {
+      // بررسی کن آیا شیء تاریخ از react-multi-date-picker هست
+      if (date.year && date.month && date.day) {
+        return `${date.year}/${String(date.month).padStart(2, "0")}/${String(
+          date.day
+        ).padStart(2, "0")}`;
+      }
+      // اگر DateObject باشد
+      if (date instanceof Date || date._d) {
+        return new Date(date).toLocaleDateString("fa-IR");
+      }
+    }
+
+    // اگر رشته باشد
+    if (typeof date === "string") {
+      // اگر رشته تاریخ شمسی باشد (مثل 1403/10/15)
+      if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(date)) {
+        return date;
+      }
+      // اگر تاریخ میلادی باشد
+      return new Date(date).toLocaleDateString("fa-IR");
+    }
+
+    // حالت پیش‌فرض
     return new Date(date).toLocaleDateString("fa-IR");
   } catch (error) {
-    console.error("خطا در فرمت تاریخ:", error);
+    console.error("خطا در فرمت تاریخ:", error, date);
     return "-";
   }
 };
@@ -15,22 +53,26 @@ export const formatPersianDatesList = (datesArray) => {
   if (!datesArray || !Array.isArray(datesArray) || datesArray.length === 0) {
     return [];
   }
-  
-  const formattedDates = datesArray.map(date => {
-    try {
-      if (date && typeof date === 'object' && date.year) {
-        // اگر تاریخ از react-multi-date-picker هست
-        return `${date.year}/${String(date.month).padStart(2, '0')}/${String(date.day).padStart(2, '0')}`;
-      } else {
-        // اگر تاریخ استاندارد JS هست
-        return formatPersianDate(date);
+
+  const formattedDates = datesArray
+    .map((date) => {
+      try {
+        if (date && typeof date === "object" && date.year) {
+          // اگر تاریخ از react-multi-date-picker هست
+          return `${date.year}/${String(date.month).padStart(2, "0")}/${String(
+            date.day
+          ).padStart(2, "0")}`;
+        } else {
+          // اگر تاریخ استاندارد JS هست
+          return formatPersianDate(date);
+        }
+      } catch (error) {
+        console.error("Error formatting date in array:", error);
+        return "";
       }
-    } catch (error) {
-      console.error('Error formatting date in array:', error);
-      return '';
-    }
-  }).filter(date => date !== ''); // حذف تاریخ‌های نامعتبر
-  
+    })
+    .filter((date) => date !== ""); // حذف تاریخ‌های نامعتبر
+
   return formattedDates;
 };
 
@@ -101,11 +143,10 @@ export const formatDateRange = (range) => {
   return `${formatPersianDate(range[0])} تا ${formatPersianDate(range[1])}`;
 };
 
-
 export const formatMultipleDates = (dates) => {
   if (!dates || dates.length === 0) return "-";
   if (dates.length === 1) return formatPersianDate(dates[0]);
-  return dates.map(date => formatPersianDate(date)).join('، ');
+  return dates.map((date) => formatPersianDate(date)).join("، ");
 };
 
 // تابع جدید برای نمایش خلاصه تاریخ‌ها
@@ -115,57 +156,56 @@ export const formatDatesSummary = (dates) => {
   return `${dates.length} تاریخ انتخاب شده`;
 };
 
-
 // تابع helper برای تبدیل وضعیت انگلیسی به فارسی
 // تابع helper برای تبدیل وضعیت انگلیسی به فارسی
 export const getPersianStatus = (status) => {
-  if (!status) return '';
-  
+  if (!status) return "";
+
   const statusStr = String(status).toLowerCase().trim();
-  
-  if (statusStr.includes('done') || statusStr.includes('انجام')) {
-    return 'انجام شده';
-  } 
-  if (statusStr.includes('ongoing') || statusStr.includes('در حال')) {
-    return 'در حال انجام';
+
+  if (statusStr.includes("done") || statusStr.includes("انجام")) {
+    return "انجام شده";
   }
-  if (statusStr.includes('cancel') || statusStr.includes('لغو')) {
-    return 'لغو شده';
+  if (statusStr.includes("ongoing") || statusStr.includes("در حال")) {
+    return "در حال انجام";
   }
-  
+  if (statusStr.includes("cancel") || statusStr.includes("لغو")) {
+    return "لغو شده";
+  }
+
   // اگر وضعیت ناشناخته بود، خودش را برگردان
   return status;
 };
 
 // تابع helper برای کلاس رنگ وضعیت
 export const getStatusColor = (status) => {
-  if (!status) return 'bg-gray-100 text-gray-800';
-  
+  if (!status) return "bg-gray-100 text-gray-800";
+
   const statusLower = status.toLowerCase();
-  
-  if (statusLower === 'done') {
-    return 'bg-green-100 text-green-800';
-  } else if (statusLower === 'ongoing') {
-    return 'bg-yellow-100 text-yellow-800';
-  } else if (statusLower.includes('cancel')) {
-    return 'bg-red-100 text-red-800';
+
+  if (statusLower === "done") {
+    return "bg-green-100 text-green-800";
+  } else if (statusLower === "ongoing") {
+    return "bg-yellow-100 text-yellow-800";
+  } else if (statusLower.includes("cancel")) {
+    return "bg-red-100 text-red-800";
   }
-  
-  return 'bg-gray-100 text-gray-800';
+
+  return "bg-gray-100 text-gray-800";
 };
 
 // تابع helper برای نمایش نوع پروژه (اگر نیاز دارید)
 export const getPersianProjectType = (type) => {
-  if (!type) return '';
-  
+  if (!type) return "";
+
   const typeMap = {
-    'Domestic Goods': 'داخلی کالا',
-    'Domestic Ship': 'داخلی کشتی',
-    'Foreign': 'خارجی',
-    'domestic goods': 'داخلی کالا',
-    'domestic ship': 'داخلی کشتی',
-    'foreign': 'خارجی'
+    "Domestic Goods": "داخلی کالا",
+    "Domestic Ship": "داخلی کشتی",
+    Foreign: "خارجی",
+    "domestic goods": "داخلی کالا",
+    "domestic ship": "داخلی کشتی",
+    foreign: "خارجی",
   };
-  
+
   return typeMap[type] || type;
 };
