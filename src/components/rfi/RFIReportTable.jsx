@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { 
   FaTable, FaSearch, FaSync, FaFileAlt, FaArrowRight, 
   FaCheckCircle, FaClock, FaListAlt, FaPlusCircle, 
-  FaSort, FaSortUp, FaSortDown, FaFilter, FaTimes 
+  FaSort, FaSortUp, FaSortDown, FaFilter, FaTimes, FaArrowLeft 
 } from 'react-icons/fa';
 
 // Components
@@ -528,7 +528,7 @@ case 'Duration':
           className="hover:bg-blue-700 p-1.5 rounded-full transition duration-200"
           title="خروج از حالت خودکار و انتخاب پروژه جدید"
         >
-          <FaArrowRight className="text-xl rotate-180" />
+          <FaArrowLeft className="text-xl rotate-180" />
         </button>
         <div>
           <h3 className="text-lg font-semibold mb-1">
