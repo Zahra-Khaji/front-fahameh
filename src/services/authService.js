@@ -126,12 +126,74 @@ class AuthService {
     console.log("اطلاعات کاربر پاک شد");
   }
 
-  // خروج کاربر
-  logout() {
+  // خروج کاربر (فراخوانی API)
+  async logout() {
+    try {
+      console.log("در حال ارسال درخواست خروج به:", `${BASE_URL}/user/logout`);
+      
+      const response = await axios.post(
+        `${BASE_URL}/user/logout`,
+        {}, // body خالی
+        {
+          headers: this.getAuthHeader(),
+          timeout: 10000,
+        }
+      );
+
+      console.log("پاسخ دریافت شده از سرور برای خروج:", response.data);
+      
+      // پاک کردن اطلاعات از localStorage
+      this.clearUserData();
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("token_type");
+      
+      console.log("کاربر با موفقیت خارج شد");
+      
+      return {
+        success: true,
+        message: "با موفقیت از سیستم خارج شدید",
+        data: response.data
+      };
+      
+    } catch (error) {
+      console.error("خطا در فراخوانی API خروج:", error);
+      
+      // حتی اگر API خطا داد، باز هم localStorage رو پاک کن
+      this.clearUserData();
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("token_type");
+      
+      let errorMessage = "خطا در ارتباط با سرور";
+      
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = "توکن معتبر نیست. از سیستم خارج شدید";
+        } else if (error.response.status === 404) {
+          errorMessage = "آدرس سرویس خروج پیدا نشد";
+        } else {
+          errorMessage = error.response.data?.message || `خطا: ${error.response.status}`;
+        }
+      } else if (error.request) {
+        errorMessage = "سرور پاسخ نمی‌دهد. به صورت محلی از سیستم خارج شدید";
+      }
+      
+      console.log("کاربر به صورت محلی خارج شد");
+      
+      return {
+        success: false,
+        message: errorMessage,
+        error: error
+      };
+    }
+  }
+
+  // خروج محلی (بدون API - برای backward compatibility)
+  logoutLocal() {
     this.clearUserData();
     localStorage.removeItem("access_token");
     localStorage.removeItem("token_type");
-    console.log("کاربر با موفقیت خارج شد");
+    console.log("کاربر با موفقیت خارج شد (local)");
+    return { success: true, message: "با موفقیت خارج شدید" };
   }
 
   // بررسی لاگین بودن کاربر
