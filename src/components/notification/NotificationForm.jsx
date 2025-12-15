@@ -107,7 +107,9 @@ const NotificationForm = ({
       inspectionRange: inspectionRange,
       idom: notificationData?.IDOM
     };
-    setShowConfirmation(true);
+    
+    // به جای نمایش ConfirmationModal، مستقیماً onSubmit را فراخوانی کن
+    onSubmit(formData);
   };
 
   const handleFinalSubmit = () => {
@@ -307,16 +309,16 @@ const NotificationForm = ({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-3">
-            <Button
-              onClick={handleSubmit}
-              disabled={!isFormValid || notificationLoading}
-              variant="primary"
-              size="md"
-              icon="check"
-              className="flex-1 w-full sm:w-auto"
-            >
-              {notificationLoading ? "در حال دریافت داده..." : "ادامه و تأیید اطلاعات"}
-            </Button>
+          <Button
+  onClick={handleSubmit}
+  disabled={!isFormValid || notificationLoading}
+  variant="primary"
+  size="md"
+  icon="check"
+  className="flex-1 w-full sm:w-auto"
+>
+  {notificationLoading ? "در حال دریافت داده..." : "ادامه و ثبت نهایی"}
+</Button>
             <Button
               onClick={onCancel}
               variant="secondary"
@@ -330,7 +332,7 @@ const NotificationForm = ({
       </div>
 
       {/* Confirmation Modal */}
-      <ConfirmationModal
+      {/* <ConfirmationModal
         isOpen={showConfirmation}
         onClose={() => setShowConfirmation(false)}
         onConfirm={handleFinalSubmit}
@@ -377,7 +379,7 @@ const NotificationForm = ({
             </div>
           </div>
         </div>
-      </ConfirmationModal>
+      </ConfirmationModal> */}
     </>
   );
 };

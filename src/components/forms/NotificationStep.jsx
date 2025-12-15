@@ -1,94 +1,71 @@
 // src/components/forms/NotificationStep.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; 
-import persian from "react-date-object/calendars/persian";
-import persian_fa from "react-date-object/locales/persian_fa";
-import DatePicker from "react-multi-date-picker";
-import Toolbar from "react-multi-date-picker/plugins/toolbar";
+import { useNavigate } from 'react-router-dom';
 import { useNotificationNumber } from '../../hooks/useNotificationNumber';
 
 // Components
 import StepHeader from '../common/StepHeader';
 import RequestInfoSidebar from '../common/RequestInfoSidebar';
-import Button from '../ui/Button';
 import NotificationForm from '../notification/NotificationForm';
-import NotificationsList from '../notification/NotificationsList';
-import ConfirmationModal from '../ui/ConfirmationModal';
 import FinalConfirmationContent from '../notification/FinalConfirmationContent';
+import ConfirmationModal from '../ui/ConfirmationModal';
 
 // Hooks & Utils
-import { useNotifications } from '../../hooks/useNotifications';
 import { useCreateInspection } from '../../hooks/useCreateInspection';
 import { useUser } from '../../hooks/useUser';
-import { formatPersianDate, formatDateRange } from '../../utils/helpers';
-import { FaList, FaHashtag } from 'react-icons/fa';
+import { formatPersianDate } from '../../utils/helpers';
+import { FaHashtag } from 'react-icons/fa';
 
 const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChange }) => {
-  const [showAddForm, setShowAddForm] = useState(true);
   const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
-  const navigate = useNavigate(); // اضافه کردن این خط
+  const [notificationData, setNotificationData] = useState(null);
+  const navigate = useNavigate();
   
   const { user } = useUser();
   const { mutate: createInspection, isLoading: isCreating } = useCreateInspection();
-  
-  const {
-    notifications,
-    addNotification,
-    updateNotification,
-    deleteNotification,
-    lastNotificationNumber
-  } = useNotifications(lists?.notifications || [], onListChange);
 
-  const handleFinalSubmit = (notificationData) => {
-    const newNotification = {
-      id: Date.now(),
-      ...notificationData,
-      inspector: previousData?.inspectorInfo?.inspectorName || '',
-      province: previousData?.projectInfo?.province || '',
-      status: 'pending',
-      createdAt: new Date(),
-      idom: notificationData.idom
-    };
-
-    addNotification(newNotification);
-    setShowAddForm(false);
+  // تابع جدید برای دریافت داده از فرم
+  const handleNotificationSubmit = (formData) => {
+    console.log('Notification data submitted:', formData);
+    
+    // ذخیره داده‌های نوتیفیکیشن
+    setNotificationData(formData);
+    
+    // نمایش مدال تأیید نهایی
+    setShowFinalConfirmation(true);
   };
 
   // تابع برای ساخت داده‌های سرویس ثبت
   const prepareInspectionData = () => {
-    if (!notifications.length || !previousData) return null;
+    if (!notificationData || !previousData) return null;
 
-    const firstNotification = notifications[0];
     const projectInfo = previousData.projectInfo;
     const inspectorInfo = previousData.inspectorInfo;
 
     // تبدیل نوع پروژه عددی به متن فارسی
     const projectTypeMap = {
-    
       '0': 'خارجی', 
       '1': 'داخلی کالا',
       '2': 'داخلی کشتی'
-
     };
 
     return {
       IDP: parseInt(projectInfo.projectId) || 0,
-      // IDOM: 1, // فعلاً ثابت
-      IDOM: firstNotification.idom || 1,
-      InspectionDate: formatPersianDate(firstNotification.inspectionRange[0]), // تاریخ اول بازرسی
+      IDOM: notificationData.idom || 1,
+      InspectionDate: formatPersianDate(notificationData.inspectionRange[0]), // تاریخ اول بازرسی
       Over_Domestic: projectTypeMap[projectInfo.projectType] || projectInfo.projectType,
       InspectionLocation: projectInfo.province, // نام استان
-      RFI_Number: firstNotification.number?.toString(),
+      RFI_Number: notificationData.number?.toString(),
       RFI_Recived_Date: "1404/09/04", // فعلاً ثابت
       RFI_Status: "در حال انجام",
       VendorName: projectInfo.vendor,
-      Inspection_Duration: firstNotification.inspectionDays?.toString(),
+      Inspection_Duration: notificationData.inspectionDays?.toString(),
       Inspector_Name: inspectorInfo.inspectorName,
       Remark: "",
       QTY_3rdpartinspector: "",
       approved_Duration: "",
       Material: "",
-      User_Name: user?.username || "m-sadri", // از هوک user می‌گیریم
+      User_Name: user?.username || "m-sadri",
       NotificationNo: "",
       DateShamsi: "",
       Inspector_Type: "",
@@ -124,22 +101,16 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
           console.log('📋 No project name for navigation');
         }
         
-        // بعد از ثبت موفق، داده‌ها رو به مرحله بعد پاس بدیم (اگر لازمه)
-        const stepData = {
-          notifications: notifications,
-          inspectionRange: notifications[0]?.inspectionRange || []
-        };
-        onComplete(stepData);
+        // اطلاعات را به مرحله بعد پاس بده
+        onComplete({
+          notification: notificationData,
+          inspectionData: inspectionData
+        });
       },
       onError: (error) => {
         console.error('❌ handleFinalCreate: onError called with:', error);
       }
     });
-  };
-
-  const handleCompleteStep = () => {
-    console.log('🔵 Complete step clicked - showing confirmation modal');
-    setShowFinalConfirmation(true);
   };
 
   return (
@@ -148,7 +119,7 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
         
         <StepHeader
           title="ثبت اطلاعات نوتیفیکیشن"
-          description="مرحله دوم - مدیریت اطلاع‌رسانی و برنامه‌ریزی بازرسی"
+          description="مرحله دوم - ثبت نوتیفیکیشن و برنامه‌ریزی بازرسی"
           icon={FaHashtag}
         />
 
@@ -163,70 +134,39 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
-
-            {/* Add Notification Form */}
-            {showAddForm && (
+          <div className="lg:col-span-3">
+            {/* نمایش فرم نوتیفیکیشن */}
+            {!showFinalConfirmation && (
               <NotificationForm
-                lastNotificationNumber={lastNotificationNumber}
-                onSubmit={handleFinalSubmit}
-                onCancel={() => setShowAddForm(false)}
+                lastNotificationNumber={null} // اگر نیاز دارید می‌توانید مقدار قبلی را پاس دهید
+                onSubmit={handleNotificationSubmit}
+                onCancel={onBack} // اگر کاربر انصراف داد به مرحله قبل برگردد
                 previousData={previousData}
               />
-            )}
-
-            {/* Notifications List */}
-            {notifications.length > 0 && (
-              <NotificationsList
-                notifications={notifications}
-                onEdit={updateNotification}
-                onDelete={deleteNotification}
-                onAddNew={() => setShowAddForm(true)}
-                showAddButton={!showAddForm}
-                onComplete={handleCompleteStep}
-                previousData={previousData}
-              />
-            )}
-
-            {/* Empty State */}
-            {!showAddForm && notifications.length === 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 text-center">
-                <div className="text-gray-500 mb-3 sm:mb-4">
-                  <FaList className="text-3xl sm:text-4xl mx-auto mb-2 sm:mb-3" />
-                  <h3 className="text-base sm:text-lg font-semibold">هنوز نوتیفیکیشنی ثبت نشده</h3>
-                  <p className="text-xs sm:text-sm mt-1">برای شروع، اولین نوتیفیکیشن را ثبت کنید</p>
-                </div>
-                <Button
-                  onClick={() => setShowAddForm(true)}
-                  variant="primary"
-                  icon="plus"
-                  className="w-full sm:w-auto"
-                >
-                  افزودن نوتیفیکیشن
-                </Button>
-              </div>
             )}
           </div>
         </div>
       </div>
 
       {/* مدال تأیید نهایی برای ثبت در دیتابیس */}
-      <ConfirmationModal
-        isOpen={showFinalConfirmation}
-        onClose={() => setShowFinalConfirmation(false)}
-        onConfirm={handleFinalCreate}
-        title="ثبت نهایی درخواست بازرسی"
-        message="آیا از ثبت نهایی درخواست بازرسی اطمینان دارید؟"
-        confirmText={isCreating ? "در حال ثبت..." : "تأیید و ثبت نهایی"}
-        cancelText="انصراف"
-        type="success"
-        size="large"
-      >
-        <FinalConfirmationContent 
-          previousData={previousData}
-          notifications={notifications}
-        />
-      </ConfirmationModal>
+ 
+<ConfirmationModal
+  isOpen={showFinalConfirmation}
+  onClose={() => setShowFinalConfirmation(false)}
+  onConfirm={handleFinalCreate}
+  title="تأیید اطلاعات ثبت"
+  message="بررسی و ثبت نهایی درخواست بازرسی"
+  confirmText={isCreating ? "در حال ثبت..." : "تأیید و ثبت"}
+  cancelText="ویرایش مجدد"
+  type="success"
+  size="large"
+  showCancelButton={true}
+>
+  <FinalConfirmationContent 
+    previousData={previousData}
+    notification={notificationData}
+  />
+</ConfirmationModal>
     </div>
   );
 };

@@ -13,7 +13,8 @@ const ConfirmationModal = ({
   cancelText = "انصراف", 
   type = "success",
   size = "medium",
-  children 
+  children,
+  showCancelButton = true
 }) => {
   if (!isOpen) return null;
 
@@ -38,59 +39,69 @@ const ConfirmationModal = ({
   const sizeConfig = {
     small: 'max-w-sm',
     medium: 'max-w-md',
-    large: 'max-w-2xl'
+    large: 'max-w-lg'
   };
 
   const config = typeConfig[type];
   const Icon = config.icon;
 
   return (
-    <div 
-    
-    className="fixed  inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div
-       className={`bg-white rounded-2xl shadow-2xl ${sizeConfig[size]} w-full mx-auto max-h-[90vh] overflow-y-auto`}>
-        {/* Header */}
-        <div className={`bg-gradient-to-r ${config.gradient} rounded-t-2xl p-6 text-white text-center relative`}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3" dir="rtl">
+      <div className={`bg-white rounded-xl shadow-xl ${sizeConfig[size]} w-full mx-auto max-h-[85vh] overflow-hidden flex flex-col`}>
+        {/* Header - متن وسط‌چین */}
+        <div className={`bg-gradient-to-r ${config.gradient} rounded-t-xl p-3 text-white relative flex items-center justify-center`}>
+          {/* Close Button - چپ */}
           <button
             onClick={onClose}
-            className="absolute left-4 top-4 text-white hover:opacity-80 transition duration-200"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white hover:opacity-80 transition duration-200"
           >
-            <FaTimes className="text-xl" />
+            <FaTimes className="text-base" />
           </button>
-          <div className={`w-16 h-16 ${config.iconBg} rounded-full flex items-center justify-center mx-auto mb-4`}>
-            <Icon className="text-2xl text-white" />
+          
+          {/* آیکون - راست */}
+          <div className={`w-10 h-10 ${config.iconBg} rounded-full flex items-center justify-center ml-3 flex-shrink-0`}>
+            <Icon className="text-lg text-white" />
           </div>
-          <h2 className="text-xl font-bold">{title}</h2>
-          <p className="text-white text-sm mt-1 opacity-90">{message}</p>
+          
+          {/* Title & Message - وسط‌چین */}
+          <div className="flex-1 text-center">
+            <h2 className="text-sm font-bold">{title}</h2>
+            {message && (
+              <p className="text-white text-xs opacity-90 mt-0.5">{message}</p>
+            )}
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 ">
+        <div className="flex-1 overflow-y-auto p-3">
           {children}
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+        {/* Action Buttons */}
+        <div className="p-3 border-t border-gray-200 bg-gray-50">
+          <div className="flex gap-2">
             <Button
-              // onClick={onConfirm}
               onClick={() => {
                 console.log('🎯 Confirm button clicked in modal');
                 onConfirm();
               }}
               variant={type === 'danger' ? 'danger' : 'success'}
-              size="md"
-              className="flex-1"
+              size="sm"
+              className="flex-1 py-1.5"
             >
               {confirmText}
             </Button>
-            <Button
-              onClick={onClose}
-              variant="secondary"
-              size="md"
-              className="flex-1"
-            >
-              {cancelText}
-            </Button>
+            
+            {showCancelButton && (
+              <Button
+                onClick={onClose}
+                variant="secondary"
+                size="sm"
+                className="flex-1 py-1.5"
+              >
+                {cancelText}
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -1,175 +1,306 @@
 // src/components/notification/FinalConfirmationContent.jsx
 import React from 'react';
-import { FaClipboardList, FaUserTie, FaHashtag, FaCalendarAlt } from 'react-icons/fa';
-
-// Hooks
-import { useProvinces, useCities } from '../../hooks/useProvinces';
-import { useVendors } from '../../hooks/useVendors';
-
-// Utils
+import { 
+  FaBuilding, 
+  FaUserTie, 
+  FaHashtag, 
+  FaCalendarAlt,
+  FaMapMarkerAlt,
+  FaDollarSign,
+  FaBriefcase,
+  FaEnvelope,
+  FaPhone,
+  FaGlobe,
+  FaClock,
+  FaFileSignature,
+  FaTag,
+  FaIndustry,
+  FaUser,
+  FaCertificate,
+  FaCalendarDay,
+  FaListOl
+} from 'react-icons/fa';
 import { formatPersianDate, formatMultipleDates } from '../../utils/helpers';
 
-const FinalConfirmationContent = ({ previousData, notifications }) => {
-  // استفاده از هوک‌های مشابه فرم
+// اضافه کردن هوک‌های لازم برای دریافت نام استان و شهر
+import { useProvinces, useCities } from '../../hooks/useProvinces';
+import { useCountries } from '../../hooks/useCountries';
+
+const FinalConfirmationContent = ({ previousData, notification }) => {
+  if (!previousData || !notification) {
+    return (
+      <div className="text-center py-3 text-gray-500 text-sm">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // استفاده از هوک‌ها برای دریافت نام استان و شهر
   const { data: provinces } = useProvinces();
-  const { data: cities } = useCities(previousData?.projectInfo?.province);
-  const { data: vendors } = useVendors();
+  const { data: countries } = useCountries();
+  const { data: cities } = useCities(previousData.projectInfo?.province);
 
-  const getLocationName = (provinceId, cityId) => {
-    const province = provinces?.find(p => p.id === provinceId);
-    const city = cities?.find(c => c.id === cityId);
-    return {
-      provinceName: province ? province.name : provinceId || '-',
-      cityName: city ? city.name : cityId || '-'
+  // تابع برای دریافت نام موقعیت
+  const getLocationDisplay = () => {
+    const projectInfo = previousData.projectInfo || {};
+    
+    // اگر پروژه خارجی است
+    const isForeign = projectInfo.projectType === '0' || 
+                     projectInfo.projectType === 'foreign';
+    
+    if (isForeign && projectInfo.country) {
+      // نمایش کشور برای پروژه خارجی
+      const country = countries?.find(c => 
+        c.id === projectInfo.country || 
+        c.id?.toString() === projectInfo.country?.toString()
+      );
+      return country?.name || projectInfo.country || '—';
+    } else {
+      // نمایش استان و شهر برای پروژه داخلی
+      const province = provinces?.find(p => 
+        p.id === projectInfo.province || 
+        p.id?.toString() === projectInfo.province?.toString()
+      );
+      
+      const city = cities?.find(c => 
+        c.id === projectInfo.city || 
+        c.id?.toString() === projectInfo.city?.toString()
+      );
+      
+      if (province && city) {
+        return `${province.name} - ${city.name}`;
+      } else if (province) {
+        return province.name;
+      } else if (city) {
+        return city.name;
+      } else if (projectInfo.province || projectInfo.city) {
+        return `${projectInfo.province || ''}${projectInfo.city ? ' - ' + projectInfo.city : ''}`;
+      }
+    }
+    
+    return '—';
+  };
+
+  // استخراج داده‌ها برای نمایش فشرده
+  const projectInfo = previousData.projectInfo || {};
+  const inspectorInfo = previousData.inspectorInfo || {};
+
+  // تعیین نوع پروژه
+  const getProjectTypeText = (type) => {
+    const typeMap = {
+      '0': 'خارجی',
+      '1': 'داخلی کالا', 
+      '2': 'داخلی کشتی',
+      'foreign': 'خارجی',
+      'domestic_goods': 'داخلی کالا',
+      'domestic_ship': 'داخلی کشتی'
     };
+    return typeMap[type] || type || 'نامشخص';
   };
 
-  const getVendorName = (vendorId) => {
-    const vendor = vendors?.find(s => s.id === vendorId);
-    return vendor ? vendor.name : vendorId || '-';
-  };
-
-  const getStatusLabel = (status) => {
-    return status === 'pending' ? 'در حال انجام' :
-           status === 'approved' ? 'تأیید شده' :
-           status === 'rejected' ? 'رد شده' :
-           'تکمیل شده';
-  };
-
-  const projectName = previousData?.projectInfo?.projectName || '-';
-  const province = previousData?.projectInfo?.province || '';
-  const city = previousData?.projectInfo?.city || '';
-  const vendor = previousData?.projectInfo?.vendor || '';
-  const defaultInspector = previousData?.inspectorInfo?.inspectorName || '';
-  const defaultFee = previousData?.inspectorInfo?.fee || '';
-
-  const location = getLocationName(province, city);
+  // دریافت نام کامل موقعیت
+  const locationDisplay = getLocationDisplay();
 
   return (
-    <div
-    
-    className="space-y-4 mb-4 ">
-      
-      {/* سطر اول: اطلاعات پروژه و اطلاعات بازرسی */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Project Information */}
-        <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-          <h3 className="text-md font-bold text-blue-800 mb-3 flex items-center">
-            <FaClipboardList className="ml-2 text-sm" />
-            اطلاعات پروژه
-          </h3>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center gap-3">
-              <span className="text-gray-600 font-medium min-w-[80px]">نام پروژه:</span>
-              <span className="font-semibold text-blue-800">{projectName}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-600 font-medium min-w-[80px]">موقعیت:</span>
-              <span className="font-semibold">
-                {location.provinceName} - {location.cityName}
+    <div className="space-y-2.5 max-h-[65vh] overflow-y-auto pr-1">
+      {/* اطلاعات پروژه - کارت کوچک */}
+      <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 shadow-sm">
+        <div className="flex items-center gap-1.5 mb-2">
+          <FaBuilding className="text-blue-600 text-xs" />
+          <h5 className="text-xs font-bold text-blue-800">اطلاعات پروژه</h5>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-1.5 text-xs">
+          <div className="space-y-1">
+            {/* نام پروژه با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaFileSignature className="text-blue-500 text-xs flex-shrink-0" />
+              <span className="font-medium">نام:</span>
+              <span className="font-bold text-blue-900 truncate" title={projectInfo.projectName}>
+                {projectInfo.projectName || '—'}
               </span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-600 font-medium min-w-[80px]">وندور:</span>
-              <span className="font-semibold">{getVendorName(vendor)}</span>
+            
+            {/* نوع پروژه با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaTag className="text-blue-500 text-xs flex-shrink-0" />
+              <span className="font-medium">نوع:</span>
+              <span className="font-bold text-blue-900">
+                {getProjectTypeText(projectInfo.projectType)}
+              </span>
             </div>
           </div>
-        </div>
-
-        {/* Inspection Information */}
-        <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-          <h3 className="text-md font-bold text-indigo-800 mb-3 flex items-center">
-            <FaUserTie className="ml-2 text-sm" />
-            اطلاعات بازرسی
-          </h3>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center gap-3">
-              <span className="text-gray-600 font-medium min-w-[80px]">بازرس اصلی:</span>
-              <span className="font-semibold text-indigo-800">{defaultInspector}</span>
+          
+          <div className="space-y-1">
+            {/* محل با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaMapMarkerAlt className="text-blue-500 text-xs flex-shrink-0" />
+              <span className="font-medium">موقعیت:</span>
+              <span 
+                className="font-bold text-blue-900 truncate" 
+                title={locationDisplay}
+              >
+                {locationDisplay}
+              </span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-600 font-medium min-w-[80px]">موقعیت بازرس:</span>
-              <span className="font-semibold">{previousData?.inspectorInfo?.inspectorLocation}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-600 font-medium min-w-[80px]">شماره تماس:</span>
-              <span className="font-semibold">{previousData?.inspectorInfo?.phoneNumber}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-600 font-medium min-w-[80px]">دستمزد پایه:</span>
-              <span className="font-semibold">{defaultFee}</span>
+            
+            {/* وندور با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaIndustry className="text-blue-500 text-xs flex-shrink-0" />
+              <span className="font-medium">وندور:</span>
+              <span className="font-bold text-blue-900 truncate" title={projectInfo.vendor}>
+                {projectInfo.vendor || '—'}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* سطر دوم و سوم: اطلاعات نوتیفیکیشن‌ها */}
-      {notifications && notifications.length > 0 && (
-        <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-          <h3 className="text-md font-bold text-green-800 mb-3 flex items-center">
-            <FaHashtag className="ml-2 text-sm" />
-            اطلاعات نوتیفیکیشن‌ها ({notifications.length} مورد)
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {notifications.map((notification, index) => (
-              <div key={notification.id} className="bg-white rounded-lg p-3 border border-green-200">
-                <div className="flex justify-between items-center mb-3 pb-2 border-b border-green-100">
-                  <span className="text-xs font-semibold text-green-700">
-                    نوتیفیکیشن #{notification.number}
-                  </span>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    notification.status === 'approved' ? 'bg-green-100 text-green-800' :
-                    notification.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                    notification.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {getStatusLabel(notification.status)}
-                  </span>
-                </div>
-                
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-600 font-medium min-w-[80px]">تاریخ ارسال:</span>
-                    <span className="font-semibold">{formatPersianDate(notification.sendDate)}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-600 font-medium min-w-[80px]">تعداد روز:</span>
-                    <span className="font-semibold">{notification.inspectionDays} روز</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="text-gray-600 font-medium min-w-[80px] mt-0.5">تاریخ‌های بازرسی:</span>
-                    <span className="font-semibold text-right text-xs leading-5">
-                      {formatMultipleDates(notification.inspectionRange)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* اطلاعات بازرس - کارت کوچک */}
+      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-3 border border-green-200 shadow-sm">
+        <div className="flex items-center gap-1.5 mb-2">
+          <FaUserTie className="text-green-600 text-xs" />
+          <h5 className="text-xs font-bold text-green-800">اطلاعات بازرس</h5>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-1.5 text-xs">
+          <div className="space-y-1">
+            {/* نام بازرس با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaUser className="text-green-500 text-xs flex-shrink-0" />
+              <span className="font-medium">نام:</span>
+              <span className="font-bold text-green-900 truncate" title={inspectorInfo.inspectorName}>
+                {inspectorInfo.inspectorName || '—'}
+              </span>
+            </div>
+            
+            {/* تخصص با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaBriefcase className="text-green-500 text-xs flex-shrink-0" />
+              <span className="font-medium">تخصص:</span>
+              <span className="font-bold text-green-900">
+                {inspectorInfo.expertise || '—'}
+              </span>
+            </div>
+          </div>
+          
+          <div className="space-y-1">
+            {/* دستمزد با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaDollarSign className="text-green-500 text-xs flex-shrink-0" />
+              <span className="font-medium">دستمزد:</span>
+              <span className="font-bold text-green-900">
+                {inspectorInfo.fee ? `${inspectorInfo.fee} تومان` : '—'}
+              </span>
+            </div>
+            
+            {/* ایمیل با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaEnvelope className="text-green-500 text-xs flex-shrink-0" />
+              <span className="font-medium">ایمیل:</span>
+              <span className="font-bold text-green-900 truncate" title={inspectorInfo.email}>
+                {inspectorInfo.email || '—'}
+              </span>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* برنامه بازرسی خلاصه */}
-      {/* {notifications && notifications.length > 0 && (
-        <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-          <h3 className="text-md font-bold text-purple-800 mb-3 flex items-center">
-            <FaCalendarAlt className="ml-2 text-sm" />
-            برنامه بازرسی - خلاصه
-          </h3>
-          <div className="space-y-2 text-xs">
-            {notifications.map((notification, index) => (
-              <div key={notification.id} className="flex items-center gap-4 bg-white rounded px-3 py-2">
-                <span className="text-gray-600 font-medium min-w-[120px]">
-                  نوتیفیکیشن #{notification.number}:
-                </span>
-                <span className="font-semibold text-purple-700">
-                  {formatMultipleDates(notification.inspectionRange)}
-                </span>
+      {/* اطلاعات نوتیفیکیشن - کارت کوچک */}
+      <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-3 border border-purple-200 shadow-sm">
+        <div className="flex items-center gap-1.5 mb-2">
+          <FaHashtag className="text-purple-600 text-xs" />
+          <h5 className="text-xs font-bold text-purple-800">اطلاعات نوتیفیکیشن</h5>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-1.5 text-xs">
+          <div className="space-y-1">
+            {/* شماره نوتیفیکیشن با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaHashtag className="text-purple-500 text-xs flex-shrink-0" />
+              <span className="font-medium">شماره:</span>
+              <span className="font-bold text-purple-900 bg-purple-50 px-1.5 py-0.5 rounded">
+                {notification.number || '—'}
+              </span>
+            </div>
+            
+            {/* IDOM با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaCertificate className="text-purple-500 text-xs flex-shrink-0" />
+              <span className="font-medium">IDOM:</span>
+              <span className="font-bold text-purple-900">
+                {notification.idom || 1}
+              </span>
+            </div>
+          </div>
+          
+          <div className="space-y-1">
+            {/* تاریخ ارسال با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaCalendarAlt className="text-purple-500 text-xs flex-shrink-0" />
+              <span className="font-medium">ارسال:</span>
+              <span className="font-bold text-purple-900">
+                {notification.sendDate ? formatPersianDate(notification.sendDate) : '—'}
+              </span>
+            </div>
+            
+            {/* مدت بازرسی با ایکون */}
+            <div className="flex items-center gap-1 text-gray-600">
+              <FaClock className="text-purple-500 text-xs flex-shrink-0" />
+              <span className="font-medium">مدت:</span>
+              <span className="font-bold text-purple-900">
+                {notification.inspectionDays || 0} روز
+              </span>
+            </div>
+          </div>
+          
+          {/* تاریخ‌های بازرسی - ستون کامل */}
+          <div className="col-span-2 mt-1 pt-1 border-t border-purple-200">
+            <div className="flex items-start gap-1 text-gray-600">
+              <FaCalendarDay className="text-purple-500 text-xs mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="font-medium mb-0.5 flex items-center gap-1">
+                  <span>تاریخ‌های بازرسی:</span>
+                  <span className="text-purple-600 text-[10px] bg-purple-100 px-1 py-0.5 rounded">
+                    {notification.inspectionRange?.length || 0} تاریخ
+                  </span>
+                </div>
+                <div className="font-bold text-purple-900 text-[10px] leading-tight bg-purple-50 p-1.5 rounded">
+                  {notification.inspectionRange?.length > 0 
+                    ? formatMultipleDates(notification.inspectionRange)
+                    : '—'
+                  }
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
-      )} */}
+      </div>
+
+      {/* خلاصه نهایی - کامپکت */}
+      {/* <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg p-2.5 border border-amber-200 shadow-sm">
+        <div className="flex items-center justify-center">
+          <FaListOl className="text-amber-600 text-xs mr-1.5" />
+          <div className="text-center flex-1">
+            <div className="text-[10px] text-amber-800 font-semibold mb-0.5">
+              خلاصه درخواست
+            </div>
+            <div className="text-xs font-bold text-amber-900 truncate" title={`${projectInfo.projectName} - ${notification.number}`}>
+              {projectInfo.projectName || 'پروژه'} • {notification.number || 'نوتیفیکیشن'}
+            </div>
+            <div className="text-[10px] text-amber-700 mt-0.5 flex justify-center items-center gap-1">
+              <FaMapMarkerAlt className="text-amber-600 text-[9px]" />
+              <span>{locationDisplay}</span>
+              <span>•</span>
+              <FaCalendarDay className="text-amber-600 text-[9px]" />
+              <span>{notification.inspectionRange?.length || 0} روز</span>
+            </div>
+          </div>
+        </div>
+      </div> */}
     </div>
   );
 };
