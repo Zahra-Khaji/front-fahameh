@@ -74,44 +74,39 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
   };
 
   // تابع ثبت نهایی در دیتابیس
-  const handleFinalCreate = () => {
-    console.log('🟢 handleFinalCreate: Started');
-    
-    const inspectionData = prepareInspectionData();
-    console.log('📋 handleFinalCreate: Prepared data:', inspectionData);
-    
-    if (!inspectionData) {
-      console.error('❌ handleFinalCreate: No data to submit');
-      return;
-    }
+ // در NotificationStep.jsx - تابع handleFinalCreate را اصلاح کنید:
+const handleFinalCreate = () => {
+  console.log('🟢 handleFinalCreate: Started');
+  
+  const inspectionData = prepareInspectionData();
+  console.log('📋 handleFinalCreate: Prepared data:', inspectionData);
+  
+  if (!inspectionData) {
+    console.error('❌ handleFinalCreate: No data to submit');
+    return;
+  }
 
-    console.log('🚀 handleFinalCreate: Calling createInspection mutation');
-    
-    createInspection(inspectionData, {
-      onSuccess: (data) => {
-        console.log('✅ handleFinalCreate: onSuccess called with:', data);
-        setShowFinalConfirmation(false);
-        
-        // نویگیت به صفحه گزارش
-        const projectName = previousData?.projectInfo?.projectName;
-        if (projectName) {
-          console.log('🔄 Navigating to report page');
-          navigate(`/admin/rfi-report?project=${encodeURIComponent(projectName)}`);
-        } else {
-          console.log('📋 No project name for navigation');
-        }
-        
-        // اطلاعات را به مرحله بعد پاس بده
-        onComplete({
-          notification: notificationData,
-          inspectionData: inspectionData
-        });
-      },
-      onError: (error) => {
-        console.error('❌ handleFinalCreate: onError called with:', error);
-      }
-    });
-  };
+  console.log('🚀 handleFinalCreate: Calling createInspection mutation');
+  
+  createInspection(inspectionData, {
+    onSuccess: (data) => {
+      console.log('✅ handleFinalCreate: onSuccess called with:', data);
+      setShowFinalConfirmation(false);
+      
+      // **اضافه کردن refetch قبل از نویگیت**
+      const projectName = previousData?.projectInfo?.projectName;
+      
+      // کمی تاخیر برای اطمینان از ذخیره شدن داده در سرور
+      setTimeout(() => {
+        console.log('🔄 Navigating to report page');
+        navigate(`/admin/rfi-report?project=${encodeURIComponent(projectName)}&refresh=${Date.now()}`);
+      }, 500); // 500ms تاخیر برای اطمینان
+    },
+    onError: (error) => {
+      console.error('❌ handleFinalCreate: onError called with:', error);
+    }
+  });
+};
 
   return (
     <div className="min-h-0 bg-gradient-to-br from-blue-50 to-indigo-100 py-2 sm:py-3 px-3 sm:px-4 lg:px-6">
