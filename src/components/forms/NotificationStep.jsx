@@ -15,6 +15,7 @@ import { useCreateInspection } from '../../hooks/useCreateInspection';
 import { useUser } from '../../hooks/useUser';
 import { formatPersianDate } from '../../utils/helpers';
 import { FaHashtag } from 'react-icons/fa';
+import { formatPersianDatesList } from '../../utils/helpers';
 
 const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChange }) => {
   const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
@@ -50,14 +51,23 @@ const prepareInspectionData = () => {
     '2': 'داخلی کشتی'
   };
 
+  // **گزینه ۱: آرایه تاریخ‌ها**
+  const inspectionDatesArray = formatPersianDatesList(notificationData.inspectionRange);
+  
+  console.log('📅 Inspection dates to send:', {
+    rawDates: notificationData.inspectionRange,
+    formattedArray: inspectionDatesArray,
+    arrayLength: inspectionDatesArray.length
+  });
+
   return {
     IDP: parseInt(projectInfo.projectId) || 0,
     IDOM: notificationData.idom || 1,
-    InspectionDate: formatPersianDate(notificationData.inspectionRange[0]), // تاریخ اول بازرسی
+    InspectionDate: inspectionDatesArray, // **این حالا یک آرایه است**
     Over_Domestic: projectTypeMap[projectInfo.projectType] || projectInfo.projectType,
-    InspectionLocation: inspectorInfo.inspectorLocation, // **تغییر اینجا: از بازرس بگیر**
+    InspectionLocation: inspectorInfo.inspectorLocation,
     RFI_Number: notificationData.number?.toString(),
-    RFI_Recived_Date: "1404/09/04", // فعلاً ثابت
+    RFI_Recived_Date: "1404/09/04",
     RFI_Status: "در حال انجام",
     VendorName: projectInfo.vendor,
     Inspection_Duration: notificationData.inspectionDays?.toString(),

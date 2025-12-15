@@ -10,6 +10,30 @@ export const formatPersianDate = (date) => {
   }
 };
 
+// تابع جدید برای لیست تاریخ‌ها:
+export const formatPersianDatesList = (datesArray) => {
+  if (!datesArray || !Array.isArray(datesArray) || datesArray.length === 0) {
+    return [];
+  }
+  
+  const formattedDates = datesArray.map(date => {
+    try {
+      if (date && typeof date === 'object' && date.year) {
+        // اگر تاریخ از react-multi-date-picker هست
+        return `${date.year}/${String(date.month).padStart(2, '0')}/${String(date.day).padStart(2, '0')}`;
+      } else {
+        // اگر تاریخ استاندارد JS هست
+        return formatPersianDate(date);
+      }
+    } catch (error) {
+      console.error('Error formatting date in array:', error);
+      return '';
+    }
+  }).filter(date => date !== ''); // حذف تاریخ‌های نامعتبر
+  
+  return formattedDates;
+};
+
 // تابع تبدیل رشته مالی به عدد
 export const parseFinancialString = (financialString) => {
   if (!financialString) return 0;
