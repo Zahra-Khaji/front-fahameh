@@ -48,6 +48,35 @@ export const formatPersianDate = (date) => {
   }
 };
 
+// src/utils/helpers.js (اضافه کردن تابع جدید)
+
+// تابع برای استخراج عدد خالص از رشته مالی فارسی
+export const extractCleanNumber = (financialString) => {
+  if (!financialString) return '';
+  
+  if (typeof financialString === "number") {
+    return financialString.toString();
+  }
+
+  if (typeof financialString === "string") {
+    // حذف "تومان" و جداکننده‌ها
+    let cleanString = financialString
+      .replace(/تومان/g, '')
+      .replace(/[٬,]/g, '')
+      .trim();
+    
+    // تبدیل اعداد فارسی به انگلیسی
+    cleanString = cleanString.replace(/[۰-۹]/g, (char) => {
+      const persianNumbers = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+      return persianNumbers.indexOf(char).toString();
+    });
+    
+    return cleanString;
+  }
+
+  return '';
+};
+
 // تابع جدید برای لیست تاریخ‌ها:
 export const formatPersianDatesList = (datesArray) => {
   if (!datesArray || !Array.isArray(datesArray) || datesArray.length === 0) {

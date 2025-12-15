@@ -15,7 +15,7 @@ import { useCreateInspection } from '../../hooks/useCreateInspection';
 import { useUser } from '../../hooks/useUser';
 import { formatPersianDate } from '../../utils/helpers';
 import { FaHashtag } from 'react-icons/fa';
-import { formatPersianDatesList } from '../../utils/helpers';
+import { formatPersianDatesList,extractCleanNumber  } from '../../utils/helpers';
 
 const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChange }) => {
   const [showFinalConfirmation, setShowFinalConfirmation] = useState(false);
@@ -44,6 +44,10 @@ const NotificationStep = ({ onBack, onComplete, previousData, lists, onListChang
 // src/components/forms/NotificationStep.jsx
 // (در تابع prepareInspectionData)
 
+// src/components/forms/NotificationStep.jsx
+// (در تابع prepareInspectionData)
+
+
 const prepareInspectionData = () => {
   if (!notificationData || !previousData) return null;
 
@@ -60,28 +64,25 @@ const prepareInspectionData = () => {
   // آرایه تاریخ‌های بازرسی
   const inspectionDatesArray = formatPersianDatesList(notificationData.inspectionRange);
   
-  // **تبدیل تاریخ ارسال نوتیفیکیشن به فرمت فارسی**
-  // استفاده از تابع formatPersianDate بهبود یافته
-  let sendDatePersian = "1404/09/04"; // مقدار پیش‌فرض برای پشتیبانی
+  // تبدیل تاریخ ارسال نوتیفیکیشن
+  let sendDatePersian = "1404/09/04";
   
   if (notificationData.sendDate) {
     try {
       sendDatePersian = formatPersianDate(notificationData.sendDate);
-      console.log('📅 تاریخ ارسال تبدیل شد:', {
-        original: notificationData.sendDate,
-        formatted: sendDatePersian,
-        type: typeof notificationData.sendDate
-      });
     } catch (error) {
       console.error('❌ خطا در تبدیل تاریخ ارسال:', error);
-      // استفاده از مقدار پیش‌فرض
     }
   }
+
+  // **استخراج دستمزد بازرس (FinalPrice)**
+  const finalPrice = extractCleanNumber(inspectorInfo.fee);
 
   console.log('📊 اطلاعات ارسالی به API:', {
     sendDate: sendDatePersian,
     inspectionDatesCount: inspectionDatesArray.length,
-    inspectionDates: inspectionDatesArray
+    finalPrice: finalPrice,
+    feeOriginal: inspectorInfo.fee
   });
 
   return {
@@ -91,7 +92,7 @@ const prepareInspectionData = () => {
     Over_Domestic: projectTypeMap[projectInfo.projectType] || projectInfo.projectType,
     InspectionLocation: inspectorInfo.inspectorLocation,
     RFI_Number: notificationData.number?.toString(),
-    RFI_Recived_Date: sendDatePersian, // **اصلاح شده: استفاده از تاریخ انتخاب شده کاربر**
+    RFI_Recived_Date: sendDatePersian,
     RFI_Status: "در حال انجام",
     VendorName: projectInfo.vendor,
     Inspection_Duration: notificationData.inspectionDays?.toString(),
@@ -100,14 +101,14 @@ const prepareInspectionData = () => {
     QTY_3rdpartinspector: "",
     approved_Duration: "",
     Material: "",
-    User_Name: user?.username || "m-sadri",
+    User_Name: user?.username || "",
     NotificationNo: "",
     DateShamsi: "",
     Inspector_Type: "",
-    Goods_Description: ""
+    Goods_Description: "",
+    FinalPrice: finalPrice // **اضافه شدن فیلد جدید - رشته خالی یا عدد**
   };
 };
-
   // تابع ثبت نهایی در دیتابیس
  // در NotificationStep.jsx - تابع handleFinalCreate را اصلاح کنید:
 const handleFinalCreate = () => {
