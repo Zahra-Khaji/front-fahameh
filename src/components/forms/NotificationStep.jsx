@@ -12,6 +12,7 @@ import ConfirmationModal from '../ui/ConfirmationModal';
 
 // Hooks & Utils
 import { useCreateInspection } from '../../hooks/useCreateInspection';
+import toast from 'react-hot-toast';
 import { useUser } from '../../hooks/useUser';
 import { formatPersianDate } from '../../utils/helpers';
 import { FaHashtag } from 'react-icons/fa';
@@ -111,6 +112,9 @@ const prepareInspectionData = () => {
 };
   // تابع ثبت نهایی در دیتابیس
  // در NotificationStep.jsx - تابع handleFinalCreate را اصلاح کنید:
+// src/components/forms/NotificationStep.jsx
+// (در تابع handleFinalCreate)
+
 const handleFinalCreate = () => {
   console.log('🟢 handleFinalCreate: Started');
   
@@ -119,6 +123,10 @@ const handleFinalCreate = () => {
   
   if (!inspectionData) {
     console.error('❌ handleFinalCreate: No data to submit');
+    toast.error('خطا در آماده‌سازی داده‌ها', {
+      position: 'top-center',
+      duration: 3000,
+    });
     return;
   }
 
@@ -127,19 +135,52 @@ const handleFinalCreate = () => {
   createInspection(inspectionData, {
     onSuccess: (data) => {
       console.log('✅ handleFinalCreate: onSuccess called with:', data);
+      
+      // نمایش toast موفقیت
+      toast.success('درخواست بازرسی با موفقیت ثبت شد!', {
+        position: 'top-center',
+        duration: 4000,
+        icon: '✅',
+        style: {
+          background: '#10b981',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+      });
+      
       setShowFinalConfirmation(false);
       
       // **اضافه کردن refetch قبل از نویگیت**
       const projectName = previousData?.projectInfo?.projectName;
       
-      // کمی تاخیر برای اطمینان از ذخیره شدن داده در سرور
+      // کمی تاخیر برای اطمینان از ذخیره شدن داده در سرور و نمایش toast
       setTimeout(() => {
         console.log('🔄 Navigating to report page');
         navigate(`/admin/rfi-report?project=${encodeURIComponent(projectName)}&refresh=${Date.now()}`);
-      }, 500); // 500ms تاخیر برای اطمینان
+      }, 1000); // 2 ثانیه تاخیر برای نمایش toast
     },
     onError: (error) => {
       console.error('❌ handleFinalCreate: onError called with:', error);
+      
+      // نمایش toast خطا
+      toast.error('خطا در ثبت درخواست بازرسی', {
+        position: 'top-center',
+        duration: 4000,
+        icon: '❌',
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+      });
     }
   });
 };
