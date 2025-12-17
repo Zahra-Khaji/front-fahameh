@@ -1,5 +1,5 @@
 // src/components/ui/AddReportModal/AddReportModal.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FaTimes, 
   FaFileAlt, 
@@ -9,10 +9,13 @@ import {
   FaArrowRight,
   FaSync,
   FaCopy,
-  FaTrash
+  FaTrash,
+  FaExclamationCircle,
+  FaQuestionCircle,
+  FaCheck,
+  FaBan
 } from 'react-icons/fa';
 import DatePicker from "react-multi-date-picker";
-// import DateObject from "react-date-object";
 import DateObject from "react-date-object";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
@@ -20,12 +23,102 @@ import { useReportInfo, useUpdateReport } from '../../../hooks/useCreateReport';
 import { useUser } from '../../../hooks/useUser';
 import { toast } from 'react-hot-toast';
 
+// پاپ‌آپ تأیید مینیمال
+const ConfirmationPopover = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message,
+  type = 'warning',
+  confirmText = 'بله',
+  cancelText = 'انصراف'
+}) => {
+  if (!isOpen) return null;
+
+  const typeStyles = {
+    warning: {
+      icon: <FaExclamationCircle className="text-yellow-500 text-xl" />,
+      bgColor: 'bg-yellow-50',
+      borderColor: 'border-yellow-200',
+      confirmBtn: 'bg-yellow-500 hover:bg-yellow-600 text-white'
+    },
+    info: {
+      icon: <FaQuestionCircle className="text-blue-500 text-xl" />,
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+      confirmBtn: 'bg-blue-500 hover:bg-blue-600 text-white'
+    }
+  };
+
+  const styles = typeStyles[type];
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black bg-opacity-30" 
+        onClick={onClose}
+      />
+      
+      {/* Popover */}
+      <div className={`relative ${styles.bgColor} ${styles.borderColor} border rounded-lg shadow-xl max-w-sm w-full`}>
+        <div className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              {styles.icon}
+            </div>
+            
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-gray-800 mb-1">
+                {title}
+              </h3>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                {message}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition duration-200 flex items-center gap-1"
+            >
+              <FaBan className="text-xs" />
+              {cancelText}
+            </button>
+            
+            <button
+              onClick={() => {
+                onConfirm();
+                onClose();
+              }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition duration-200 flex items-center gap-1 ${styles.confirmBtn}`}
+            >
+              <FaCheck className="text-xs" />
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
   // استفاده از هوک‌ها
   const { data: reportInfo, isLoading: isReportLoading, error } = useReportInfo(rfiData?.RFI_Numbering);
   const { mutate: updateReport, isLoading: isUpdating } = useUpdateReport();
   
   const { user } = useUser();
+
+  // حالت‌های پاپ‌آپ
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  
+  // ردِ تغییرات
+  const initialDataRef = useRef(null);
+  const [hasChanges, setHasChanges] = useState(false);
 
   // تابع تبدیل تاریخ به شمسی
   const convertToPersianDate = (dateString) => {
@@ -136,58 +229,87 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
     { value: 'Objection', label: 'نیاز به اصلاحات' }
   ];
 
+  // تابع مقایسه دو مقدار
+  const areValuesEqual = (val1, val2) => {
+    if (val1 instanceof DateObject && val2 instanceof DateObject) {
+      return val1.format() === val2.format();
+    }
+    return val1 === val2;
+  };
+
+  // بررسی تغییرات
+  const checkForChanges = () => {
+    if (!initialDataRef.current) return false;
+
+    const initial = initialDataRef.current;
+    const current = {
+      reportRows: reportRows.map(row => ({
+        ...row,
+        receivedDate: row.receivedDate?.format?.() || row.receivedDate
+      }))
+    };
+
+    // مقایسه تعداد ردیف‌ها
+    if (initial.reportRows.length !== current.reportRows.length) {
+      return true;
+    }
+
+    // مقایسه محتوای ردیف‌ها
+    for (let i = 0; i < initial.reportRows.length; i++) {
+      const initialRow = initial.reportRows[i];
+      const currentRow = current.reportRows[i];
+      
+      const fields = [
+        'reportNumber', 'revNumber', 'status', 'corrections',
+        'receivedDate', 'approvedDays', 'unitNumber', 'vendorName',
+        'irn', 'srn', 'firstPrice', 'rfiNumbering'
+      ];
+      
+      for (const field of fields) {
+        if (!areValuesEqual(initialRow[field], currentRow[field])) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
   // ریست فرم وقتی مدال باز می‌شود
   useEffect(() => {
     if (isOpen) {
+      let initialReportRows = [];
+
       if (reportInfo) {
         console.log('📥 Setting report info from API:', reportInfo);
         
         // اگر داده از API آمد
-        setReportRows([{
+        initialReportRows = [{
           id: 1,
           reportNumber: reportInfo.reportNumber || '',
-          revNumber: reportInfo.revNumber || '', // RevNO از API
-          status: reportInfo.status || 'approved', // پیش‌فرض approved
+          revNumber: reportInfo.revNumber || '',
+          status: reportInfo.status || 'approved',
           corrections: reportInfo.corrections || '',
           receivedDate: convertToPersianDate(reportInfo.receivedDate),
           approvedDays: reportInfo.approvedDays || '',
           unitNumber: reportInfo.unitNumber || '',
           vendorName: reportInfo.vendorName || rfiData?.VendorName || '',
-          irn: reportInfo.irn || '', // از API گرفته شده
+          irn: reportInfo.irn || '',
           srn: reportInfo.srn || '',
           firstPrice: reportInfo.firstPrice || '80000000',
           rfiNumbering: reportInfo.rfiNumbering || rfiData?.RFI_Numbering || ''
-        }]);
+        }];
       } else if (error && error.response?.status === 404) {
         console.log('📭 No existing report found, creating new one');
         
         // اگر گزارش وجود ندارد، فرم خالی ایجاد کن
         const todayPersianDate = convertToPersianDate(new Date());
         
-        setReportRows([{
+        initialReportRows = [{
           id: 1,
           reportNumber: '',
-          revNumber: '', // RevNO خالی
-          status: 'approved', // پیش‌فرض approved
-          corrections: '',
-          receivedDate: todayPersianDate,
-          approvedDays: '',
-          unitNumber: '',
-          vendorName: rfiData?.VendorName || '',
-          irn: nextIRN || '', // برای گزارش جدید از nextIRN استفاده کن
-          srn: '',
-          firstPrice: '80000000',
-          rfiNumbering: rfiData?.RFI_Numbering || ''
-        }]);
-      } else if (!isReportLoading && !error) {
-        // حالت اولیه - هنوز لودینگ نیست و خطایی هم نیست
-        const todayPersianDate = convertToPersianDate(new Date());
-        
-        setReportRows([{
-          id: 1,
-          reportNumber: '',
-          revNumber: '', // RevNO خالی
-          status: 'approved', // پیش‌فرض approved
+          revNumber: '',
+          status: 'approved',
           corrections: '',
           receivedDate: todayPersianDate,
           approvedDays: '',
@@ -197,10 +319,49 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
           srn: '',
           firstPrice: '80000000',
           rfiNumbering: rfiData?.RFI_Numbering || ''
-        }]);
+        }];
+      } else if (!isReportLoading && !error) {
+        // حالت اولیه - هنوز لودینگ نیست و خطایی هم نیست
+        const todayPersianDate = convertToPersianDate(new Date());
+        
+        initialReportRows = [{
+          id: 1,
+          reportNumber: '',
+          revNumber: '',
+          status: 'approved',
+          corrections: '',
+          receivedDate: todayPersianDate,
+          approvedDays: '',
+          unitNumber: '',
+          vendorName: rfiData?.VendorName || '',
+          irn: nextIRN || '',
+          srn: '',
+          firstPrice: '80000000',
+          rfiNumbering: rfiData?.RFI_Numbering || ''
+        }];
       }
+
+      // ذخیره داده‌های اولیه
+      setReportRows(initialReportRows);
+      
+      initialDataRef.current = {
+        reportRows: initialReportRows.map(row => ({
+          ...row,
+          receivedDate: row.receivedDate?.format?.() || row.receivedDate
+        }))
+      };
+      
+      setHasChanges(false);
     }
   }, [isOpen, rfiData, reportInfo, user, error, isReportLoading, nextIRN]);
+
+  // بررسی تغییرات هنگام تغییر داده‌ها
+  useEffect(() => {
+    if (initialDataRef.current) {
+      const changed = checkForChanges();
+      setHasChanges(changed);
+    }
+  }, [reportRows]);
 
   // ========== مدیریت ردیف‌های جدول ==========
   const handleAddNewRow = () => {
@@ -210,14 +371,14 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
       {
         id: newId,
         reportNumber: '',
-        revNumber: '', // RevNO خالی
-        status: 'approved', // پیش‌فرض approved
+        revNumber: '',
+        status: 'approved',
         corrections: '',
         receivedDate: convertToPersianDate(new Date()),
         approvedDays: '',
         unitNumber: '',
         vendorName: rfiData?.VendorName || '',
-        irn: nextIRN || '', // برای سطر جدید از nextIRN استفاده کن
+        irn: nextIRN || '',
         srn: '',
         firstPrice: '80000000',
         rfiNumbering: rfiData?.RFI_Numbering || ''
@@ -241,8 +402,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
           ...rowToCopy,
           id: newId,
           reportNumber: '',
-          revNumber: rowToCopy.revNumber || '', // RevNO رو کپی کن
-          irn: nextIRN || '' // برای کپی سطر از nextIRN استفاده کن
+          revNumber: rowToCopy.revNumber || '',
+          irn: nextIRN || ''
         }
       ]);
     }
@@ -272,7 +433,6 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
       
       // وضعیت اختیاری - اگر خالی بود به عنوان approved در نظر بگیر
       if (!row.status) {
-        // اگر وضعیت خالی است، به صورت پیش‌فرض approved بذار
         handleRowChange(row.id, 'status', 'approved');
       }
       
@@ -295,9 +455,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
     return true;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
+  // هندلر اصلی ذخیره
+  const handleSubmitInternal = () => {
     if (!validateForm()) {
       return;
     }
@@ -323,10 +482,10 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
     // آماده‌سازی داده برای ارسال
     const reportData = {
       reportNumber: rowToSubmit.reportNumber.trim(),
-      revNumber: rowToSubmit.revNumber || '', // RevNO - اختیاری
-      status: rowToSubmit.status || 'approved', // اگر خالی بود approved بذار
+      revNumber: rowToSubmit.revNumber || '',
+      status: rowToSubmit.status || 'approved',
       corrections: rowToSubmit.corrections || '',
-      receivedDate: formattedReceivedDate, // تاریخ فرمت شده
+      receivedDate: formattedReceivedDate,
       approvedDays: rowToSubmit.approvedDays || '',
       unitNumber: rowToSubmit.unitNumber || '',
       vendorName: rowToSubmit.vendorName || '',
@@ -347,6 +506,14 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
         onSuccess: (data) => {
           console.log('✅ Update successful:', data);
           toast.success('✅ گزارش با موفقیت ذخیره شد');
+          // بروزرسانی داده‌های اولیه
+          initialDataRef.current = {
+            reportRows: reportRows.map(row => ({
+              ...row,
+              receivedDate: row.receivedDate?.format?.() || row.receivedDate
+            }))
+          };
+          setHasChanges(false);
           onClose();
         },
         onError: (error) => {
@@ -361,8 +528,33 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
     );
   };
 
-  const handleCancel = () => {
+  // هندلر کلیک روی دکمه ذخیره
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (hasChanges) {
+      // اگر تغییری ایجاد شده، پاپ‌آپ تأیید نمایش بده
+      setShowSaveConfirm(true);
+    } else {
+      // اگر تغییری نداد، مستقیماً ذخیره کن
+      handleSubmitInternal();
+    }
+  };
+
+  // هندلر انصراف
+  const handleCancelInternal = () => {
     onClose();
+  };
+
+  // هندلر کلیک روی دکمه انصراف
+  const handleCancel = () => {
+    if (hasChanges) {
+      // اگر تغییری ایجاد شده، پاپ‌آپ تأیید نمایش بده
+      setShowCancelConfirm(true);
+    } else {
+      // اگر تغییری نداد، مستقیماً ببند
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
@@ -387,6 +579,12 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
                     <span className="font-bold">IRN گزارش موجود: {reportInfo.irn}</span>
                   </p>
                 )}
+                {/* {hasChanges && !isReportLoading && (
+                  <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
+                    <FaExclamationTriangle className="text-xs" />
+                    تغییرات ذخیره نشده دارید
+                  </p>
+                )} */}
               </div>
             </div>
           </div>
@@ -445,200 +643,198 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
 
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm mb-4">
-            <div className="min-w-[1400px]">
-            <table className="w-full text-xs">
-          
-            
-            <thead>
-  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
-    <th className="p-3 text-right font-bold text-white text-xs min-w-[180px]">شماره گزارش *</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-[90px]">نوع گزارش</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-[130px]">وضعیت</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-[350px]">نظرات <span className="text-yellow-300 text-xs">*</span></th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-[120px]">تاریخ دریافت</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-[160px]">نام وندور</th>
-    <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>تائید‌شده(روز)</th>
-    <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>شماره واحد</th>
-    <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>IRN</th>
-    <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>SRN</th>
-    <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '6%' }}>عملیات</th>
-  </tr>
-</thead>
+              <div className="min-w-[1400px]">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
+                      <th className="p-3 text-right font-bold text-white text-xs min-w-[180px]">شماره گزارش *</th>
+                      <th className="p-3 text-right font-bold text-white text-xs min-w-[90px]">نوع گزارش</th>
+                      <th className="p-3 text-right font-bold text-white text-xs min-w-[130px]">وضعیت</th>
+                      <th className="p-3 text-right font-bold text-white text-xs min-w-[350px]">نظرات <span className="text-yellow-300 text-xs">*</span></th>
+                      <th className="p-3 text-right font-bold text-white text-xs min-w-[120px]">تاریخ دریافت</th>
+                      <th className="p-3 text-right font-bold text-white text-xs min-w-[160px]">نام وندور</th>
+                      <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>تائید‌شده(روز)</th>
+                      <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>شماره واحد</th>
+                      <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>IRN</th>
+                      <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>SRN</th>
+                      <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '6%' }}>عملیات</th>
+                    </tr>
+                  </thead>
 
-<tbody>
-  {reportRows.map((row, index) => (
-    <tr 
-      key={row.id} 
-      className={`border-b border-gray-200 transition duration-150 ${
-        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-      } hover:bg-blue-50`}
-    >
-      <td className="p-3 min-w-[180px]">
-        <input
-          type="text"
-          value={row.reportNumber}
-          onChange={(e) => handleRowChange(row.id, 'reportNumber', e.target.value)}
-          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="مثال: FAH-INS-APGT-0766"
-          disabled={isLoading}
-          required
-        />
-      </td>
+                  <tbody>
+                    {reportRows.map((row, index) => (
+                      <tr 
+                        key={row.id} 
+                        className={`border-b border-gray-200 transition duration-150 ${
+                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                        } hover:bg-blue-50`}
+                      >
+                        <td className="p-3 min-w-[180px]">
+                          <input
+                            type="text"
+                            value={row.reportNumber}
+                            onChange={(e) => handleRowChange(row.id, 'reportNumber', e.target.value)}
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="مثال: FAH-INS-APGT-0766"
+                            disabled={isLoading}
+                            required
+                          />
+                        </td>
 
-      <td className="p-3 min-w-[90px]">
-        <select
-          value={row.revNumber || ''}
-          onChange={(e) => handleRowChange(row.id, 'revNumber', e.target.value)}
-          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          disabled={isLoading}
-        >
-          <option value="">-</option>
-          <option value="rev">Rev</option>
-          <option value="multipart">Multipart</option>
-        </select>
-      </td>
+                        <td className="p-3 min-w-[90px]">
+                          <select
+                            value={row.revNumber || ''}
+                            onChange={(e) => handleRowChange(row.id, 'revNumber', e.target.value)}
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            disabled={isLoading}
+                          >
+                            <option value="">-</option>
+                            <option value="rev">Rev</option>
+                            <option value="multipart">Multipart</option>
+                          </select>
+                        </td>
 
-      <td className="p-3 min-w-[130px]">
-        <select
-          value={row.status}
-          onChange={(e) => {
-            handleRowChange(row.id, 'status', e.target.value);
-            if (e.target.value !== 'Objection') {
-              handleRowChange(row.id, 'corrections', '');
-            }
-          }}
-          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          disabled={isLoading}
-        >
-          <option value="approved">تائید شده</option>
-          <option value="Objection">نیاز به اصلاحات</option>
-        </select>
-      </td>
+                        <td className="p-3 min-w-[130px]">
+                          <select
+                            value={row.status}
+                            onChange={(e) => {
+                              handleRowChange(row.id, 'status', e.target.value);
+                              if (e.target.value !== 'Objection') {
+                                handleRowChange(row.id, 'corrections', '');
+                              }
+                            }}
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            disabled={isLoading}
+                          >
+                            <option value="approved">تائید شده</option>
+                            <option value="Objection">نیاز به اصلاحات</option>
+                          </select>
+                        </td>
 
-      <td className="p-3 min-w-[350px] align-middle">
-  <textarea
-    value={row.corrections}
-    title={row.corrections}
-    onChange={(e) => handleRowChange(row.id, 'corrections', e.target.value)}
-    className={`w-full px-3 py-2 text-xs border-gray-300 focus:ring-blue-500 border rounded-md focus:ring-2 focus:border-transparent resize-y overflow-auto
-      ${row.status === 'Objection' 
-        ? 'border-red-300 focus:ring-red-500 bg-red-50' 
-        : 'border-gray-300 focus:ring-blue-500'
-      }
-      [&::-webkit-scrollbar]:w-2
-      [&::-webkit-scrollbar-track]:bg-gray-100
-      [&::-webkit-scrollbar-thumb]:bg-blue-300
-      [&::-webkit-scrollbar-thumb]:rounded-full
-      [&::-webkit-scrollbar-thumb:hover]:bg-blue-400`}
-    placeholder={row.status === 'Objection' ? 'شرح نظرات الزامی است' : 'شرح نظرات (اختیاری)'}
-    disabled={isLoading}
-    required={row.status === 'Objection'}
-    rows="2"
-    style={{
-      minHeight: '38px',
-      maxHeight: '38px',
-      whiteSpace: 'pre-wrap',
-      wordWrap: 'break-word'
-    }}
-  />
-</td>
+                        <td className="p-3 min-w-[350px] align-middle">
+                          <textarea
+                            value={row.corrections}
+                            title={row.corrections}
+                            onChange={(e) => handleRowChange(row.id, 'corrections', e.target.value)}
+                            className={`w-full px-3 py-2 text-xs border-gray-300 focus:ring-blue-500 border rounded-md focus:ring-2 focus:border-transparent resize-y overflow-auto
+                              ${row.status === 'Objection' 
+                                ? 'border-red-300 focus:ring-red-500 bg-red-50' 
+                                : 'border-gray-300 focus:ring-blue-500'
+                              }
+                              [&::-webkit-scrollbar]:w-2
+                              [&::-webkit-scrollbar-track]:bg-gray-100
+                              [&::-webkit-scrollbar-thumb]:bg-blue-300
+                              [&::-webkit-scrollbar-thumb]:rounded-full
+                              [&::-webkit-scrollbar-thumb:hover]:bg-blue-400`}
+                            placeholder={row.status === 'Objection' ? 'شرح نظرات الزامی است' : 'شرح نظرات (اختیاری)'}
+                            disabled={isLoading}
+                            required={row.status === 'Objection'}
+                            rows="2"
+                            style={{
+                              minHeight: '38px',
+                              maxHeight: '38px',
+                              whiteSpace: 'pre-wrap',
+                              wordWrap: 'break-word'
+                            }}
+                          />
+                        </td>
 
-      <td className="p-3 min-w-[120px]">
-        <DatePicker
-          value={row.receivedDate}
-          onChange={(date) => handleRowChange(row.id, 'receivedDate', date)}
-          calendar={persian}
-          locale={persian_fa}
-          format="YYYY/MM/DD"
-          inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          disabled={isLoading}
-        />
-      </td>
+                        <td className="p-3 min-w-[120px]">
+                          <DatePicker
+                            value={row.receivedDate}
+                            onChange={(date) => handleRowChange(row.id, 'receivedDate', date)}
+                            calendar={persian}
+                            locale={persian_fa}
+                            format="YYYY/MM/DD"
+                            inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            disabled={isLoading}
+                          />
+                        </td>
 
-      <td className="p-3 min-w-[160px]">
-        <input
-          type="text"
-          value={row.vendorName}
-          onChange={(e) => handleRowChange(row.id, 'vendorName', e.target.value)}
-          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="نام وندور"
-          disabled={isLoading}
-        />
-      </td>
+                        <td className="p-3 min-w-[160px]">
+                          <input
+                            type="text"
+                            value={row.vendorName}
+                            onChange={(e) => handleRowChange(row.id, 'vendorName', e.target.value)}
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="نام وندور"
+                            disabled={isLoading}
+                          />
+                        </td>
 
-      <td className="p-3" style={{ width: '8%' }}>
-        <input
-          type="number"
-          value={row.approvedDays}
-          onChange={(e) => handleRowChange(row.id, 'approvedDays', e.target.value)}
-          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="تعداد روز"
-          min="0"
-          disabled={isLoading}
-        />
-      </td>
+                        <td className="p-3" style={{ width: '8%' }}>
+                          <input
+                            type="number"
+                            value={row.approvedDays}
+                            onChange={(e) => handleRowChange(row.id, 'approvedDays', e.target.value)}
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="تعداد روز"
+                            min="0"
+                            disabled={isLoading}
+                          />
+                        </td>
 
-      <td className="p-3" style={{ width: '8%' }}>
-        <input
-          type="text"
-          value={row.unitNumber}
-          onChange={(e) => handleRowChange(row.id, 'unitNumber', e.target.value)}
-          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="شماره واحد"
-          disabled={isLoading}
-        />
-      </td>
+                        <td className="p-3" style={{ width: '8%' }}>
+                          <input
+                            type="text"
+                            value={row.unitNumber}
+                            onChange={(e) => handleRowChange(row.id, 'unitNumber', e.target.value)}
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="شماره واحد"
+                            disabled={isLoading}
+                          />
+                        </td>
 
-      <td className="p-3" style={{ width: '8%' }}>
-        <input
-          type="text"
-          value={row.irn}
-          onChange={(e) => handleRowChange(row.id, 'irn', e.target.value)}
-          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="IRN"
-          disabled={isLoading}
-          title={row.id === 1 && reportInfo?.irn ? "IRN از گزارش موجود" : "IRN جدید"}
-        />
-      </td>
+                        <td className="p-3" style={{ width: '8%' }}>
+                          <input
+                            type="text"
+                            value={row.irn}
+                            onChange={(e) => handleRowChange(row.id, 'irn', e.target.value)}
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="IRN"
+                            disabled={isLoading}
+                            title={row.id === 1 && reportInfo?.irn ? "IRN از گزارش موجود" : "IRN جدید"}
+                          />
+                        </td>
 
-      <td className="p-3" style={{ width: '8%' }}>
-        <input
-          type="text"
-          value={row.srn}
-          onChange={(e) => handleRowChange(row.id, 'srn', e.target.value)}
-          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="SRN"
-          disabled={isLoading}
-        />
-      </td>
+                        <td className="p-3" style={{ width: '8%' }}>
+                          <input
+                            type="text"
+                            value={row.srn}
+                            onChange={(e) => handleRowChange(row.id, 'srn', e.target.value)}
+                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="SRN"
+                            disabled={isLoading}
+                          />
+                        </td>
 
-      <td className="p-3" style={{ width: '6%' }}>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => handleCopyRow(row.id)}
-            className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200"
-            title="کپی کردن سطر"
-            disabled={isLoading}
-          >
-            <FaCopy className="text-xs" />
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDeleteRow(row.id)}
-            className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200"
-            title="حذف سطر"
-            disabled={reportRows.length === 1 || isLoading}
-          >
-            <FaTrash className="text-xs" />
-          </button>
-        </div>
-      </td>
-    </tr>
-  ))}
-</tbody>
-                        </table>
-            </div>
+                        <td className="p-3" style={{ width: '6%' }}>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyRow(row.id)}
+                              className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200"
+                              title="کپی کردن سطر"
+                              disabled={isLoading}
+                            >
+                              <FaCopy className="text-xs" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRow(row.id)}
+                              className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200"
+                              title="حذف سطر"
+                              disabled={reportRows.length === 1 || isLoading}
+                            >
+                              <FaTrash className="text-xs" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Mobile View */}
@@ -859,6 +1055,30 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
           </form>
         )}
       </div>
+
+      {/* پاپ‌آپ تأیید ذخیره */}
+      <ConfirmationPopover
+        isOpen={showSaveConfirm}
+        onClose={() => setShowSaveConfirm(false)}
+        onConfirm={handleSubmitInternal}
+        title="تغییرات ذخیره نشده"
+        message="آیا از ذخیره‌سازی تغییرات ایجاد شده در گزارش اطمینان دارید؟"
+        type="warning"
+        confirmText="بله، ذخیره کن"
+        cancelText="انصراف"
+      />
+
+      {/* پاپ‌آپ تأیید انصراف */}
+      <ConfirmationPopover
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        onConfirm={handleCancelInternal}
+        title="انصراف از تغییرات"
+        message="تغییرات ایجاد شده در گزارش ذخیره نشده‌اند. آیا مطمئن هستید که می‌خواهید انصراف دهید؟"
+        type="info"
+        confirmText="بله، انصراف بده"
+        cancelText="بازگشت"
+      />
     </div>
   );
 };
