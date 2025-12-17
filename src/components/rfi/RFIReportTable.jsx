@@ -16,7 +16,7 @@ import { useNotificationInfo } from '../../hooks/useNotificationNumber';
 import NotificationInfoModal from '../ui/NotificationInfoModal/NotificationInfoModal';
 import { useLastIRN } from '../../hooks/useProjects';
 import { FaHashtag, FaCalendarCheck } from 'react-icons/fa';
-import PaginationControls from '../ui/PaginationControls'; // اضافه شد
+import PaginationControls from '../ui/PaginationControls';
 
 // Hooks
 import { useProjects } from '../../hooks/useProjects';
@@ -938,7 +938,7 @@ case 'Duration':
     </div>
     
     {/* صفحه‌بندی */}
-    {totalPages > 1 && (
+    {totalPages > 0 && (
       <PaginationControls
         currentPage={currentPage}
         totalPages={totalPages}
@@ -1049,7 +1049,7 @@ case 'Duration':
     ))}
     
     {/* صفحه‌بندی برای موبایل */}
-    {totalPages > 1 && (
+    {totalPages > 0 && (
       <PaginationControls
         currentPage={currentPage}
         totalPages={totalPages}
