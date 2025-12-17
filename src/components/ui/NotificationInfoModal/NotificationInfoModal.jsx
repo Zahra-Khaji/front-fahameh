@@ -372,7 +372,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -417,7 +417,8 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-6 bg-blue-100 rounded-r"></div>
+              <div className="w-3 h-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-r"></div>
+               
                 <h4 className="text-base font-bold text-gray-800">اطلاعات نوتیفیکیشن</h4>
                 <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
                   {notificationRows.length} مورد
@@ -438,23 +439,23 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             {/* Desktop Table - نوتیفیکیشن */}
             <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm mb-4">
               <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-blue-100">
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-40">شماره نوتیفیکشن</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-24">وضعیت</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-28">بازرس</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-48">توضیحات</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-28">تاریخ دریافت</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-24">لوکیشن</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-28">تاریخ بازرسی</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-32">نام وندور</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-20">مدت</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-28">نام بازرس</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-32">Remark</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-24">شماره فولدر</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-24">عملیات</th>
-                  </tr>
-                </thead>
+              <thead>
+  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
+    <th className="p-3 text-right font-bold text-white text-xs min-w-40">شماره نوتیفیکشن</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-24">وضعیت</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-28">بازرس</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-48">توضیحات</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-28">تاریخ دریافت</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-24">لوکیشن</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-28">تاریخ بازرسی</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-32">نام وندور</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-20">مدت</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-28">نام بازرس</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-32">Remark</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-24">شماره فولدر</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-24">عملیات</th>
+  </tr>
+</thead>
                 <tbody>
                   {notificationRows.map((row, index) => (
                     <tr 
@@ -842,14 +843,14 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               
               {/* دکمه اضافه کردن برای موبایل */}
               <button
-                type="button"
-                onClick={handleAddNotificationRow}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-gray-800 border border-blue-200 font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading || isUpdating}
-              >
-                <FaPlusCircle className="text-base text-gray-700" />
-                افزودن سطر جدید
-              </button>
+  type="button"
+  onClick={handleAddNotificationRow}
+  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+  disabled={isLoading || isUpdating}
+>
+  <FaPlusCircle className="text-base" />
+  افزودن سطر جدید
+</button>
             </div>
           </div>
 
@@ -857,7 +858,8 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-6 bg-blue-100 rounded-r"></div>
+              <div className="w-3 h-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-r"></div>
+
                 <h4 className="text-base font-bold text-gray-800">اطلاعات تاریخ های بازرسی</h4>
                 <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
                   {rfiDatesRows.length} مورد
@@ -865,28 +867,27 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               </div>
               
               <button
-                type="button"
-                onClick={handleAddRfiDatesRow}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-gray-800 border border-blue-200 text-sm font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading || isUpdating}
-              >
-                <FaPlusCircle className="text-base text-gray-700" />
-                افزودن سطر جدید
-              </button>
+  type="button"
+  onClick={handleAddRfiDatesRow}
+  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+  disabled={isLoading || isUpdating}
+>
+  <FaPlusCircle className="text-base" />
+  افزودن سطر جدید
+</button>
             </div>
 
             {/* Desktop Table - صورت وضعیت بازرس */}
             <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
               <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-blue-100">
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-32">شروع تاریخ بازرسی</th>
-                    {/* <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-28">تائید/عدم تائید</th> */}
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-40">بازرس اول</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-36">دستمزد</th>
-                    <th className="p-3 text-right font-bold text-gray-800 text-xs min-w-20">عملیات</th>
-                  </tr>
-                </thead>
+              <thead>
+  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
+    <th className="p-3 text-right font-bold text-white text-xs min-w-32">شروع تاریخ بازرسی</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-40">بازرس اول</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-36">دستمزد</th>
+    <th className="p-3 text-right font-bold text-white text-xs min-w-20">عملیات</th>
+  </tr>
+</thead>
                 <tbody>
                   {rfiDatesRows.map((row, index) => (
                     <tr 
@@ -1074,46 +1075,46 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               
               {/* دکمه اضافه کردن برای موبایل */}
               <button
-                type="button"
-                onClick={handleAddRfiDatesRow}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-gray-800 border border-blue-200 font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading || isUpdating}
-              >
-                <FaPlusCircle className="text-base text-gray-700" />
-                افزودن سطر جدید
-              </button>
+  type="button"
+  onClick={handleAddRfiDatesRow}
+  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+  disabled={isLoading || isUpdating}
+>
+  <FaPlusCircle className="text-base" />
+  افزودن سطر جدید
+</button>
             </div>
           </div>
 
           {/* دکمه‌های ثبت و انصراف */}
           <div className="flex gap-3 pt-6 border-t border-gray-200">
-            <button
-              type="submit"
-              disabled={isLoading || isUpdating}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 hover:bg-blue-200 text-gray-800 border border-blue-200 font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isUpdating ? (
-                <>
-                  <FaSync className="animate-spin text-lg text-gray-700" />
-                  در حال ذخیره...
-                </>
-              ) : (
-                <>
-                  <FaCheckCircle className="text-lg text-gray-700" />
-                  ذخیره اطلاعات
-                </>
-              )}
-            </button>
+          <button
+  type="submit"
+  disabled={isLoading || isUpdating}
+  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  {isUpdating ? (
+    <>
+      <FaSync className="animate-spin text-lg" />
+      در حال ذخیره...
+    </>
+  ) : (
+    <>
+      <FaCheckCircle className="text-lg" />
+      ذخیره اطلاعات
+    </>
+  )}
+</button>
             
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={isUpdating}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300 font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FaTimes className="text-lg text-gray-700" />
-              انصراف
-            </button>
+<button
+  type="button"
+  onClick={handleCancel}
+  disabled={isUpdating}
+  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  <FaTimes className="text-lg" />
+  انصراف
+</button>
           </div>
         </form>
       </div>
