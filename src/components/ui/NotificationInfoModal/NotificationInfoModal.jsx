@@ -1,5 +1,5 @@
 // src/components/ui/NotificationInfoModal/NotificationInfoModal.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FaTimes, 
   FaHashtag, 
@@ -18,7 +18,11 @@ import {
   FaMoneyBillWave,
   FaSync,
   FaExclamationTriangle,
-  FaEdit
+  FaEdit,
+  FaExclamationCircle,
+  FaQuestionCircle,
+  FaCheck,
+  FaBan
 } from 'react-icons/fa';
 import DatePicker from "react-multi-date-picker";
 import DateObject from "react-date-object";
@@ -27,10 +31,122 @@ import persian_fa from "react-date-object/locales/persian_fa";
 import { useNotificationInfo, useUpdateNotification } from '../../../hooks/useNotificationNumber';
 import { toast } from 'react-hot-toast';
 
+// پاپ‌آپ تأیید مینیمال
+const ConfirmationPopover = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message,
+  type = 'warning',
+  confirmText = 'بله',
+  cancelText = 'انصراف'
+}) => {
+  if (!isOpen) return null;
+
+  const typeStyles = {
+    warning: {
+      icon: <FaExclamationCircle className="text-yellow-500 text-xl" />,
+      bgColor: 'bg-yellow-50',
+      borderColor: 'border-yellow-200',
+      confirmBtn: 'bg-yellow-500 hover:bg-yellow-600 text-white'
+    },
+    info: {
+      icon: <FaQuestionCircle className="text-blue-500 text-xl" />,
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+      confirmBtn: 'bg-blue-500 hover:bg-blue-600 text-white'
+    }
+  };
+
+  const styles = typeStyles[type];
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black bg-opacity-30" 
+        onClick={onClose}
+      />
+      
+      {/* Popover */}
+      <div className={`relative ${styles.bgColor} ${styles.borderColor} border rounded-lg shadow-xl max-w-sm w-full`}>
+        <div className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              {styles.icon}
+            </div>
+            
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-gray-800 mb-1">
+                {title}
+              </h3>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                {message}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition duration-200 flex items-center gap-1"
+            >
+              <FaBan className="text-xs" />
+              {cancelText}
+            </button>
+            
+            <button
+              onClick={() => {
+                onConfirm();
+                onClose();
+              }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition duration-200 flex items-center gap-1 ${styles.confirmBtn}`}
+            >
+              <FaCheck className="text-xs" />
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
   // استفاده از هوک‌های یکپارچه
   const { data: notificationData, isLoading, error } = useNotificationInfo(rfiNumber);
   const { mutate: updateNotification, isLoading: isUpdating } = useUpdateNotification();
+
+  // حالت‌های پاپ‌آپ
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  
+  // ردِ تغییرات
+  const initialDataRef = useRef(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // حالت‌های جدول نوتیفیکیشن
+  const [notificationRows, setNotificationRows] = useState([]);
+  const [rfiDatesRows, setRfiDatesRows] = useState([]);
+
+  // حالت‌های ممکن
+  const statusOptions = [
+    { value: 'انجام شده', label: 'انجام شده' },
+    { value: 'در حال انجام', label: 'در حال انجام' }
+  ];
+
+  // نوع بازرس
+  const inspectorTypeOptions = [
+    { value: 'فریلنسر', label: 'فریلنسر' },
+    { value: 'بازرس داخلی', label: 'بازرس داخلی' }
+  ];
+
+  // وضعیت تأیید
+  const approvalOptions = [
+    { value: '1', label: 'تائید شده' },
+    { value: '0', label: 'تائید نشده' }
+  ];
 
   // تابع تبدیل تاریخ به شمسی
   const convertToPersianDate = (dateString) => {
@@ -61,37 +177,88 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
     }
   };
 
-  // حالت‌های جدول نوتیفیکیشن
-  const [notificationRows, setNotificationRows] = useState([]);
-  const [rfiDatesRows, setRfiDatesRows] = useState([]);
+  // تابع مقایسه دو مقدار
+  const areValuesEqual = (val1, val2) => {
+    if (val1 instanceof DateObject && val2 instanceof DateObject) {
+      return val1.format() === val2.format();
+    }
+    return val1 === val2;
+  };
 
-  // حالت‌های ممکن
-  const statusOptions = [
-    { value: 'انجام شده', label: 'انجام شده' },
-    { value: 'در حال انجام', label: 'در حال انجام' }
-  ];
+  // بررسی تغییرات
+  const checkForChanges = () => {
+    if (!initialDataRef.current) return false;
 
-  // نوع بازرس
-  const inspectorTypeOptions = [
-    { value: 'فریلنسر', label: 'فریلنسر' },
-    { value: 'بازرس داخلی', label: 'بازرس داخلی' }
-  ];
+    const initial = initialDataRef.current;
+    const current = {
+      notificationRows: notificationRows.map(row => ({
+        ...row,
+        receivedDate: row.receivedDate?.format?.() || row.receivedDate,
+        inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate
+      })),
+      rfiDatesRows: rfiDatesRows.map(row => ({
+        ...row,
+        inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate
+      }))
+    };
 
-  // وضعیت تأیید
-  const approvalOptions = [
-    { value: '1', label: 'تائید شده' },
-    { value: '0', label: 'تائید نشده' }
-  ];
+    // مقایسه ردیف‌های نوتیفیکیشن
+    if (initial.notificationRows.length !== current.notificationRows.length) {
+      return true;
+    }
+
+    for (let i = 0; i < initial.notificationRows.length; i++) {
+      const initialRow = initial.notificationRows[i];
+      const currentRow = current.notificationRows[i];
+      
+      const fields = [
+        'notificationNumber', 'status', 'inspectorType', 'description',
+        'receivedDate', 'location', 'inspectionDate', 'vendorName',
+        'duration', 'inspectorName', 'remark', 'folderNumber',
+        'material', 'goodsDescription', 'qty3rdPartyInspector',
+        'approvedDuration', 'projectType', 'rfiStatus'
+      ];
+      
+      for (const field of fields) {
+        if (!areValuesEqual(initialRow[field], currentRow[field])) {
+          return true;
+        }
+      }
+    }
+
+    // مقایسه ردیف‌های تاریخ‌های بازرسی
+    if (initial.rfiDatesRows.length !== current.rfiDatesRows.length) {
+      return true;
+    }
+
+    for (let i = 0; i < initial.rfiDatesRows.length; i++) {
+      const initialRow = initial.rfiDatesRows[i];
+      const currentRow = current.rfiDatesRows[i];
+      
+      const fields = ['inspectionDate', 'approvalStatus', 'inspectorName', 'fee'];
+      
+      for (const field of fields) {
+        if (!areValuesEqual(initialRow[field], currentRow[field])) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
 
   // ریست فرم وقتی مدال باز می‌شود
   useEffect(() => {
     if (isOpen) {
+      let initialNotificationRows = [];
+      let initialRfiDatesRows = [];
+
       if (notificationData) {
         const { timeTable, rfiDates } = notificationData;
         
         // پر کردن جدول نوتیفیکیشن
         if (timeTable) {
-          setNotificationRows([{
+          initialNotificationRows = [{
             id: 1,
             notificationNumber: timeTable.RFI_Numbering || rfiNumber || '',
             status: timeTable.RFI_Status === 'Done' ? 'انجام شده' : 'در حال انجام',
@@ -111,10 +278,10 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             approvedDuration: timeTable.approved_Duration || '0',
             projectType: timeTable.Over_Domestic || '',
             rfiStatus: timeTable.RFI_Status || ''
-          }]);
+          }];
         } else {
           // اگر داده‌ای نبود، ردیف خالی ایجاد کن
-          setNotificationRows([{
+          initialNotificationRows = [{
             id: 1,
             notificationNumber: rfiNumber || '',
             status: 'در حال انجام',
@@ -134,32 +301,30 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             approvedDuration: '0',
             projectType: '',
             rfiStatus: ''
-          }]);
+          }];
         }
 
         // پر کردن جدول صورت وضعیت بازرس
         if (rfiDates && rfiDates.length > 0) {
-          setRfiDatesRows(
-            rfiDates.map((item, index) => ({
-              id: index + 1,
-              inspectionDate: convertToPersianDate(item.RFI_Date),
-              approvalStatus: item.ApproveManday || item.ApproveManday1 || '0',
-              inspectorName: item.Inspector_Name || '',
-              fee: item.InspectorPrice ? `${item.InspectorPrice.toLocaleString('fa-IR')}` : ''
-            }))
-          );
+          initialRfiDatesRows = rfiDates.map((item, index) => ({
+            id: index + 1,
+            inspectionDate: convertToPersianDate(item.RFI_Date),
+            approvalStatus: item.ApproveManday || item.ApproveManday1 || '0',
+            inspectorName: item.Inspector_Name || '',
+            fee: item.InspectorPrice ? `${item.InspectorPrice.toLocaleString('fa-IR')}` : ''
+          }));
         } else {
-          setRfiDatesRows([{
+          initialRfiDatesRows = [{
             id: 1,
             inspectionDate: convertToPersianDate(new Date()),
             approvalStatus: '0',
             inspectorName: '',
             fee: ''
-          }]);
+          }];
         }
       } else {
         // اگر notificationData null بود، ردیف‌های پیش‌فرض ایجاد کن
-        setNotificationRows([{
+        initialNotificationRows = [{
           id: 1,
           notificationNumber: rfiNumber || '',
           status: 'در حال انجام',
@@ -179,18 +344,44 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           approvedDuration: '0',
           projectType: '',
           rfiStatus: ''
-        }]);
+        }];
         
-        setRfiDatesRows([{
+        initialRfiDatesRows = [{
           id: 1,
           inspectionDate: convertToPersianDate(new Date()),
           approvalStatus: '0',
           inspectorName: '',
           fee: ''
-        }]);
+        }];
       }
+
+      // ذخیره داده‌های اولیه
+      setNotificationRows(initialNotificationRows);
+      setRfiDatesRows(initialRfiDatesRows);
+      
+      initialDataRef.current = {
+        notificationRows: initialNotificationRows.map(row => ({
+          ...row,
+          receivedDate: row.receivedDate?.format?.() || row.receivedDate,
+          inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate
+        })),
+        rfiDatesRows: initialRfiDatesRows.map(row => ({
+          ...row,
+          inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate
+        }))
+      };
+      
+      setHasChanges(false);
     }
   }, [isOpen, notificationData, rfiNumber]);
+
+  // بررسی تغییرات هنگام تغییر داده‌ها
+  useEffect(() => {
+    if (initialDataRef.current) {
+      const changed = checkForChanges();
+      setHasChanges(changed);
+    }
+  }, [notificationRows, rfiDatesRows]);
 
   // ========== مدیریت ردیف‌های جدول نوتیفیکیشن ==========
   const handleAddNotificationRow = () => {
@@ -323,9 +514,8 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
     return true;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
+  // هندلر اصلی ذخیره
+  const handleSubmitInternal = () => {
     if (!validateForm()) {
       return;
     }
@@ -354,6 +544,19 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
       {
         onSuccess: () => {
           toast.success('✅ اطلاعات با موفقیت ذخیره شد');
+          // بروزرسانی داده‌های اولیه
+          initialDataRef.current = {
+            notificationRows: notificationRows.map(row => ({
+              ...row,
+              receivedDate: row.receivedDate?.format?.() || row.receivedDate,
+              inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate
+            })),
+            rfiDatesRows: rfiDatesRows.map(row => ({
+              ...row,
+              inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate
+            }))
+          };
+          setHasChanges(false);
           onClose();
         },
         onError: (error) => {
@@ -364,8 +567,33 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
     );
   };
 
-  const handleCancel = () => {
+  // هندلر کلیک روی دکمه ذخیره
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (hasChanges) {
+      // اگر تغییری ایجاد شده، پاپ‌آپ تأیید نمایش بده
+      setShowSaveConfirm(true);
+    } else {
+      // اگر تغییری نداد، مستقیماً ذخیره کن
+      handleSubmitInternal();
+    }
+  };
+
+  // هندلر انصراف
+  const handleCancelInternal = () => {
     onClose();
+  };
+
+  // هندلر کلیک روی دکمه انصراف
+  const handleCancel = () => {
+    if (hasChanges) {
+      // اگر تغییری ایجاد شده، پاپ‌آپ تأیید نمایش بده
+      setShowCancelConfirm(true);
+    } else {
+      // اگر تغییری نداد، مستقیماً ببند
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
@@ -388,6 +616,12 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                     در حال دریافت اطلاعات...
                   </p>
                 )}
+                {/* {hasChanges && !isLoading && (
+                  <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
+                    <FaExclamationTriangle className="text-xs" />
+                    تغییرات ذخیره نشده دارید
+                  </p>
+                )} */}
               </div>
             </div>
           </div>
@@ -417,45 +651,34 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-              <div className="w-3 h-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-r"></div>
-               
+                <div className="w-3 h-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-r"></div>
                 <h4 className="text-base font-bold text-gray-800">اطلاعات نوتیفیکیشن</h4>
                 <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
                   {notificationRows.length} مورد
                 </span>
               </div>
-              
-              {/* <button
-                type="button"
-                onClick={handleAddNotificationRow}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-gray-800 border border-blue-200 text-sm font-semibold rounded-lg transition duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading || isUpdating}
-              >
-                <FaPlusCircle className="text-base text-gray-700" />
-                افزودن سطر جدید
-              </button> */}
             </div>
 
             {/* Desktop Table - نوتیفیکیشن */}
             <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm mb-4">
               <table className="w-full text-xs">
-              <thead>
-  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
-    <th className="p-3 text-right font-bold text-white text-xs min-w-40">شماره نوتیفیکشن</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-24">وضعیت</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-28">بازرس</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-48">توضیحات</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-28">تاریخ دریافت</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-24">لوکیشن</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-28">تاریخ بازرسی</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-32">نام وندور</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-20">مدت</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-28">نام بازرس</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-32">Remark</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-24">شماره فولدر</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-24">عملیات</th>
-  </tr>
-</thead>
+                <thead>
+                  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-40">شماره نوتیفیکشن</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-24">وضعیت</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-28">بازرس</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-48">توضیحات</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-28">تاریخ دریافت</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-24">لوکیشن</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-28">تاریخ بازرسی</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-32">نام وندور</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-20">مدت</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-28">نام بازرس</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-32">Remark</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-24">شماره فولدر</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-24">عملیات</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {notificationRows.map((row, index) => (
                     <tr 
@@ -843,14 +1066,14 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               
               {/* دکمه اضافه کردن برای موبایل */}
               <button
-  type="button"
-  onClick={handleAddNotificationRow}
-  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-  disabled={isLoading || isUpdating}
->
-  <FaPlusCircle className="text-base" />
-  افزودن سطر جدید
-</button>
+                type="button"
+                onClick={handleAddNotificationRow}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || isUpdating}
+              >
+                <FaPlusCircle className="text-base" />
+                افزودن سطر جدید
+              </button>
             </div>
           </div>
 
@@ -858,8 +1081,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-              <div className="w-3 h-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-r"></div>
-
+                <div className="w-3 h-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-r"></div>
                 <h4 className="text-base font-bold text-gray-800">اطلاعات تاریخ های بازرسی</h4>
                 <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
                   {rfiDatesRows.length} مورد
@@ -867,27 +1089,27 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               </div>
               
               <button
-  type="button"
-  onClick={handleAddRfiDatesRow}
-  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-  disabled={isLoading || isUpdating}
->
-  <FaPlusCircle className="text-base" />
-  افزودن سطر جدید
-</button>
+                type="button"
+                onClick={handleAddRfiDatesRow}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || isUpdating}
+              >
+                <FaPlusCircle className="text-base" />
+                افزودن سطر جدید
+              </button>
             </div>
 
             {/* Desktop Table - صورت وضعیت بازرس */}
             <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
               <table className="w-full text-xs">
-              <thead>
-  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
-    <th className="p-3 text-right font-bold text-white text-xs min-w-32">شروع تاریخ بازرسی</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-40">بازرس اول</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-36">دستمزد</th>
-    <th className="p-3 text-right font-bold text-white text-xs min-w-20">عملیات</th>
-  </tr>
-</thead>
+                <thead>
+                  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-32">شروع تاریخ بازرسی</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-40">بازرس اول</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-36">دستمزد</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-20">عملیات</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {rfiDatesRows.map((row, index) => (
                     <tr 
@@ -908,22 +1130,6 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           disabled={isLoading || isUpdating}
                         />
                       </td>
-
-                      {/* تائید/عدم تائید */}
-                      {/* <td className="p-3">
-                        <select
-                          value={row.approvalStatus}
-                          onChange={(e) => handleRfiDatesRowChange(row.id, 'approvalStatus', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
-                          disabled={isLoading || isUpdating}
-                        >
-                          {approvalOptions.map(option => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td> */}
 
                       {/* بازرس اول */}
                       <td className="p-3">
@@ -964,15 +1170,6 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                           >
                             <FaCopy className="text-xs" />
                           </button>
-                          {/* <button
-                            type="button"
-                            onClick={() => handleDeleteRfiDatesRow(row.id)}
-                            className="text-gray-700 hover:text-gray-900 p-1.5 rounded hover:bg-blue-100 transition duration-200"
-                            title="حذف سطر"
-                            disabled={rfiDatesRows.length === 1 || isLoading || isUpdating}
-                          >
-                            <FaTrash className="text-xs" />
-                          </button> */}
                         </div>
                       </td>
                     </tr>
@@ -1075,49 +1272,73 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               
               {/* دکمه اضافه کردن برای موبایل */}
               <button
-  type="button"
-  onClick={handleAddRfiDatesRow}
-  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-  disabled={isLoading || isUpdating}
->
-  <FaPlusCircle className="text-base" />
-  افزودن سطر جدید
-</button>
+                type="button"
+                onClick={handleAddRfiDatesRow}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || isUpdating}
+              >
+                <FaPlusCircle className="text-base" />
+                افزودن سطر جدید
+              </button>
             </div>
           </div>
 
           {/* دکمه‌های ثبت و انصراف */}
           <div className="flex gap-3 pt-6 border-t border-gray-200">
-          <button
-  type="submit"
-  disabled={isLoading || isUpdating}
-  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
->
-  {isUpdating ? (
-    <>
-      <FaSync className="animate-spin text-lg" />
-      در حال ذخیره...
-    </>
-  ) : (
-    <>
-      <FaCheckCircle className="text-lg" />
-      ذخیره اطلاعات
-    </>
-  )}
-</button>
+            <button
+              type="submit"
+              disabled={isLoading || isUpdating}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUpdating ? (
+                <>
+                  <FaSync className="animate-spin text-lg" />
+                  در حال ذخیره...
+                </>
+              ) : (
+                <>
+                  <FaCheckCircle className="text-lg" />
+                  ذخیره اطلاعات
+                </>
+              )}
+            </button>
             
-<button
-  type="button"
-  onClick={handleCancel}
-  disabled={isUpdating}
-  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
->
-  <FaTimes className="text-lg" />
-  انصراف
-</button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={isUpdating}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FaTimes className="text-lg" />
+              انصراف
+            </button>
           </div>
         </form>
       </div>
+
+      {/* پاپ‌آپ تأیید ذخیره */}
+      <ConfirmationPopover
+        isOpen={showSaveConfirm}
+        onClose={() => setShowSaveConfirm(false)}
+        onConfirm={handleSubmitInternal}
+        title="تغییرات ذخیره نشده"
+        message="آیا از ذخیره‌سازی تغییرات ایجاد شده اطمینان دارید؟"
+        type="warning"
+        confirmText="بله، ذخیره کن"
+        cancelText="انصراف"
+      />
+
+      {/* پاپ‌آپ تأیید انصراف */}
+      <ConfirmationPopover
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        onConfirm={handleCancelInternal}
+        title="انصراف از تغییرات"
+        message="تغییرات ایجاد شده ذخیره نشده‌اند. آیا مطمئن هستید که می‌خواهید انصراف دهید؟"
+        type="info"
+        confirmText="بله، انصراف بده"
+        cancelText="بازگشت"
+      />
     </div>
   );
 };
