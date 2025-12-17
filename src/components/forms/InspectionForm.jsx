@@ -1,5 +1,5 @@
 // src/components/forms/InspectionForm.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo,useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,8 +10,8 @@ import {
   FaMapMarkerAlt,
   FaBuilding,
   FaUser,
-  FaPlusCircle,
-  FaGlobe
+  FaPlusCircle
+  ,FaHashtag
 } from 'react-icons/fa';
 
 // Components
@@ -24,6 +24,7 @@ import Button from '../ui/Button';
 import ErrorPopup from '../ui/ErrorPopup';
 import AddProjectModal from '../ui/AddProjectModal';
 import AddVendorModal from '../ui/AddVendorModal';
+import PopupInfo from '../ui/PopupInfo';
 
 // Data & Utils
 import { projectTypes } from '../../data/staticData';
@@ -36,6 +37,7 @@ import { useProvinces, useCities } from '../../hooks/useProvinces';
 import { useVendors } from '../../hooks/useVendors'; 
 import { useProjectTypes } from '../../hooks/useProjectTypes';
 import { useCountries } from '../../hooks/useCountries';
+import { useNotificationNumber } from '../../hooks/useNotificationNumber';
 
 const InspectionForm = ({ onComplete, onBack, previousData }) => {
   // خواندن stateهای ذخیره شده از previousData
@@ -48,6 +50,7 @@ const InspectionForm = ({ onComplete, onBack, previousData }) => {
   const [selectedCountryId, setSelectedCountryId] = useState(savedFormState.selectedCountryId || '');
   const [feeDisplayValue, setFeeDisplayValue] = useState(savedFormState.feeDisplayValue || '');
   const [isFeeFocused, setIsFeeFocused] = useState(savedFormState.isFeeFocused || false);
+  const [showNotificationInfoPopup, setShowNotificationInfoPopup] = useState(false);
   
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -140,6 +143,8 @@ const InspectionForm = ({ onComplete, onBack, previousData }) => {
     return [...(vendors || []), ...tempVendors];
   }, [vendors, tempVendors]);
 
+
+
   // تبدیل داده‌ها به فرمت مورد نیاز برای SearchableSelect
   const projectOptions = useMemo(() => {
     return allProjects?.map(project => ({
@@ -214,6 +219,58 @@ const InspectionForm = ({ onComplete, onBack, previousData }) => {
 
   const currentProvince = watch('projectInfo.province');
   const currentProjectType = watch('projectInfo.projectType');
+
+     // دریافت اطلاعات پروژه انتخابی
+     const selectedProject = useMemo(() => {
+      return allProjects?.find(project => project.id === selectedProjectId);
+    }, [allProjects, selectedProjectId]);
+  
+    // دریافت نام نوع پروژه
+    const selectedProjectTypeName = useMemo(() => {
+      const typeId = watch('projectInfo.projectType');
+      if (!typeId || !projectTypes) return '';
+      
+      const type = projectTypes.find(t => 
+        t.id === typeId || t.id?.toString() === typeId?.toString()
+      );
+      return type?.name || '';
+    }, [watch('projectInfo.projectType'), projectTypes]);
+  
+    // استفاده از هوک برای دریافت شماره نوتیفیکیشن
+    const { 
+      data: notificationData, 
+      isLoading: notificationLoading, 
+      error: notificationError,
+      refetch: refetchNotificationNumber
+    } = useNotificationNumber(
+      selectedProjectId, 
+      watch('projectInfo.projectType')
+    );
+  
+    // محاسبه آخرین شماره ثبت شده (منهای یک)
+    const lastNotificationNumber = useMemo(() => {
+      if (!notificationData?.next_rfi_numbering) return null;
+      
+      const nextNumber = parseInt(notificationData.next_rfi_numbering);
+      if (isNaN(nextNumber) || nextNumber <= 1) return null;
+      
+      return nextNumber - 1;
+    }, [notificationData]);
+// 1. وقتی پروژه یا نوعش عوض شد، شماره بگیر
+useEffect(() => {
+  if (selectedProjectId && currentProjectType) {
+    refetchNotificationNumber();
+  }
+}, [selectedProjectId, currentProjectType]);
+
+// 2. وقتی notificationData آمد، پاپ‌آپ رو نشون بده
+useEffect(() => {
+  if (notificationData && selectedProjectId && currentProjectType) {
+    setTimeout(() => setShowNotificationInfoPopup(true), 300);
+  }
+}, [notificationData, selectedProjectId, currentProjectType]);
+
+
   
   // پیدا کردن نوع پروژه بر اساس ID
   const getProjectTypeNameById = (id) => {
@@ -1005,6 +1062,14 @@ useEffect(() => {
         isOpen={showAddVendorModal}
         onClose={() => setShowAddVendorModal(false)}
         onAddVendor={handleAddVendor}
+      />
+        {/* پاپ‌آپ نمایش اطلاعات آخرین شماره ثبت */}
+        <PopupInfo
+  isOpen={showNotificationInfoPopup}
+  onClose={() => setShowNotificationInfoPopup(false)}
+  projectName={selectedProject?.name || selectedProject?.label || 'نامشخص'}
+  projectType={selectedProjectTypeName}
+  notificationNumber={lastNotificationNumber}
       />
 
       <ErrorPopup
