@@ -42,6 +42,7 @@ import { useNotificationNumber } from '../../hooks/useNotificationNumber';
 const InspectionForm = ({ onComplete, onBack, previousData }) => {
   // خواندن stateهای ذخیره شده از previousData
   const savedFormState = previousData?.formState || {};
+  // const hasInitializedRef = useRef(false);
   
   const [selectedInspectorId, setSelectedInspectorId] = useState(savedFormState.selectedInspectorId || '');
   const [selectedProjectId, setSelectedProjectId] = useState(savedFormState.selectedProjectId || '');
@@ -514,12 +515,9 @@ useEffect(() => {
       : `${baseClass} bg-white border-gray-300`;
   };
 
-  // پر کردن فرم با داده‌های ذخیره شده
-// در InspectionForm.jsx - پیدا کردن useEffect مربوط به پر کردن فرم با داده‌های ذخیره شده
-// (حدوداً خط 480-510)
 
 // پر کردن فرم با داده‌های ذخیره شده
-// اضافه کردن لاگ‌های تشخیصی
+// پر کردن فرم با داده‌های ذخیره شده
 useEffect(() => {
   console.log('🔍 useEffect for restoring form values started');
   console.log('📋 savedFormState:', savedFormState);
@@ -534,6 +532,7 @@ useEffect(() => {
     if (selectedProject) {
       setValue('projectInfo.projectName', selectedProject.name);
       setValue('projectInfo.projectId', selectedProject.id);
+      setSelectedProjectId(savedFormState.selectedProjectId); // این خط را اضافه کن
       console.log('✅ Project name set to:', selectedProject.name);
     }
   }
@@ -543,6 +542,7 @@ useEffect(() => {
     console.log('👤 Found inspector:', selectedInspector?.name, 'for ID:', savedFormState.selectedInspectorId);
     if (selectedInspector) {
       setValue('inspectorInfo.inspectorName', selectedInspector.name);
+      setSelectedInspectorId(savedFormState.selectedInspectorId); // این خط را اضافه کن
       console.log('✅ Inspector name set to:', selectedInspector.name);
     }
   }
@@ -550,53 +550,42 @@ useEffect(() => {
   if (savedFormState.selectedVendorId) {
     console.log('🏭 Setting vendor ID:', savedFormState.selectedVendorId);
     setValue('projectInfo.vendor', savedFormState.selectedVendorId);
+    setSelectedVendorId(savedFormState.selectedVendorId); // این خط را اضافه کن
     console.log('✅ Vendor set');
   }
   
-  // اصلاح این بخش برای استان
+  // اصلاح این بخش برای استان - بسیار مهم!
   if (savedFormState.selectedProvinceId) {
     console.log('📍 Trying to set province ID:', savedFormState.selectedProvinceId);
     
-    // بررسی آیا استان در لیست وجود دارد
-    const provinceExists = provinces?.some(p => 
-      p.id === savedFormState.selectedProvinceId || 
-      p.id?.toString() === savedFormState.selectedProvinceId?.toString()
-    );
-    console.log('📌 Province exists in list?', provinceExists);
+    // اول state را تنظیم کن
+    setSelectedProvinceId(savedFormState.selectedProvinceId);
     
-    if (provinceExists) {
-      setValue('projectInfo.province', savedFormState.selectedProvinceId);
-      console.log('✅ Province ID set to:', savedFormState.selectedProvinceId);
-    } else {
-      console.log('❌ Province not found in list, checking previousData...');
-      // شاید در previousData نام استان ذخیره شده باشد
-      if (previousData?.projectInfo?.province) {
-        console.log('🔄 Using province from previousData:', previousData.projectInfo.province);
-        setValue('projectInfo.province', previousData.projectInfo.province);
-      }
-    }
+    // سپس مقدار را در react-hook-form تنظیم کن
+    setValue('projectInfo.province', savedFormState.selectedProvinceId, { shouldValidate: true });
+    
+    console.log('✅ Province ID set to:', savedFormState.selectedProvinceId);
   } else if (previousData?.projectInfo?.province) {
     console.log('📦 Setting province from previousData:', previousData.projectInfo.province);
-    setValue('projectInfo.province', previousData.projectInfo.province);
+    const provinceId = previousData.projectInfo.province;
+    setSelectedProvinceId(provinceId);
+    setValue('projectInfo.province', provinceId, { shouldValidate: true });
   }
   
   // اصلاح این بخش برای کشور
   if (savedFormState.selectedCountryId) {
     console.log('🌍 Trying to set country ID:', savedFormState.selectedCountryId);
     
-    const countryExists = countries?.some(c => 
-      c.id === savedFormState.selectedCountryId || 
-      c.id?.toString() === savedFormState.selectedCountryId?.toString()
-    );
-    console.log('📌 Country exists in list?', countryExists);
+    const countryId = savedFormState.selectedCountryId;
+    setSelectedCountryId(countryId);
+    setValue('projectInfo.country', countryId, { shouldValidate: true });
     
-    if (countryExists) {
-      setValue('projectInfo.country', savedFormState.selectedCountryId);
-      console.log('✅ Country ID set to:', savedFormState.selectedCountryId);
-    }
+    console.log('✅ Country ID set to:', countryId);
   } else if (previousData?.projectInfo?.country) {
     console.log('📦 Setting country from previousData:', previousData.projectInfo.country);
-    setValue('projectInfo.country', previousData.projectInfo.country);
+    const countryId = previousData.projectInfo.country;
+    setSelectedCountryId(countryId);
+    setValue('projectInfo.country', countryId, { shouldValidate: true });
   }
   
   // اضافه کردن شهر
@@ -605,32 +594,17 @@ useEffect(() => {
     
     // صبر کن تا شهرها بارگذاری شوند
     if (cities && cities.length > 0) {
-      const cityExists = cities?.some(c => 
-        c.id === previousData.projectInfo.city || 
-        c.id?.toString() === previousData.projectInfo.city?.toString()
-      );
-      console.log('📌 City exists in list?', cityExists);
-      
-      if (cityExists) {
-        setValue('projectInfo.city', previousData.projectInfo.city);
-        console.log('✅ City ID set to:', previousData.projectInfo.city);
-      } else {
-        console.log('⚠️ City not found in current cities list');
-      }
+      const cityId = previousData.projectInfo.city;
+      setValue('projectInfo.city', cityId, { shouldValidate: true });
+      console.log('✅ City ID set to:', cityId);
     } else {
       console.log('⏳ Cities not loaded yet, will try again...');
       // یک تایم‌اوت برای تلاش مجدد
       setTimeout(() => {
         if (cities && cities.length > 0) {
-          const cityExists = cities?.some(c => 
-            c.id === previousData.projectInfo.city || 
-            c.id?.toString() === previousData.projectInfo.city?.toString()
-          );
-          console.log('🔄 Retry - City exists?', cityExists);
-          if (cityExists) {
-            setValue('projectInfo.city', previousData.projectInfo.city);
-            console.log('✅ City ID set (retry):', previousData.projectInfo.city);
-          }
+          const cityId = previousData.projectInfo.city;
+          setValue('projectInfo.city', cityId, { shouldValidate: true });
+          console.log('✅ City ID set (retry):', cityId);
         }
       }, 1000);
     }
@@ -638,21 +612,26 @@ useEffect(() => {
   
   if (previousData?.projectInfo?.projectType) {
     console.log('🏷️ Setting project type:', previousData.projectInfo.projectType);
-    setValue('projectInfo.projectType', previousData.projectInfo.projectType);
-    setValue('projectInfo.projectTypeId', previousData.projectInfo.projectType);
+    const projectTypeId = previousData.projectInfo.projectType;
+    setValue('projectInfo.projectType', projectTypeId, { shouldValidate: true });
+    setValue('projectInfo.projectTypeId', projectTypeId, { shouldValidate: true });
     console.log('✅ Project type set');
   }
   
   // لاگ وضعیت نهایی فرم
   setTimeout(() => {
     console.log('📊 Final form values:');
-    console.log('- Province:', watch('projectInfo.province'));
+    console.log('- selectedProvinceId:', selectedProvinceId);
+    console.log('- Province field:', watch('projectInfo.province'));
+    console.log('- selectedProjectId:', selectedProjectId);
+    console.log('- selectedInspectorId:', selectedInspectorId);
+    console.log('- selectedVendorId:', selectedVendorId);
     console.log('- City:', watch('projectInfo.city'));
     console.log('- Country:', watch('projectInfo.country'));
     console.log('- Project Type:', watch('projectInfo.projectType'));
   }, 500);
   
-}, [savedFormState, allProjects, inspectors, setValue, provinces, cities, countries]);
+}, [savedFormState, allProjects, inspectors, setValue, provinces, cities, countries, previousData]);
 
   const onSubmit = (data) => {
     console.log('Form Data:', data);
