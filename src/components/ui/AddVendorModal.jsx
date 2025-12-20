@@ -13,14 +13,19 @@ import {
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import Button from './Button';
-import { useCreateVendor } from '../../hooks/useCreateVendor';
+// import { useCreateVendor } from '../../hooks/useCreateVendor';
+import { useCreateVendor } from '../../hooks/useVendors';
 
-const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
+const AddVendorModal = ({ isOpen, onClose, onAddVendor,isForeign = false
+
+
+}) => {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
     phone: '',
-    email: ''
+    email: '',
+    over_domestic: isForeign 
   });
   
   const [localError, setLocalError] = useState('');
@@ -31,10 +36,10 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
   // ریست فرم وقتی مدال باز یا بسته می‌شود
   useEffect(() => {
     if (isOpen) {
-      setFormData({ name: '', address: '', phone: '', email: '' });
+      setFormData({ name: '', address: '', phone: '', email: '',over_domestic: isForeign  });
       setLocalError('');
     }
-  }, [isOpen]);
+  }, [isOpen,isForeign]);
 
   // ترجمه خطای سرور به فارسی - **آپدیت برای فرمت جدید خطا**
   const translateError = (error) => {
@@ -192,7 +197,7 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
         
         // بستن مدال
         setTimeout(() => {
-          setFormData({ name: '', address: '', phone: '', email: '' });
+          setFormData({ name: '', address: '', phone: '', email: '', over_domestic: isForeign });
           setIsSubmitting(false);
           onClose();
         }, 500);

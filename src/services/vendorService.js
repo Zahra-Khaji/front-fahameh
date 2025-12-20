@@ -2,11 +2,13 @@
 import http from './httpService';
 
 class VendorService {
-  // گرفتن لیست تمام وندورها
-  async getAllVendors() {
+  // گرفتن لیست وندورها بر اساس نوع پروژه
+  async getAllVendors(isForeign = false) {
     try {
-      const response = await http.get('/vendors');
-      console.log('Vendors API Response:', response.data);
+      // تبدیل boolean به string برای URL
+      const foreignParam = isForeign ? 'true' : 'false';
+      const response = await http.get(`/vendors/${foreignParam}`);
+      console.log('Vendors API Response for isForeign:', isForeign, response.data);
       return this.transformVendorsData(response.data);
     } catch (error) {
       console.error('Error fetching vendors:', error);
@@ -25,69 +27,70 @@ class VendorService {
     }
   }
 
-
-async createVendor(vendorData) {
-  try {
-    console.log('📤 Creating new vendor:', vendorData);
-    
-    // داده‌های ارسالی به API (فقط name)
-    const apiData = {
-      name: vendorData.name.trim()
-    };
-
-    console.log('📤 Sending to /create_new_vendor:', apiData);
-    
-    const response = await http.post('/vendors', apiData);
-    console.log('✅ Vendor created successfully:', response.data);
-    
-    // پاسخ API: { "message": "Created new vendor successfully", "data": 4007 }
-    const newVendorId = response.data.data || `vendor-${Date.now()}`;
-    
-    return {
-      id: newVendorId.toString(),
-      name: vendorData.name.trim(),
-      address: vendorData.address || '',
-      phone: vendorData.phone || '',
-      email: vendorData.email || '',
-      isTemp: false
-    };
-  } catch (error) {
-    console.error('❌ Error creating vendor:', error);
-    
-    // مدیریت خطا با فرمت جدید
-    let errorMessage = 'خطا در ایجاد وندور';
-    
-    if (error.response) {
-      const { status, data } = error.response;
+  async createVendor(vendorData) {
+    try {
+      console.log('📤 Creating new vendor:', vendorData);
       
-      if (status === 400 || status === 409) {
-        if (data.detail) {
-          // **مدیریت خطای تکراری با فرمت جدید: 'Vendor Name "تست" already exists.'**
-          if (data.detail.includes('already exists')) {
-            // استخراج نام وندور از پیام خطا
-            const match = data.detail.match(/Vendor Name "([^"]+)"/);
-            const vendorName = match ? match[1] : vendorData.name;
-            errorMessage = `نام وندور "${vendorName}" تکراری است. لطفاً نام دیگری انتخاب کنید.`;
-          } else {
-            errorMessage = data.detail;
+      // **اضافه کردن فیلد over_domestic**
+      const apiData = {
+        name: vendorData.name.trim(),
+        over_domestic: vendorData.over_domestic || false  // فیلد جدید
+      };
+
+      console.log('📤 Sending to /vendors endpoint:', apiData);
+      
+      // توجه: آدرس endpoint هم به /vendors تغییر کرد
+      const response = await http.post('/vendors', apiData);
+      console.log('✅ Vendor created successfully:', response.data);
+      
+      // **پاسخ جدید API: احتمالاً دیتا کامل برمی‌گرداند**
+      const newVendor = response.data;
+      
+      return {
+        id: newVendor.id?.toString() || `vendor-${Date.now()}`,
+        name: vendorData.name.trim(),
+        address: vendorData.address || '',
+        phone: vendorData.phone || '',
+        email: vendorData.email || '',
+        isTemp: false,
+        over_domestic: vendorData.over_domestic || false
+      };
+    } catch (error) {
+      console.error('❌ Error creating vendor:', error);
+      
+      // مدیریت خطا (بدون تغییر)
+      let errorMessage = 'خطا در ایجاد وندور';
+      
+      if (error.response) {
+        const { status, data } = error.response;
+        
+        if (status === 400 || status === 409) {
+          if (data.detail) {
+            // **مدیریت خطای تکراری با فرمت جدید: 'Vendor Name "تست" already exists.'**
+            if (data.detail.includes('already exists')) {
+              const match = data.detail.match(/Vendor Name "([^"]+)"/);
+              const vendorName = match ? match[1] : vendorData.name;
+              errorMessage = `نام وندور "${vendorName}" تکراری است. لطفاً نام دیگری انتخاب کنید.`;
+            } else {
+              errorMessage = data.detail;
+            }
+          } else if (data.message) {
+            errorMessage = data.message;
           }
-        } else if (data.message) {
-          errorMessage = data.message;
+        } else if (status === 401) {
+          errorMessage = 'دسترسی غیرمجاز. لطفاً دوباره وارد شوید.';
+        } else if (status === 500) {
+          errorMessage = 'خطای سرور. لطفاً دوباره تلاش کنید.';
         }
-      } else if (status === 401) {
-        errorMessage = 'دسترسی غیرمجاز. لطفاً دوباره وارد شوید.';
-      } else if (status === 500) {
-        errorMessage = 'خطای سرور. لطفاً دوباره تلاش کنید.';
       }
+      
+      const customError = new Error(errorMessage);
+      customError.originalError = error;
+      customError.vendorData = vendorData;
+      
+      throw customError;
     }
-    
-    const customError = new Error(errorMessage);
-    customError.originalError = error;
-    customError.vendorData = vendorData;
-    
-    throw customError;
   }
-}
 
   // تبدیل داده‌های دریافتی از API به فرمت مورد نیاز کامپوننت
   transformVendorsData(apiData) {
