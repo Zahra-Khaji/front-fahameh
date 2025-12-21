@@ -1,5 +1,5 @@
 // src/hooks/useCreateReport.js
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"; // اضافه کردن useQueryClient
 import reportService from "../services/reportService";
 
 // کلیدهای query برای cache management
@@ -47,8 +47,9 @@ export const useReportInfo = (rfiNumbering) => {
 };
 
 // هوک جدید برای ثبت گزارش جدید (POST)
-// هوک جدید برای ثبت گزارش جدید (POST)
 export const useCreateNewReport = () => {
+  const queryClient = useQueryClient(); // اضافه کردن queryClient
+
   return useMutation({
     mutationFn: async ({ reportData, rfiNumbering }) => {
       console.log(
@@ -92,6 +93,18 @@ export const useCreateNewReport = () => {
         "✅ useCreateNewReport: onSuccess for RFI:",
         variables.rfiNumbering
       );
+
+      // اینوالیدیت queryهای RFIReportTable
+      queryClient.invalidateQueries({
+        queryKey: ["rfiReport"], // کلید اصلی که useRFIReport استفاده می‌کند
+      });
+
+      // همچنین اینوالیدیت query جزئیات این گزارش
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.detail(variables.rfiNumbering),
+      });
+
+      console.log("🔄 RFI Report queries invalidated");
     },
     onError: (error, variables) => {
       console.error(
@@ -105,6 +118,8 @@ export const useCreateNewReport = () => {
 
 // هوک برای آپدیت گزارش موجود (PUT)
 export const useUpdateReport = () => {
+  const queryClient = useQueryClient(); // اضافه کردن queryClient
+
   return useMutation({
     mutationFn: async ({ reportData, rfiNumbering }) => {
       console.log("🎯 useUpdateReport: Updating report for RFI:", rfiNumbering);
@@ -123,6 +138,18 @@ export const useUpdateReport = () => {
         "✅ useUpdateReport: onSuccess for RFI:",
         variables.rfiNumbering
       );
+
+      // اینوالیدیت queryهای RFIReportTable
+      queryClient.invalidateQueries({
+        queryKey: ["rfiReport"], // کلید اصلی که useRFIReport استفاده می‌کند
+      });
+
+      // همچنین اینوالیدیت query جزئیات این گزارش
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.detail(variables.rfiNumbering),
+      });
+
+      console.log("🔄 RFI Report queries invalidated");
     },
     onError: (error, variables) => {
       console.error(
@@ -136,6 +163,8 @@ export const useUpdateReport = () => {
 
 // هوک قدیمی برای backward compatibility
 export const useCreateReport = () => {
+  const queryClient = useQueryClient(); // اضافه کردن queryClient
+
   return useMutation({
     mutationFn: async (reportData) => {
       console.log("🎯 useCreateReport: Mutation started with:", reportData);
@@ -145,6 +174,11 @@ export const useCreateReport = () => {
     },
     onSuccess: (data) => {
       console.log("✅ useCreateReport: onSuccess called with:", data);
+
+      // اینوالیدیت queryهای RFIReportTable برای backward compatibility
+      queryClient.invalidateQueries({
+        queryKey: ["rfiReport"],
+      });
     },
     onError: (error) => {
       console.error("❌ useCreateReport: onError called with:", error);
