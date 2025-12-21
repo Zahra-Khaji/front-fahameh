@@ -309,7 +309,9 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           initialRfiDatesRows = rfiDates.map((item, index) => ({
             id: index + 1,
             inspectionDate: convertToPersianDate(item.RFI_Date),
-            approvalStatus: item.ApproveManday || item.ApproveManday1 || '0',
+            approveManday: item.ApproveManday != null && item.ApproveManday !== '' ? 
+            Number(item.ApproveManday) : '-',
+
             inspectorName: item.Inspector_Name || '',
             fee: item.InspectorPrice ? `${item.InspectorPrice.toLocaleString('fa-IR')}` : ''
           }));
@@ -449,7 +451,10 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
       {
         id: newId,
         inspectionDate: convertToPersianDate(new Date()),
-        approvalStatus: '0',
+        // approvalStatus: '0',
+        // approvedManday: 0, 
+        // مقدار پیش‌فرض صفر
+        approveManday: '-',
         inspectorName: '',
         fee: ''
       }
@@ -566,6 +571,23 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
       }
     );
   };
+
+// تابع بررسی و نمایش مقدار ApproveManday
+const displayApproveManday = (value) => {
+  // اگر مقدار null یا undefined یا خالی باشد
+  if (value == null || value === '' || value === undefined) {
+    return '-';
+  }
+  
+  // اگر عدد یا رشته عددی باشد
+  const numValue = Number(value);
+  if (!isNaN(numValue)) {
+    return numValue;
+  }
+  
+  // در غیر این صورت خط تیره
+  return '-';
+};
 
   // هندلر کلیک روی دکمه ذخیره
   const handleSubmit = (e) => {
@@ -1099,188 +1121,252 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               </button>
             </div>
 
-            {/* Desktop Table - صورت وضعیت بازرس */}
-            <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
-                    <th className="p-3 text-right font-bold text-white text-xs min-w-32">شروع تاریخ بازرسی</th>
-                    <th className="p-3 text-right font-bold text-white text-xs min-w-40">بازرس اول</th>
-                    <th className="p-3 text-right font-bold text-white text-xs min-w-36">دستمزد</th>
-                    <th className="p-3 text-right font-bold text-white text-xs min-w-20">عملیات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rfiDatesRows.map((row, index) => (
-                    <tr 
-                      key={row.id} 
-                      className={`border-b border-gray-200 transition duration-150 ${
-                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                      } hover:bg-blue-50`}
-                    >
-                      {/* تاریخ بازرسی */}
-                      <td className="p-3">
-                        <DatePicker
-                          value={row.inspectionDate}
-                          onChange={(date) => handleRfiDatesRowChange(row.id, 'inspectionDate', date)}
-                          calendar={persian}
-                          locale={persian_fa}
-                          format="YYYY/MM/DD"
-                          inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
-                          disabled={isLoading || isUpdating}
-                        />
-                      </td>
+       {/* Desktop Table - صورت وضعیت بازرس */}
+<div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
+  <table className="w-full text-xs table-fixed">
+    <thead>
+      <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
+        <th className="p-3 text-right font-bold text-white text-xs w-1/6">شروع تاریخ بازرسی</th>
+        <th className="p-3 text-right font-bold text-white text-xs w-1/6">تعداد روز تائید شده</th>
+        <th className="p-3 text-right font-bold text-white text-xs w-1/4">بازرس اول</th>
+        <th className="p-3 text-right font-bold text-white text-xs w-1/5">دستمزد</th>
+        <th className="p-3 text-right font-bold text-white text-xs w-1/12">عملیات</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rfiDatesRows.map((row, index) => (
+        <tr 
+          key={row.id} 
+          className={`border-b border-gray-200 transition duration-150 ${
+            index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+          } hover:bg-blue-50`}
+        >
+          {/* تاریخ بازرسی */}
+          <td className="p-2">
+            <DatePicker
+              value={row.inspectionDate}
+              onChange={(date) => handleRfiDatesRowChange(row.id, 'inspectionDate', date)}
+              calendar={persian}
+              locale={persian_fa}
+              format="YYYY/MM/DD"
+              inputClass="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent"
+              disabled={isLoading || isUpdating}
+            />
+          </td>
 
-                      {/* بازرس اول */}
-                      <td className="p-3">
-                        <input
-                          type="text"
-                          value={row.inspectorName}
-                          onChange={(e) => handleRfiDatesRowChange(row.id, 'inspectorName', e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
-                          placeholder="نام بازرس"
-                          disabled={isLoading || isUpdating}
-                        />
-                      </td>
+{/* ستون جدید: تعداد روز تائید شده */}
+<td className="p-2">
+  <input
+    type="text"
+    value={displayApproveManday(row.approveManday)}
+    onChange={(e) => {
+      const newValue = e.target.value.trim();
+      
+      // اگر خالی یا خط تیره باشد
+      if (newValue === '' || newValue === '-') {
+        handleRfiDatesRowChange(row.id, 'approveManday', '-');
+      } 
+      // اگر عدد باشد
+      else {
+        const numValue = parseInt(newValue, 10);
+        if (!isNaN(numValue)) {
+          handleRfiDatesRowChange(row.id, 'approveManday', numValue);
+        } else {
+          // اگر عدد نبود، مقدار قبلی را نگه دار
+          handleRfiDatesRowChange(row.id, 'approveManday', row.approveManday);
+        }
+      }
+    }}
+    onFocus={(e) => {
+      if (e.target.value === '-') {
+        e.target.value = '';
+      }
+    }}
+    onBlur={(e) => {
+      const currentValue = e.target.value.trim();
+      if (currentValue === '') {
+        e.target.value = '-';
+        handleRfiDatesRowChange(row.id, 'approveManday', '-');
+      }
+    }}
+    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent text-center"
+    placeholder="-"
+    disabled={isLoading || isUpdating}
+  />
+</td>
 
-                      {/* دستمزد */}
-                      <td className="p-3">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={row.fee}
-                            onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent pl-8"
-                            placeholder="مبلغ"
-                            disabled={isLoading || isUpdating}
-                          />
-                          <FaMoneyBillWave className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-                        </div>
-                      </td>
+          {/* بازرس اول */}
+          <td className="p-2">
+            <input
+              type="text"
+              value={row.inspectorName}
+              onChange={(e) => handleRfiDatesRowChange(row.id, 'inspectorName', e.target.value)}
+              className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent"
+              placeholder="نام بازرس"
+              disabled={isLoading || isUpdating}
+            />
+          </td>
 
-                      {/* عملیات */}
-                      <td className="p-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleCopyRfiDatesRow(row.id)}
-                            className="text-gray-700 hover:text-gray-900 p-1.5 rounded hover:bg-blue-100 transition duration-200"
-                            title="کپی کردن سطر"
-                            disabled={isLoading || isUpdating}
-                          >
-                            <FaCopy className="text-xs" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* دستمزد */}
+          <td className="p-2">
+            <div className="relative">
+              <input
+                type="text"
+                value={row.fee}
+                onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent pl-6"
+                placeholder="مبلغ"
+                disabled={isLoading || isUpdating}
+              />
+              <FaMoneyBillWave className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
             </div>
+          </td>
 
-            {/* Mobile View - صورت وضعیت بازرس */}
-            <div className="md:hidden space-y-4">
-              {rfiDatesRows.map((row, index) => (
-                <div key={row.id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-2">
-                      <FaCalendarAlt className="text-gray-700" />
-                      <span className="font-semibold">سطر #{index + 1}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyRfiDatesRow(row.id)}
-                        className="text-gray-700 hover:text-gray-900 p-1"
-                        title="کپی"
-                        disabled={isLoading || isUpdating}
-                      >
-                        <FaCopy className="text-sm" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteRfiDatesRow(row.id)}
-                        className="text-gray-700 hover:text-gray-900 p-1"
-                        title="حذف"
-                        disabled={rfiDatesRows.length === 1 || isLoading || isUpdating}
-                      >
-                        <FaTrash className="text-sm" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 gap-3 text-xs">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-gray-600 block mb-1">تاریخ بازرسی</span>
-                        <DatePicker
-                          value={row.inspectionDate}
-                          onChange={(date) => handleRfiDatesRowChange(row.id, 'inspectionDate', date)}
-                          calendar={persian}
-                          locale={persian_fa}
-                          format="YYYY/MM/DD"
-                          inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoading || isUpdating}
-                        />
-                      </div>
-                      <div>
-                        <span className="text-gray-600 block mb-1">تائید/عدم تائید</span>
-                        <select
-                          value={row.approvalStatus}
-                          onChange={(e) => handleRfiDatesRowChange(row.id, 'approvalStatus', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoading || isUpdating}
-                        >
-                          {approvalOptions.map(option => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-gray-600 block mb-1">بازرس اول</span>
-                      <input
-                        type="text"
-                        value={row.inspectorName}
-                        onChange={(e) => handleRfiDatesRowChange(row.id, 'inspectorName', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                        placeholder="نام بازرس"
-                        disabled={isLoading || isUpdating}
-                      />
-                    </div>
-
-                    <div>
-                      <span className="text-gray-600 block mb-1">دستمزد</span>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={row.fee}
-                          onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs pl-8"
-                          placeholder="مبلغ"
-                          disabled={isLoading || isUpdating}
-                        />
-                        <FaMoneyBillWave className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {/* دکمه اضافه کردن برای موبایل */}
+          {/* عملیات */}
+          <td className="p-2">
+            <div className="flex items-center justify-center gap-1">
               <button
                 type="button"
-                onClick={handleAddRfiDatesRow}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => handleCopyRfiDatesRow(row.id)}
+                className="text-gray-600 hover:text-blue-600 p-1.5 rounded hover:bg-blue-50 transition duration-200"
+                title="کپی کردن سطر"
                 disabled={isLoading || isUpdating}
               >
-                <FaPlusCircle className="text-base" />
-                افزودن سطر جدید
+                <FaCopy className="text-xs" />
               </button>
             </div>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+        {/* Mobile View - صورت وضعیت بازرس */}
+<div className="md:hidden space-y-4">
+  {rfiDatesRows.map((row, index) => (
+    <div key={row.id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm">
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-2">
+          <FaCalendarAlt className="text-gray-700" />
+          <span className="font-semibold">سطر #{index + 1}</span>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => handleCopyRfiDatesRow(row.id)}
+            className="text-gray-700 hover:text-gray-900 p-1"
+            title="کپی"
+            disabled={isLoading || isUpdating}
+          >
+            <FaCopy className="text-sm" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeleteRfiDatesRow(row.id)}
+            className="text-gray-700 hover:text-gray-900 p-1"
+            title="حذف"
+            disabled={rfiDatesRows.length === 1 || isLoading || isUpdating}
+          >
+            <FaTrash className="text-sm" />
+          </button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-3 text-xs">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <span className="text-gray-600 block mb-1">تاریخ بازرسی</span>
+            <DatePicker
+              value={row.inspectionDate}
+              onChange={(date) => handleRfiDatesRowChange(row.id, 'inspectionDate', date)}
+              calendar={persian}
+              locale={persian_fa}
+              format="YYYY/MM/DD"
+              inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
+              disabled={isLoading || isUpdating}
+            />
+          </div>
+        
+          <div>
+  <span className="text-gray-600 block mb-1">تعداد روز تائید شده</span>
+  <input
+    type="text"
+    value={displayApproveManday(row.approveManday)}
+    onChange={(e) => {
+      const newValue = e.target.value.trim();
+      
+      if (newValue === '' || newValue === '-') {
+        handleRfiDatesRowChange(row.id, 'approveManday', '-');
+      } else {
+        const numValue = parseInt(newValue, 10);
+        if (!isNaN(numValue)) {
+          handleRfiDatesRowChange(row.id, 'approveManday', numValue);
+        } else {
+          handleRfiDatesRowChange(row.id, 'approveManday', row.approveManday);
+        }
+      }
+    }}
+    onFocus={(e) => {
+      if (e.target.value === '-') {
+        e.target.value = '';
+      }
+    }}
+    onBlur={(e) => {
+      const currentValue = e.target.value.trim();
+      if (currentValue === '') {
+        e.target.value = '-';
+        handleRfiDatesRowChange(row.id, 'approveManday', '-');
+      }
+    }}
+    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs text-center"
+    placeholder="-"
+    disabled={isLoading || isUpdating}
+  />
+</div>
+        </div>
+
+        <div>
+          <span className="text-gray-600 block mb-1">بازرس اول</span>
+          <input
+            type="text"
+            value={row.inspectorName}
+            onChange={(e) => handleRfiDatesRowChange(row.id, 'inspectorName', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
+            placeholder="نام بازرس"
+            disabled={isLoading || isUpdating}
+          />
+        </div>
+
+        <div>
+          <span className="text-gray-600 block mb-1">دستمزد</span>
+          <div className="relative">
+            <input
+              type="text"
+              value={row.fee}
+              onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs pl-8"
+              placeholder="مبلغ"
+              disabled={isLoading || isUpdating}
+            />
+            <FaMoneyBillWave className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+          </div>
+        </div>
+      </div>
+    </div>
+  ))}
+  
+  {/* دکمه اضافه کردن برای موبایل */}
+  <button
+    type="button"
+    onClick={handleAddRfiDatesRow}
+    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+    disabled={isLoading || isUpdating}
+  >
+    <FaPlusCircle className="text-base" />
+    افزودن سطر جدید
+  </button>
+</div>
           </div>
 
           {/* دکمه‌های ثبت و انصراف */}
