@@ -1,6 +1,7 @@
 // src/components/rfi/RFIReportTable.jsx
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import ReactDOM from 'react-dom';
 import { 
   FaTable, FaSearch, FaSync, FaFileAlt, FaArrowRight, 
   FaCheckCircle, FaClock, FaListAlt, FaPlusCircle, 
@@ -25,6 +26,139 @@ import { useRFIReport } from '../../hooks/useRFIReport';
 //helper
 import { getPersianProjectType, getStatusColor, getPersianStatus } from "./../../utils/helpers"
 
+// ========== کامپوننت ProjectTypeFilterDropdown با Portal ==========
+const ProjectTypeFilterDropdown = ({ 
+  isOpen, 
+  onClose, 
+  uniqueTypes, 
+  selectedTypes, 
+  onTypeChange,
+  onSelectAll,
+  onClearAll,
+  areAllSelected,
+  activeCount,
+  buttonRef 
+}) => {
+  const [position, setPosition] = useState({ top: 0, right: 0 });
+  
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const dropdownWidth = 240; // عرض تقریبی dropdown
+      
+      // محاسبه موقعیت
+      let rightPosition = viewportWidth - buttonRect.right;
+      
+      // بررسی اگر dropdown از سمت چپ خارج می‌شود
+      if (rightPosition < dropdownWidth) {
+        rightPosition = Math.max(10, rightPosition);
+      }
+      
+      setPosition({
+        top: buttonRect.bottom + window.scrollY + 5,
+        right: rightPosition
+      });
+    }
+  }, [isOpen, buttonRef]);
+  
+  if (!isOpen || !buttonRef.current) return null;
+  
+  return ReactDOM.createPortal(
+    <>
+      {/* Overlay برای بستن با کلیک بیرون */}
+      <div 
+        className="fixed inset-0 z-[9998]"
+        onClick={onClose}
+      />
+      
+      {/* Dropdown */}
+      <div 
+        className="fixed z-[9999] bg-white rounded-lg shadow-lg border border-gray-300 min-w-[140px] max-w-[200px]"
+        style={{
+          top: `${position.top}px`,
+          right: `${position.right}px`,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-2 border-b bg-gray-50">
+          <div className="text-sm font-semibold text-gray-700">
+            فیلتر نوع پروژه
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <FaTimes className="text-sm" />
+          </button>
+        </div>
+        
+        {/* Select All / Clear All */}
+        <div className="flex justify-between items-center p-2 border-b">
+          <button
+            onClick={onSelectAll}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+          >
+            {areAllSelected ? 'لغو همه' : 'انتخاب همه'}
+          </button>
+          <span className="text-xs text-gray-500">
+            {activeCount} از {uniqueTypes.length}
+          </span>
+        </div>
+        
+        {/* Checkbox List */}
+        <div className="max-h-[200px] overflow-y-auto p-1">
+          {uniqueTypes.length > 0 ? (
+            uniqueTypes.map((type) => (
+              <label 
+                key={type} 
+                className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer transition duration-150"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedTypes[type] || false}
+                  onChange={() => onTypeChange(type)}
+                  className="h-3 w-3 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <div className="flex-1">
+                  <span className="text-sm text-gray-800 font-sm">
+                    {getPersianProjectType(type)}
+                  </span>
+             
+                </div>
+              </label>
+            ))
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              داده‌ای برای فیلتر موجود نیست
+            </div>
+          )}
+        </div>
+        
+        {/* Footer */}
+        <div className="flex gap-1 p-0.5 border-t bg-gray-50">
+          <button
+            onClick={onClose}
+            className="flex-1 p-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-medium transition duration-200 shadow-sm"
+          >
+            اعمال فیلتر
+          </button>
+          <button
+            onClick={onClearAll}
+            className="flex-1 p-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs rounded-md font-medium transition duration-200"
+            disabled={activeCount === 0}
+          >
+            حذف همه
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+};
+
+// ========== کامپوننت اصلی RFIReportTable ==========
 const RFIReportTable = () => {
   const location = useLocation();
   const [selectedProject, setSelectedProject] = useState('');
@@ -52,6 +186,20 @@ const RFIReportTable = () => {
     Report_No: '',
     RFI_Numbering: ''
   });
+
+  // حالت‌های جدید برای فیلتر نوع پروژه
+  const [showProjectTypeFilter, setShowProjectTypeFilter] = useState(false);
+  const [projectTypeFilters, setProjectTypeFilters] = useState({
+    'خارجی': false,
+    'داخلی کالا': false,
+    'داخلی کشتی': false,
+    'Foreign': false,
+    'Domestic Goods': false,
+    'Domestic Ship': false
+  });
+
+  // ref برای دکمه فیلتر نوع پروژه
+  const projectTypeFilterButtonRef = useRef(null);
 
   // حالت‌های صفحه‌بندی
   const [currentPage, setCurrentPage] = useState(1);
@@ -85,6 +233,7 @@ const RFIReportTable = () => {
       Report_No: '',
       RFI_Numbering: ''
     });
+    clearAllProjectTypes(); // ریست کردن فیلتر نوع پروژه
     setCurrentPage(1); // بازگشت به صفحه اول
     
     const selectedProjectObj = projects?.find(project => project.id === projectId);
@@ -106,6 +255,7 @@ const RFIReportTable = () => {
         Report_No: '',
         RFI_Numbering: ''
       });
+      clearAllProjectTypes(); // ریست کردن فیلتر نوع پروژه
       setCurrentPage(1); // بازگشت به صفحه اول
        // به‌روزرسانی URL
     const searchParams = new URLSearchParams(location.search);
@@ -230,6 +380,62 @@ const RFIReportTable = () => {
     });
   }, [rfiData, shouldFetch]);
 
+  // استخراج مقادیر منحصر به فرد برای نوع پروژه
+  const uniqueProjectTypes = useMemo(() => {
+    if (!tableData.length) return [];
+    
+    const types = new Set();
+    tableData.forEach(item => {
+      if (item.Over_Domestic && item.Over_Domestic.trim() !== '') {
+        types.add(item.Over_Domestic.trim());
+      }
+    });
+    
+    // تبدیل Set به آرایه و مرتب‌سازی
+    return Array.from(types).sort();
+  }, [tableData]);
+
+  // توابع مدیریت فیلتر نوع پروژه
+  // تابع برای تغییر فیلتر نوع پروژه
+  const handleProjectTypeFilterChange = (type) => {
+    setProjectTypeFilters(prev => ({
+      ...prev,
+      [type]: !prev[type]
+    }));
+  };
+
+  // تابع برای انتخاب همه
+  const selectAllProjectTypes = () => {
+    const allSelected = {};
+    uniqueProjectTypes.forEach(type => {
+      allSelected[type] = true;
+    });
+    setProjectTypeFilters(prev => ({
+      ...prev,
+      ...allSelected
+    }));
+  };
+
+  // تابع برای لغو انتخاب همه
+  const clearAllProjectTypes = () => {
+    const allCleared = {};
+    Object.keys(projectTypeFilters).forEach(type => {
+      allCleared[type] = false;
+    });
+    setProjectTypeFilters(allCleared);
+  };
+
+  // تابع برای بررسی آیا همه تیک خورده‌اند
+  const areAllSelected = useMemo(() => {
+    if (uniqueProjectTypes.length === 0) return false;
+    return uniqueProjectTypes.every(type => projectTypeFilters[type]);
+  }, [uniqueProjectTypes, projectTypeFilters]);
+
+  // تابع برای تعداد انتخاب‌های فعال
+  const activeProjectTypeCount = useMemo(() => {
+    return uniqueProjectTypes.filter(type => projectTypeFilters[type]).length;
+  }, [uniqueProjectTypes, projectTypeFilters]);
+
   // تابع normalizeText برای جستجو (حذف فاصله و کاراکترهای خاص)
   const normalizeText = (text) => {
     if (!text) return '';
@@ -281,6 +487,17 @@ const RFIReportTable = () => {
         );
       }
     });
+    
+    // فیلتر نوع پروژه (چک‌باکس)
+    const activeProjectTypeFilters = Object.keys(projectTypeFilters)
+      .filter(type => projectTypeFilters[type]);
+
+    if (activeProjectTypeFilters.length > 0) {
+      filteredData = filteredData.filter(item => {
+        if (!item.Over_Domestic) return false;
+        return activeProjectTypeFilters.includes(item.Over_Domestic.trim());
+      });
+    }
     
     // اگر سورتی انتخاب نشده، برگردان
     if (!sortConfig.key) return filteredData;
@@ -392,7 +609,7 @@ case 'Duration':
       
       return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
-  }, [tableData, searchTerm, columnFilters, sortConfig]);
+  }, [tableData, searchTerm, columnFilters, projectTypeFilters, sortConfig]);
 
   // ========== منطق صفحه‌بندی ==========
   
@@ -475,6 +692,7 @@ case 'Duration':
       Report_No: '',
       RFI_Numbering: ''
     });
+    clearAllProjectTypes(); // اضافه کردن این خط
   };
 
   // محاسبه تعداد فیلترهای فعال
@@ -484,8 +702,9 @@ case 'Duration':
     if (columnFilters.RFI_Number.trim()) count++;
     if (columnFilters.Report_No.trim()) count++;
     if (columnFilters.RFI_Numbering.trim()) count++;
+    if (activeProjectTypeCount > 0) count++; // اضافه کردن فیلتر نوع پروژه
     return count;
-  }, [searchTerm, columnFilters]);
+  }, [searchTerm, columnFilters, activeProjectTypeCount]);
 
   // حالات مختلف نمایش
   const showEmptyState = shouldFetch && !rfiLoading && !rfiError && tableData.length === 0;
@@ -523,6 +742,7 @@ case 'Duration':
               Report_No: '',
               RFI_Numbering: ''
             });
+            clearAllProjectTypes();
             setCurrentPage(1);
           }}
           className="hover:bg-blue-700 p-1.5 rounded-full transition duration-200"
@@ -775,19 +995,55 @@ case 'Duration':
               placeholder="مثل: FAH-INS-PCH-0480"
             />
             
-            {/* <SortHeader 
-              title="نام پروژه" 
-              sortKey="ProjectTitle" 
-              sortConfig={sortConfig}
-              onSort={handleSort}
-            /> */}
-            
-            <SortHeader 
-              title="نوع پروژه" 
-              sortKey="Over_Domestic" 
-              sortConfig={sortConfig}
-              onSort={handleSort}
-            />
+            {/* نوع پروژه با فیلتر چک‌باکس */}
+            <th className="p-3 font-semibold text-white text-xs min-w-20 relative">
+              <div className="flex flex-col items-center">
+                {/* ردیف اول: عنوان و آیکون‌ها */}
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <span className="truncate text-center">نوع پروژه</span>
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    {/* دکمه فیلتر چک‌باکس */}
+                    <button 
+                      ref={projectTypeFilterButtonRef}
+                      onClick={() => setShowProjectTypeFilter(!showProjectTypeFilter)}
+                      className={`p-1 rounded transition-colors duration-200 flex items-center ${
+                        activeProjectTypeCount > 0 ? 'bg-blue-700' : 'hover:bg-blue-700'
+                      }`}
+                      title={activeProjectTypeCount > 0 ? "فیلتر فعال - کلیک برای تغییر" : "افزودن فیلتر"}
+                    >
+                      <FaFilter className={`text-xs ${activeProjectTypeCount > 0 ? 'text-yellow-300' : 'text-white'}`} />
+                    </button>
+                    
+                    {/* دکمه سورت */}
+                    <button 
+                      onClick={() => handleSort('Over_Domestic')}
+                      className={`p-1 rounded transition-colors duration-200 flex items-center ${
+                        sortConfig.key === 'Over_Domestic' ? 'bg-blue-700' : 'hover:bg-blue-700'
+                      }`}
+                      title="مرتب‌سازی نوع پروژه"
+                    >
+                      <SortIcon columnKey="Over_Domestic" sortConfig={sortConfig} />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* ردیف دوم: نشانگر فیلتر فعال */}
+                {activeProjectTypeCount > 0 && !showProjectTypeFilter && (
+                  <div className="w-full flex justify-center">
+                    <div className="bg-yellow-500 text-white text-[10px] px-2 py-0.5 rounded-full truncate max-w-full text-center">
+                      {activeProjectTypeCount} انتخاب
+                      <button
+                        onClick={clearAllProjectTypes}
+                        className="mr-1 text-yellow-200 hover:text-white"
+                        title="حذف همه انتخاب‌ها"
+                      >
+                        <FaTimes className="text-[8px]" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -841,11 +1097,6 @@ case 'Duration':
                       <span className="font-semibold text-gray-800">
                         {item.Duration} روز
                       </span>
-                      {/* {parseInt(item.Duration) > 0 && (
-                        <span className="text-xs text-gray-500 mt-0.5">
-                          ({item.Duration} روز)
-                        </span>
-                      )} */}
                     </>
                   ) : (
                     <span className="text-gray-400 text-xs">-</span>
@@ -892,9 +1143,6 @@ case 'Duration':
                 </div>
               </td>
               
-              {/* نام پروژه */}
-              {/* <td className="p-3 text-gray-700 text-center">{item.ProjectTitle}</td> */}
-              
               {/* نوع پروژه */}
               <td className="p-3 text-gray-700 text-center">
                 <div className="flex justify-center">
@@ -922,6 +1170,11 @@ case 'Duration':
               {searchTerm && (
                 <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-xs">
                   جستجو: {searchTerm}
+                </span>
+              )}
+              {activeProjectTypeCount > 0 && (
+                <span className="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-xs">
+                  نوع پروژه: {activeProjectTypeCount} مورد
                 </span>
               )}
             </div>
@@ -1144,11 +1397,27 @@ case 'Duration':
         notificationData={selectedNotification}
         rfiNumber={selectedRFINumber}
       />
+      
+      {/* Dropdown فیلتر نوع پروژه با Portal */}
+      <ProjectTypeFilterDropdown
+        isOpen={showProjectTypeFilter}
+        onClose={() => setShowProjectTypeFilter(false)}
+        uniqueTypes={uniqueProjectTypes}
+        selectedTypes={projectTypeFilters}
+        onTypeChange={handleProjectTypeFilterChange}
+        onSelectAll={areAllSelected ? clearAllProjectTypes : selectAllProjectTypes}
+        onClearAll={clearAllProjectTypes}
+        areAllSelected={areAllSelected}
+        activeCount={activeProjectTypeCount}
+        buttonRef={projectTypeFilterButtonRef}
+      />
     </div>
   );
 };
 
 export default RFIReportTable;
+
+// ========== کامپوننت‌های کمکی ==========
 
 // 1. کامپوننت SortIcon 
 const SortIcon = ({ columnKey, sortConfig }) => {
