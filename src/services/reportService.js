@@ -4,9 +4,10 @@ import DateObject from "react-date-object";
 
 class ReportService {
   // ثبت گزارش جدید در دیتابیس
+  // ثبت گزارش جدید در دیتابیس
   async createReport(reportData) {
     try {
-      console.log("🎯 ReportService: Sending request to /api/create_report");
+      console.log("🎯 ReportService: Sending POST request to /reports");
       console.log("📋 ReportService: Request data:", reportData);
 
       const response = await http.post("/reports", reportData);
@@ -99,23 +100,23 @@ class ReportService {
   }
 
   // جدید: آماده‌سازی داده برای آپدیت
+  // در reportService.js در تابع prepareReportUpdateData:
   prepareReportUpdateData(formData, rfiNumbering) {
     const updateData = {
-      rfi_number: rfiNumbering,
-      Report_No: formData.reportNumber,
-      RevNO: formData.revNumber || "",
+      rfi_numbering: rfiNumbering, // تغییر: حروف کوچک
+      report_no: formData.reportNumber, // تغییر: با underline
+      rev_no: formData.revNumber || "", // تغییر: با underline
       Doc_Status: formData.status,
       Remark: formData.corrections || "",
-      IssueDate: this.formatDateForAPI(formData.issueDate),
+      IssueDate: formData.issueDate || new Date().toISOString().split("T")[0],
       ReportReceivedDate: this.formatDateForAPI(formData.receivedDate),
       App_manday_1stPrice: parseInt(formData.approvedDays) || 0,
       UnitNo: formData.unitNumber || "",
       VendorName: formData.vendorName || "",
       IRNNO: formData.irn || "",
-      SRNNO: formData.srn || "",
-      User: formData.user || "",
+      SRNNo: formData.srn || "", // تغییر: حرف N بزرگ
+      user: formData.user || "",
       DateShamsi: formData.dateShamsi || "",
-      FirstPrice: parseInt(formData.firstPrice) || 80000000,
     };
 
     console.log("📤 Prepared report update data:", updateData);
