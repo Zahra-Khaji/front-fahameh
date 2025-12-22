@@ -235,53 +235,82 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
   ];
 
   // تابع مقایسه دو مقدار
-  const areValuesEqual = (val1, val2) => {
-    if (val1 instanceof DateObject && val2 instanceof DateObject) {
-      return val1.format() === val2.format();
+// جایگزین تابع areValuesEqual
+const areValuesEqual = (val1, val2) => {
+  // هر دو undefined یا null
+  if (val1 == null && val2 == null) return true;
+  
+  // یکی undefined/null و دیگری نه
+  if (val1 == null || val2 == null) return false;
+  
+  // تبدیل هر دو به string برای مقایسه
+  const str1 = convertToString(val1);
+  const str2 = convertToString(val2);
+  
+  return str1 === str2;
+};
+
+// تابع کمکی برای تبدیل به string
+const convertToString = (value) => {
+  if (value == null) return '';
+  
+  // اگر DateObject بود
+  if (value instanceof DateObject) {
+    return value.format("YYYY/MM/DD");
+  }
+  
+  // اگر رشته تاریخ شمسی با فرمت متفاوت است
+  if (typeof value === 'string' && value.includes('/')) {
+    // نرمال‌سازی فرمت تاریخ
+    const parts = value.split('/');
+    if (parts.length === 3) {
+      return parts.map(p => p.padStart(2, '0')).join('/');
     }
-    return val1 === val2;
+  }
+  
+  // برای اعداد و رشته‌ها
+  return String(value).trim();
+};
+
+// خطوط 267-297
+const checkForChanges = () => {
+  if (!initialDataRef.current) return false;
+
+  const initial = initialDataRef.current;
+  const current = {
+    reportRows: reportRows.map(row => ({
+      ...row,
+      receivedDate: row.receivedDate?.format?.() || row.receivedDate
+    }))
   };
 
-  // بررسی تغییرات
-  const checkForChanges = () => {
-    if (!initialDataRef.current) return false;
+  // مقایسه تعداد ردیف‌ها
+  if (initial.reportRows.length !== current.reportRows.length) {
+    return true;
+  }
 
-    const initial = initialDataRef.current;
-    const current = {
-      reportRows: reportRows.map(row => ({
-        ...row,
-        receivedDate: row.receivedDate?.format?.() || row.receivedDate
-      }))
-    };
-
-    // مقایسه تعداد ردیف‌ها
-    if (initial.reportRows.length !== current.reportRows.length) {
-      return true;
-    }
-
-    // مقایسه محتوای ردیف‌ها
-    for (let i = 0; i < initial.reportRows.length; i++) {
-      const initialRow = initial.reportRows[i];
-      const currentRow = current.reportRows[i];
-      
-      const fields = [
-        'reportNumber', 'revNumber', 'status', 'corrections',
-        'receivedDate', 'approvedDays', 'unitNumber', 'vendorName',
-        'irn', 'srn', 'firstPrice', 'rfiNumbering'
-      ];
-      
-      for (const field of fields) {
-        if (!areValuesEqual(initialRow[field], currentRow[field])) {
-          return true;
-        }
+  // مقایسه محتوای ردیف‌ها
+  for (let i = 0; i < initial.reportRows.length; i++) {
+    const initialRow = initial.reportRows[i];
+    const currentRow = current.reportRows[i];
+    
+    const fields = [
+      'reportNumber', 'revNumber', 'status', 'corrections',
+      'receivedDate', 'approvedDays', 'unitNumber', 'vendorName',
+      'irn', 'srn', 'firstPrice', 'rfiNumbering'
+    ];
+    
+    for (const field of fields) {
+      if (!areValuesEqual(initialRow[field], currentRow[field])) {
+        return true;
       }
     }
+  }
 
-    return false;
-  };
+  return false;
+};
 
-  // ریست فرم وقتی مدال باز می‌شود
-// ریست فرم وقتی مدال باز می‌شود - اصلاح شده
+ 
 useEffect(() => {
   if (isOpen) {
     let initialReportRows = [];
@@ -310,12 +339,11 @@ useEffect(() => {
         srn: reportInfo.srn || '',
         firstPrice: reportInfo.firstPrice || '80000000',
         rfiNumbering: reportInfo.rfiNumbering || rfiData?.RFI_Numbering || '',
-        issueDate: reportInfo.issueDate || new Date().toISOString().split('T')[0] // اضافه شد
+        issueDate: reportInfo.issueDate || new Date().toISOString().split('T')[0]
       }];
     } else if (error && error.response?.status === 404) {
       console.log('📭 No existing report found (404), creating new one');
       
-      // اگر گزارش وجود ندارد (404)، فرم خالی ایجاد کن
       const todayPersianDate = convertToPersianDate(new Date());
       
       initialReportRows = [{
@@ -332,11 +360,9 @@ useEffect(() => {
         srn: '',
         firstPrice: '80000000',
         rfiNumbering: rfiData?.RFI_Numbering || '',
-        issueDate: new Date().toISOString().split('T')[0] // اضافه شد
+        issueDate: new Date().toISOString().split('T')[0]
       }];
     } else if (!isReportLoading && !error) {
-      // حالت اولیه - هنوز لودینگ نیست و خطایی هم نیست
-      console.log('📭 No valid report data, creating new form');
       const todayPersianDate = convertToPersianDate(new Date());
       
       initialReportRows = [{
@@ -353,18 +379,27 @@ useEffect(() => {
         srn: '',
         firstPrice: '80000000',
         rfiNumbering: rfiData?.RFI_Numbering || '',
-        issueDate: new Date().toISOString().split('T')[0] // اضافه شد
+        issueDate: new Date().toISOString().split('T')[0]
       }];
     }
 
-    // ذخیره داده‌های اولیه
     setReportRows(initialReportRows);
     
+    // اصلاح این بخش: ذخیره داده‌های اولیه با فرمت قابل مقایسه
     initialDataRef.current = {
       reportRows: initialReportRows.map(row => ({
-        ...row,
-        receivedDate: row.receivedDate?.format?.() || row.receivedDate,
-        approvedDays: typeof row.approvedDays === 'number' ? row.approvedDays.toString() : row.approvedDays
+        reportNumber: (row.reportNumber || '').trim(),
+        revNumber: (row.revNumber || '').trim(),
+        status: row.status || 'approved',
+        corrections: (row.corrections || '').trim(),
+        receivedDate: convertToString(row.receivedDate),
+        approvedDays: convertToString(row.approvedDays),
+        unitNumber: (row.unitNumber || '').trim(),
+        vendorName: (row.vendorName || '').trim(),
+        irn: (row.irn || '').trim(),
+        srn: (row.srn || '').trim(),
+        firstPrice: convertToString(row.firstPrice),
+        rfiNumbering: (row.rfiNumbering || '').trim()
       }))
     };
     
