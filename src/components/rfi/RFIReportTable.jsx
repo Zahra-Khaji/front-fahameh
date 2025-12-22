@@ -657,11 +657,12 @@ case 'Duration':
     }
   };
 
-  // تابع باز کردن مدال گزارش
-  const handleOpenReportModal = (item) => {
-    setSelectedReportRFI(item);
-    setShowReportModal(true);
-  };
+// src/components/rfi/RFIReportTable.jsx
+// در تابع handleOpenReportModal:
+const handleOpenReportModal = (item) => {
+  setSelectedReportRFI(item);
+  setShowReportModal(true);
+};
 
   // توابع جدید برای مدیریت فیلترها
   const handleColumnFilterChange = (columnKey, value) => {

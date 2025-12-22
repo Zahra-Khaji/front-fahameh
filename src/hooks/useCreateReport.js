@@ -5,17 +5,30 @@ import reportService from "../services/reportService";
 // کلیدهای query برای cache management
 export const reportKeys = {
   all: ["reports"],
-  detail: (rfiNumbering) => [...reportKeys.all, "detail", rfiNumbering],
+  detail: (rfiNumbering, reportNumber = null) => [
+    ...reportKeys.all,
+    "detail",
+    rfiNumbering,
+    reportNumber,
+  ], // تغییر: دو پارامتر
 };
 
 // هوک برای گرفتن اطلاعات گزارش
-export const useReportInfo = (rfiNumbering) => {
+export const useReportInfo = (rfiNumbering, reportNumber = null) => {
   return useQuery({
-    queryKey: reportKeys.detail(rfiNumbering),
+    queryKey: reportKeys.detail(rfiNumbering, reportNumber), // تغییر کلید
     queryFn: async () => {
       try {
-        console.log("🎯 useReportInfo: Fetching for RFI:", rfiNumbering);
-        const data = await reportService.getReportInfo(rfiNumbering);
+        console.log(
+          "🎯 useReportInfo: Fetching for RFI:",
+          rfiNumbering,
+          "Report No:",
+          reportNumber
+        );
+        const data = await reportService.getReportInfo(
+          rfiNumbering,
+          reportNumber
+        );
         console.log("✅ useReportInfo: Raw data received:", data);
 
         const transformed = reportService.transformReportData(data);
@@ -27,7 +40,12 @@ export const useReportInfo = (rfiNumbering) => {
 
         // اگر 404 بود (گزارش وجود ندارد) null برگردان
         if (error.response?.status === 404) {
-          console.log("📭 No report found for RFI:", rfiNumbering);
+          console.log(
+            "📭 No report found for RFI:",
+            rfiNumbering,
+            "and Report:",
+            reportNumber
+          );
           return null;
         }
         throw error;

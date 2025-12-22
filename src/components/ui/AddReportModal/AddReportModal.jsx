@@ -107,7 +107,11 @@ const ConfirmationPopover = ({
 
 const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
   // استفاده از هوک‌ها
-  const { data: reportInfo, isLoading: isReportLoading, error } = useReportInfo(rfiData?.RFI_Numbering);
+  // const { data: reportInfo, isLoading: isReportLoading, error } = useReportInfo(rfiData?.RFI_Numbering);
+  const { data: reportInfo, isLoading: isReportLoading, error } = useReportInfo(
+    rfiData?.RFI_Numbering,
+    rfiData?.Report_No // اضافه کردن شماره گزارش به عنوان پارامتر دوم
+  );
   const { mutate: updateReport, isLoading: isUpdating } = useUpdateReport();
   const { mutate: createReport, isLoading: isCreating } = useCreateNewReport();
   

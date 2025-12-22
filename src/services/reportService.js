@@ -4,7 +4,7 @@ import DateObject from "react-date-object";
 
 class ReportService {
   // ثبت گزارش جدید در دیتابیس
-  // ثبت گزارش جدید در دیتابیس
+
   async createReport(reportData) {
     try {
       console.log("🎯 ReportService: Sending POST request to /reports");
@@ -26,30 +26,34 @@ class ReportService {
   }
 
   // جدید: گرفتن اطلاعات گزارش بر اساس شماره RFI
-  async getReportInfo(rfiNumbering) {
-    try {
-      console.log("🎯 ReportService: Fetching report for RFI:", rfiNumbering);
-
-      // const response = await http.get(`/report?rfi_number=${rfiNumbering}`);
-      const response = await http.get(`/reports/${rfiNumbering}`);
-
-      console.log("✅ ReportService: API response:", response.data);
-      return response.data;
-    } catch (error) {
-      console.error("❌ ReportService: Error fetching report:", error);
-      console.error("❌ ReportService: Error URL:", error.config?.url);
-      console.error(
-        "❌ ReportService: Full URL:",
-        error.config?.baseURL + error.config?.url
-      );
-
-      if (error.response) {
-        console.error("❌ ReportService: Error status:", error.response.status);
-        console.error("❌ ReportService: Error data:", error.response.data);
-      }
-      throw error;
+// src/services/reportService.js
+// جدید: گرفتن اطلاعات گزارش بر اساس شماره RFI و شماره گزارش
+async getReportInfo(rfiNumbering, reportNumber = null) {
+  try {
+    console.log("🎯 ReportService: Fetching report for RFI:", rfiNumbering, "Report No:", reportNumber);
+    
+    let url = `/reports/${rfiNumbering}`;
+    
+    // اگر شماره گزارش داریم، به query string اضافه کنیم
+    if (reportNumber && reportNumber.trim() !== '') {
+      url += `?report_number=${encodeURIComponent(reportNumber)}`;
     }
+
+    const response = await http.get(url);
+
+    console.log("✅ ReportService: API response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ ReportService: Error fetching report:", error);
+    console.error("❌ ReportService: Error URL:", error.config?.url);
+    
+    if (error.response) {
+      console.error("❌ ReportService: Error status:", error.response.status);
+      console.error("❌ ReportService: Error data:", error.response.data);
+    }
+    throw error;
   }
+}
 
   // جدید: آپدیت گزارش موجود
   async updateReport(reportData) {
