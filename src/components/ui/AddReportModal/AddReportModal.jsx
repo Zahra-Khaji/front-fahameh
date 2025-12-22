@@ -312,24 +312,93 @@ const checkForChanges = () => {
 
  
 // در AddReportModal.jsx - اصلاح منطق useEffect:
+// در AddReportModal.jsx - اصلاح کامل useEffect:
+// اصلاح useEffect برای ترکیب rfiData و reportInfo:
 useEffect(() => {
   if (isOpen) {
     console.log('📱 AddReportModal opening for RFI:', rfiData?.RFI_Numbering);
-    console.log('📊 Report number from RFI data:', rfiData?.Report_No);
+    console.log('📊 Full rfiData:', rfiData);
+    console.log('📋 Available fields in rfiData:', Object.keys(rfiData || {}));
+    console.log('📊 reportInfo from hook:', reportInfo);
+    console.log('📝 Remark from reportInfo:', reportInfo?.Remark);
+    console.log('📝 Remark from rfiData:', rfiData?.Remark);
+
+    // اولویت‌بندی: اول از reportInfo استفاده کن، اگر نبود از rfiData
+    const reportSource = reportInfo || rfiData;
     
-    // بررسی اینکه آیا گزارش معتبری در داده‌های RFI داریم
-    const hasValidReportInRFI = rfiData?.Report_No && 
-                               rfiData.Report_No.trim() !== '' && 
-                               rfiData.Report_No !== '************';
+    console.log('🎯 Using report source:', {
+      source: reportInfo ? 'reportInfo' : 'rfiData',
+      reportNo: reportSource?.Report_No,
+      remark: reportSource?.Remark,
+      remarkLength: reportSource?.Remark?.length
+    });
+
+    // بررسی وضعیت گزارش موجود
+    const hasValidReport = reportSource?.Report_No && 
+                          reportSource.Report_No.trim() !== '' && 
+                          reportSource.Report_No !== '************';
     
-    let initialReportRows = [];
+    console.log('🔍 Report status:', {
+      reportNo: reportSource?.Report_No,
+      hasValidReport,
+      isStars: reportSource?.Report_No === '************'
+    });
+
     const todayPersianDate = convertToPersianDate(new Date());
     
-    // اگر گزارش معتبر در RFI نداریم، فرم خالی ایجاد کن
-    if (!hasValidReportInRFI) {
+    // اگر گزارش معتبر داریم
+    if (hasValidReport) {
+      console.log('✅ Using existing report data');
+      
+      const initialRow = {
+        id: 1,
+        reportNumber: reportSource.Report_No || '',
+        revNumber: reportSource.RevNO || '',
+        status: reportSource.Doc_Status || 'approved',
+        corrections: reportSource.Remark || '', // اینجا از reportSource استفاده شده
+        receivedDate: convertToPersianDate(reportSource.ReportReceivedDate || reportSource.IssueDate),
+        approvedDays: reportSource.App_manday_1stPrice || '',
+        unitNumber: reportSource.UnitNo || '',
+        vendorName: reportSource.VendorName || '',
+        irn: reportSource.IRNNO || nextIRN || '',
+        srn: reportSource.SRNNo || '',
+        firstPrice: reportSource.first_price || '80000000',
+        rfiNumbering: reportSource.RFI_Numbering || '',
+        issueDate: reportSource.IssueDate || new Date().toISOString().split('T')[0]
+      };
+
+      console.log('📝 Initial row data:', {
+        ...initialRow,
+        correctionsLength: initialRow.corrections?.length,
+        correctionsPreview: initialRow.corrections?.substring(0, 50) + '...'
+      });
+
+      setReportRows([initialRow]);
+      
+      // ذخیره داده اولیه
+      initialDataRef.current = {
+        reportRows: [{
+          reportNumber: initialRow.reportNumber || '',
+          revNumber: initialRow.revNumber || '',
+          status: initialRow.status || 'approved',
+          corrections: initialRow.corrections || '', // اینجا هم ذخیره می‌شود
+          receivedDate: convertToString(initialRow.receivedDate),
+          approvedDays: convertToString(initialRow.approvedDays),
+          unitNumber: initialRow.unitNumber || '',
+          vendorName: initialRow.vendorName || '',
+          irn: initialRow.irn || '',
+          srn: initialRow.srn || '',
+          firstPrice: convertToString(initialRow.firstPrice),
+          rfiNumbering: initialRow.rfiNumbering || ''
+        }]
+      };
+      
+      console.log('💾 Initial corrections saved:', initialRow.corrections);
+    } else {
+      // اگر گزارش معتبر نداریم
       console.log('📝 Creating new report form (no existing report)');
       
-      initialReportRows = [{
+      const newRow = {
         id: 1,
         reportNumber: '',
         revNumber: '',
@@ -344,34 +413,31 @@ useEffect(() => {
         firstPrice: '80000000',
         rfiNumbering: rfiData?.RFI_Numbering || '',
         issueDate: new Date().toISOString().split('T')[0]
-      }];
-      
-      setReportRows(initialReportRows);
-      initialDataRef.current = {
-        reportRows: initialReportRows.map(row => ({
-          reportNumber: (row.reportNumber || '').trim(),
-          revNumber: (row.revNumber || '').trim(),
-          status: row.status || 'approved',
-          corrections: (row.corrections || '').trim(),
-          receivedDate: convertToString(row.receivedDate),
-          approvedDays: convertToString(row.approvedDays),
-          unitNumber: (row.unitNumber || '').trim(),
-          vendorName: (row.vendorName || '').trim(),
-          irn: (row.irn || '').trim(),
-          srn: (row.srn || '').trim(),
-          firstPrice: convertToString(row.firstPrice),
-          rfiNumbering: (row.rfiNumbering || '').trim()
-        }))
       };
-      
-      setHasChanges(false);
-      return; // از اینجا خارج شو، چون نیاز به fetch نداریم
+
+      setReportRows([newRow]);
+      initialDataRef.current = {
+        reportRows: [{
+          reportNumber: newRow.reportNumber || '',
+          revNumber: newRow.revNumber || '',
+          status: newRow.status || 'approved',
+          corrections: newRow.corrections || '',
+          receivedDate: convertToString(newRow.receivedDate),
+          approvedDays: convertToString(newRow.approvedDays),
+          unitNumber: newRow.unitNumber || '',
+          vendorName: newRow.vendorName || '',
+          irn: newRow.irn || '',
+          srn: newRow.srn || '',
+          firstPrice: convertToString(newRow.firstPrice),
+          rfiNumbering: newRow.rfiNumbering || ''
+        }]
+      };
     }
     
-    // فقط اگر گزارش معتبر داریم، هوک رو فعال کن
-    // بقیه کد مثل قبل...
+    setHasChanges(false);
+    console.log('🎯 Initial data saved to ref:', initialDataRef.current?.reportRows?.[0]?.corrections);
   }
-}, [isOpen, rfiData, reportInfo, user, error, isReportLoading, nextIRN]);
+}, [isOpen, rfiData, reportInfo, nextIRN]); // reportInfo به dependency اضافه شد
 
   // بررسی تغییرات هنگام تغییر داده‌ها
   useEffect(() => {
@@ -1188,7 +1254,7 @@ const handleSubmitInternal = () => {
                     <FaSync className="animate-spin text-lg" />
                     در حال ذخیره...
                   </>
-                ) : reportInfo && reportInfo.reportNumber && reportInfo.reportNumber !== '************' ? (
+                ) : reportInfo && !reportInfo.reportNumber  ? (
                   <>
                     <FaCheckCircle className="text-lg" />
                     به‌روزرسانی گزارش
