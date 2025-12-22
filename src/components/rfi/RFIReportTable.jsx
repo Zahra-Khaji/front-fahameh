@@ -659,9 +659,32 @@ case 'Duration':
 
 // src/components/rfi/RFIReportTable.jsx
 // در تابع handleOpenReportModal:
+// در RFIReportTable.jsx - اصلاح تابع handleOpenReportModal:
 const handleOpenReportModal = (item) => {
+  // بررسی اینکه آیا گزارش موجود است یا نه
+  const hasExistingReport = item.Report_No && 
+                          item.Report_No.trim() !== '' && 
+                          item.Report_No !== '************';
+  
+  console.log('Opening report modal:', {
+    hasExistingReport,
+    reportNo: item.Report_No,
+    rfiNumbering: item.RFI_Numbering
+  });
+
   setSelectedReportRFI(item);
-  setShowReportModal(true);
+  
+  // بررسی وضعیت گزارش
+  if (!hasExistingReport) {
+    // اگر گزارش وجود ندارد، لاگ کن و مدال رو باز کن
+    console.log('📭 No existing report found, opening empty form');
+    
+    // نمایش تاییدیه قبل از باز کردن مدال
+    setShowReportModal(true);
+  } else {
+    // اگر گزارش وجود دارد، مدال رو مستقیم باز کن
+    setShowReportModal(true);
+  }
 };
 
   // توابع جدید برای مدیریت فیلترها

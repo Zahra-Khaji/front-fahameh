@@ -14,53 +14,22 @@ export const reportKeys = {
 };
 
 // هوک برای گرفتن اطلاعات گزارش
+// src/hooks/useCreateReport.js
+// در تابع useReportInfo:
+
+// src/hooks/useCreateReport.js
 export const useReportInfo = (rfiNumbering, reportNumber = null) => {
   return useQuery({
-    queryKey: reportKeys.detail(rfiNumbering, reportNumber), // تغییر کلید
-    queryFn: async () => {
-      try {
-        console.log(
-          "🎯 useReportInfo: Fetching for RFI:",
-          rfiNumbering,
-          "Report No:",
-          reportNumber
-        );
-        const data = await reportService.getReportInfo(
-          rfiNumbering,
-          reportNumber
-        );
-        console.log("✅ useReportInfo: Raw data received:", data);
-
-        const transformed = reportService.transformReportData(data);
-        console.log("✅ useReportInfo: Transformed data:", transformed);
-
-        return transformed;
-      } catch (error) {
-        console.error("❌ useReportInfo: Error in queryFn:", error);
-
-        // اگر 404 بود (گزارش وجود ندارد) null برگردان
-        if (error.response?.status === 404) {
-          console.log(
-            "📭 No report found for RFI:",
-            rfiNumbering,
-            "and Report:",
-            reportNumber
-          );
-          return null;
-        }
-        throw error;
-      }
-    },
-    enabled:
-      !!rfiNumbering &&
-      rfiNumbering.trim() !== "" &&
-      rfiNumbering !== "************",
+    queryKey: ['report-info', rfiNumbering, reportNumber],
+    queryFn: () => reportService.getReportInfo(rfiNumbering, reportNumber),
+    enabled: !!(reportNumber && 
+               reportNumber !== '************' && 
+               reportNumber.trim() !== ''), // اینجا باید reportNumber باشه
     staleTime: 5 * 60 * 1000,
     retry: 1,
-    retryDelay: 1000,
     onError: (error) => {
-      console.error("❌ useReportInfo: Error fetching report:", error);
-    },
+      console.error('Error fetching report info:', error);
+    }
   });
 };
 

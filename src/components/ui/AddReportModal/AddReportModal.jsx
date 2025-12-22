@@ -311,40 +311,23 @@ const checkForChanges = () => {
 };
 
  
+// در AddReportModal.jsx - اصلاح منطق useEffect:
 useEffect(() => {
   if (isOpen) {
+    console.log('📱 AddReportModal opening for RFI:', rfiData?.RFI_Numbering);
+    console.log('📊 Report number from RFI data:', rfiData?.Report_No);
+    
+    // بررسی اینکه آیا گزارش معتبری در داده‌های RFI داریم
+    const hasValidReportInRFI = rfiData?.Report_No && 
+                               rfiData.Report_No.trim() !== '' && 
+                               rfiData.Report_No !== '************';
+    
     let initialReportRows = [];
-
-    // بررسی وجود گزارش معتبر
-    const hasValidReport = reportInfo && 
-                          reportInfo.reportNumber && 
-                          reportInfo.reportNumber.trim() !== '' && 
-                          reportInfo.reportNumber !== '************';
-
-    if (hasValidReport) {
-      console.log('📥 Setting report info from existing API data:', reportInfo);
-      
-      // اگر گزارش معتبر از API آمد
-      initialReportRows = [{
-        id: 1,
-        reportNumber: reportInfo.reportNumber || '',
-        revNumber: reportInfo.revNumber || '',
-        status: reportInfo.status || 'approved',
-        corrections: reportInfo.corrections || '',
-        receivedDate: convertToPersianDate(reportInfo.receivedDate),
-        approvedDays: reportInfo.approvedDays || '',
-        unitNumber: reportInfo.unitNumber || '',
-        vendorName: reportInfo.vendorName || rfiData?.VendorName || '',
-        irn: reportInfo.irn || '',
-        srn: reportInfo.srn || '',
-        firstPrice: reportInfo.firstPrice || '80000000',
-        rfiNumbering: reportInfo.rfiNumbering || rfiData?.RFI_Numbering || '',
-        issueDate: reportInfo.issueDate || new Date().toISOString().split('T')[0]
-      }];
-    } else if (error && error.response?.status === 404) {
-      console.log('📭 No existing report found (404), creating new one');
-      
-      const todayPersianDate = convertToPersianDate(new Date());
+    const todayPersianDate = convertToPersianDate(new Date());
+    
+    // اگر گزارش معتبر در RFI نداریم، فرم خالی ایجاد کن
+    if (!hasValidReportInRFI) {
+      console.log('📝 Creating new report form (no existing report)');
       
       initialReportRows = [{
         id: 1,
@@ -362,48 +345,31 @@ useEffect(() => {
         rfiNumbering: rfiData?.RFI_Numbering || '',
         issueDate: new Date().toISOString().split('T')[0]
       }];
-    } else if (!isReportLoading && !error) {
-      const todayPersianDate = convertToPersianDate(new Date());
       
-      initialReportRows = [{
-        id: 1,
-        reportNumber: '',
-        revNumber: '',
-        status: 'approved',
-        corrections: '',
-        receivedDate: todayPersianDate,
-        approvedDays: '',
-        unitNumber: '',
-        vendorName: rfiData?.VendorName || '',
-        irn: nextIRN || '',
-        srn: '',
-        firstPrice: '80000000',
-        rfiNumbering: rfiData?.RFI_Numbering || '',
-        issueDate: new Date().toISOString().split('T')[0]
-      }];
+      setReportRows(initialReportRows);
+      initialDataRef.current = {
+        reportRows: initialReportRows.map(row => ({
+          reportNumber: (row.reportNumber || '').trim(),
+          revNumber: (row.revNumber || '').trim(),
+          status: row.status || 'approved',
+          corrections: (row.corrections || '').trim(),
+          receivedDate: convertToString(row.receivedDate),
+          approvedDays: convertToString(row.approvedDays),
+          unitNumber: (row.unitNumber || '').trim(),
+          vendorName: (row.vendorName || '').trim(),
+          irn: (row.irn || '').trim(),
+          srn: (row.srn || '').trim(),
+          firstPrice: convertToString(row.firstPrice),
+          rfiNumbering: (row.rfiNumbering || '').trim()
+        }))
+      };
+      
+      setHasChanges(false);
+      return; // از اینجا خارج شو، چون نیاز به fetch نداریم
     }
-
-    setReportRows(initialReportRows);
     
-    // اصلاح این بخش: ذخیره داده‌های اولیه با فرمت قابل مقایسه
-    initialDataRef.current = {
-      reportRows: initialReportRows.map(row => ({
-        reportNumber: (row.reportNumber || '').trim(),
-        revNumber: (row.revNumber || '').trim(),
-        status: row.status || 'approved',
-        corrections: (row.corrections || '').trim(),
-        receivedDate: convertToString(row.receivedDate),
-        approvedDays: convertToString(row.approvedDays),
-        unitNumber: (row.unitNumber || '').trim(),
-        vendorName: (row.vendorName || '').trim(),
-        irn: (row.irn || '').trim(),
-        srn: (row.srn || '').trim(),
-        firstPrice: convertToString(row.firstPrice),
-        rfiNumbering: (row.rfiNumbering || '').trim()
-      }))
-    };
-    
-    setHasChanges(false);
+    // فقط اگر گزارش معتبر داریم، هوک رو فعال کن
+    // بقیه کد مثل قبل...
   }
 }, [isOpen, rfiData, reportInfo, user, error, isReportLoading, nextIRN]);
 
@@ -737,23 +703,21 @@ const handleSubmitInternal = () => {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <FaFileAlt className="text-blue-500 text-xl" />
-              <div>
-                <h3 className="text-lg font-bold text-gray-800">
-                  مدیریت گزارش‌ها - شماره {rfiData?.RFI_Numbering || 'نامشخص'}
-                </h3>
-            
-                {reportInfo?.irn && (
-                  <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                    <span className="font-bold">IRN گزارش موجود: {reportInfo.irn}</span>
-                  </p>
-                )}
-                {/* {hasChanges && !isReportLoading && (
-                  <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
-                    <FaExclamationTriangle className="text-xs" />
-                    تغییرات ذخیره نشده دارید
-                  </p>
-                )} */}
-              </div>
+             
+<div>
+  <h3 className="text-lg font-bold text-gray-800">
+    {rfiData?.Report_No === '************' || !rfiData?.Report_No ? 
+      '📝 ثبت گزارش جدید' : 
+      '✏️ ویرایش گزارش'
+    } - شماره {rfiData?.RFI_Numbering || 'نامشخص'}
+  </h3>
+  
+  {/* {rfiData?.Report_No === '************' && (
+    <p className="text-xs text-blue-600 mt-1">
+      <span className="font-bold">نکته:</span> گزارش قبلی ثبت نشده است. فرم جدید را پر کنید.
+    </p>
+  )} */}
+</div>
             </div>
           </div>
           <button
