@@ -7,62 +7,49 @@ class ReportService {
 
   async createReport(reportData) {
     try {
-      console.log("🎯 ReportService: Sending POST request to /reports");
-      console.log("📋 ReportService: Request data:", reportData);
-
       const response = await http.post("/reports", reportData);
 
-      console.log("✅ ReportService: API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("❌ ReportService: Error creating report:", error);
-      console.error("❌ ReportService: Error URL:", error.config?.url);
-      console.error(
-        "❌ ReportService: Full URL:",
-        error.config?.baseURL + error.config?.url
-      );
       throw error;
     }
   }
 
-  // جدید: گرفتن اطلاعات گزارش بر اساس شماره RFI
-// src/services/reportService.js
-// جدید: گرفتن اطلاعات گزارش بر اساس شماره RFI و شماره گزارش
-async getReportInfo(rfiNumbering, reportNumber = null) {
-  try {
-    console.log("🎯 ReportService: Fetching report for RFI:", rfiNumbering, "Report No:", reportNumber);
-    
-    let url = `/reports/${rfiNumbering}`;
-    
-    // اگر شماره گزارش داریم، به query string اضافه کنیم
-    if (reportNumber && reportNumber.trim() !== '') {
-      url += `?report_number=${encodeURIComponent(reportNumber)}`;
-    }
-
-    const response = await http.get(url);
-
-    console.log("✅ ReportService: API response:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("❌ ReportService: Error fetching report:", error);
-    console.error("❌ ReportService: Error URL:", error.config?.url);
-    
-    if (error.response) {
-      console.error("❌ ReportService: Error status:", error.response.status);
-      console.error("❌ ReportService: Error data:", error.response.data);
-    }
-    throw error;
-  }
-}
-
-  // جدید: آپدیت گزارش موجود
-  async updateReport(reportData) {
+  // جدید: گرفتن اطلاعات گزارش بر اساس شماره RFI و شماره گزارش
+  async getReportInfo(rfiNumbering, reportNumber = null) {
     try {
-      console.log("🎯 ReportService: Updating report:", reportData);
+      let url = `/reports/${rfiNumbering}`;
 
-      const response = await http.put("/reports", reportData);
+      // اگر شماره گزارش داریم، به query string اضافه کنیم
+      if (reportNumber && reportNumber.trim() !== "") {
+        url += `?report_number=${encodeURIComponent(reportNumber)}`;
+      }
 
-      console.log("✅ ReportService: Update response:", response.data);
+      const response = await http.get(url);
+
+      return response.data;
+    } catch (error) {
+      console.error("❌ ReportService: Error fetching report:", error);
+      console.error("❌ ReportService: Error URL:", error.config?.url);
+
+      if (error.response) {
+        console.error("❌ ReportService: Error status:", error.response.status);
+        console.error("❌ ReportService: Error data:", error.response.data);
+      }
+      throw error;
+    }
+  }
+
+  // src/services/reportService.js
+
+  async updateReport(rfiNumbering, reportData) {
+    // تغییر: دو پارامتر
+    try {
+      // ساخت URL با rfiNumbering در path
+      const url = `/reports/${encodeURIComponent(rfiNumbering)}`;
+
+      const response = await http.put(url, reportData);
+
       return response.data;
     } catch (error) {
       console.error("❌ ReportService: Error updating report:", error);
@@ -75,10 +62,30 @@ async getReportInfo(rfiNumbering, reportNumber = null) {
     }
   }
 
+  // اصلاح تابع prepareReportUpdateData:
+  prepareReportUpdateData(formData) {
+    // rfiNumbering حذف شد چون در URL می‌رود
+    const updateData = {
+      report_no: formData.reportNumber,
+      rev_no: formData.revNumber || "",
+      Doc_Status: formData.status,
+      Remark: formData.corrections || "",
+      IssueDate: formData.issueDate || new Date().toISOString().split("T")[0],
+      ReportReceivedDate: this.formatDateForAPI(formData.receivedDate),
+      App_manday_1stPrice: parseInt(formData.approvedDays) || 0,
+      UnitNo: formData.unitNumber || "",
+      VendorName: formData.vendorName || "",
+      IRNNO: formData.irn || "",
+      SRNNo: formData.srn || "",
+      user: formData.user || "",
+      DateShamsi: formData.dateShamsi || "",
+    };
+
+    return updateData;
+  }
+
   // جدید: تبدیل داده‌های API به فرمت مورد نیاز
   transformReportData(apiData) {
-    console.log("📦 Transforming report data:", apiData);
-
     if (!apiData) {
       return null;
     }
@@ -123,7 +130,6 @@ async getReportInfo(rfiNumbering, reportNumber = null) {
       DateShamsi: formData.dateShamsi || "",
     };
 
-    console.log("📤 Prepared report update data:", updateData);
     return updateData;
   }
 
@@ -134,7 +140,7 @@ async getReportInfo(rfiNumbering, reportNumber = null) {
     // اگر DateObject هست
     if (date instanceof DateObject && date.format) {
       const persianDate = date.format("YYYY-MM-DD");
-      console.log("📅 Persian date for API:", persianDate);
+
       return persianDate;
     }
 

@@ -1,6 +1,7 @@
 // src/hooks/useCreateReport.js
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"; // اضافه کردن useQueryClient
 import reportService from "../services/reportService";
+import { toast } from 'react-hot-toast'; // اضافه کردن این خط
 
 // کلیدهای query برای cache management
 export const reportKeys = {
@@ -39,10 +40,7 @@ export const useCreateNewReport = () => {
 
   return useMutation({
     mutationFn: async ({ reportData, rfiNumbering }) => {
-      console.log(
-        "🎯 useCreateNewReport: Creating new report for RFI:",
-        rfiNumbering
-      );
+  
 
       // فرمت تاریخ برای ارسال به API
       const formatDateForAPI = (dateStr) => {
@@ -70,16 +68,13 @@ export const useCreateNewReport = () => {
           reportData.issueDate || new Date().toISOString().split("T")[0], // با حروف بزرگ
       };
 
-      console.log("📤 useCreateNewReport: Sending POST data:", apiData);
+  
       const result = await reportService.createReport(apiData);
-      console.log("✅ useCreateNewReport: Create successful:", result);
+
       return result;
     },
     onSuccess: (data, variables) => {
-      console.log(
-        "✅ useCreateNewReport: onSuccess for RFI:",
-        variables.rfiNumbering
-      );
+  
 
       // اینوالیدیت queryهای RFIReportTable
       queryClient.invalidateQueries({
@@ -91,7 +86,7 @@ export const useCreateNewReport = () => {
         queryKey: reportKeys.detail(variables.rfiNumbering),
       });
 
-      console.log("🔄 RFI Report queries invalidated");
+   
     },
     onError: (error, variables) => {
       console.error(
@@ -104,46 +99,103 @@ export const useCreateNewReport = () => {
 };
 
 // هوک برای آپدیت گزارش موجود (PUT)
+// src/hooks/useCreateReport.js
+// در تابع useUpdateReport:
+
+// src/hooks/useCreateReport.js
+// در تابع useUpdateReport:
+
 export const useUpdateReport = () => {
-  const queryClient = useQueryClient(); // اضافه کردن queryClient
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ reportData, rfiNumbering }) => {
-      console.log("🎯 useUpdateReport: Updating report for RFI:", rfiNumbering);
-      const updateData = reportService.prepareReportUpdateData(
-        reportData,
-        rfiNumbering
-      );
-      console.log("📤 useUpdateReport: Sending PUT data:", updateData);
-
-      const result = await reportService.updateReport(updateData);
-      console.log("✅ useUpdateReport: Update successful:", result);
+    
+      
+      const updateData = reportService.prepareReportUpdateData(reportData);
+   
+      
+      const result = await reportService.updateReport(rfiNumbering, updateData);
+    
       return result;
     },
     onSuccess: (data, variables) => {
-      console.log(
-        "✅ useUpdateReport: onSuccess for RFI:",
-        variables.rfiNumbering
+   
+      
+      // نمایش toast موفقیت
+      toast.success('✅ گزارش با موفقیت بروزرسانی شد', {
+        position: 'top-center',
+        duration: 3000,
+        icon: '✅',
+        style: {
+          background: '#10b981',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+      });
+
+      // **مهم: اینوالیدیت تمام queryهای مرتبط**
+      
+      // 1. اینوالیدیت query اصلی گزارش
+      queryClient.invalidateQueries({
+        queryKey: ["rfiReport"],
+      });
+
+      // 2. اینوالیدیت query جزئیات این گزارش خاص
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.detail(variables.rfiNumbering, variables.reportData.reportNumber),
+      });
+
+      // 3. اینوالیدیت query عمومی report-info
+      queryClient.invalidateQueries({
+        queryKey: ['report-info'],
+      });
+
+      // 4. همچنین cache را به صورت دستی آپدیت کن
+      queryClient.setQueryData(
+        reportKeys.detail(variables.rfiNumbering, variables.reportData.reportNumber),
+        (oldData) => {
+          if (!oldData) return data;
+          return {
+            ...oldData,
+            ...variables.reportData,
+            Report_No: variables.reportData.reportNumber,
+            Remark: variables.reportData.corrections,
+            Doc_Status: variables.reportData.status,
+            App_manday_1stPrice: variables.reportData.approvedDays,
+            UnitNo: variables.reportData.unitNumber,
+            VendorName: variables.reportData.vendorName,
+            IRNNO: variables.reportData.irn,
+            SRNNo: variables.reportData.srn,
+          };
+        }
       );
 
-      // اینوالیدیت queryهای RFIReportTable
-      queryClient.invalidateQueries({
-        queryKey: ["rfiReport"], // کلید اصلی که useRFIReport استفاده می‌کند
-      });
-
-      // همچنین اینوالیدیت query جزئیات این گزارش
-      queryClient.invalidateQueries({
-        queryKey: reportKeys.detail(variables.rfiNumbering),
-      });
-
-      console.log("🔄 RFI Report queries invalidated");
+    
     },
     onError: (error, variables) => {
-      console.error(
-        "❌ useUpdateReport: Update failed for RFI:",
-        variables.rfiNumbering
-      );
+      console.error("❌ useUpdateReport: Update failed for RFI:", variables.rfiNumbering);
       console.error("❌ useUpdateReport: Error:", error);
+      
+      // نمایش toast خطا
+      toast.error(`❌ خطا در بروزرسانی گزارش: ${error.response?.data?.message || error.message}`, {
+        position: 'top-center',
+        duration: 4000,
+        icon: '❌',
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+      });
     },
   });
 };
@@ -154,13 +206,13 @@ export const useCreateReport = () => {
 
   return useMutation({
     mutationFn: async (reportData) => {
-      console.log("🎯 useCreateReport: Mutation started with:", reportData);
+    
       const result = await reportService.createReport(reportData);
-      console.log("✅ useCreateReport: Mutation completed:", result);
+    
       return result;
     },
     onSuccess: (data) => {
-      console.log("✅ useCreateReport: onSuccess called with:", data);
+   
 
       // اینوالیدیت queryهای RFIReportTable برای backward compatibility
       queryClient.invalidateQueries({
@@ -175,7 +227,7 @@ export const useCreateReport = () => {
       );
     },
     onSettled: (data, error) => {
-      console.log("🔵 useCreateReport: onSettled called", { data, error });
+    
     },
   });
 };

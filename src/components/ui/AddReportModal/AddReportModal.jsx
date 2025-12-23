@@ -316,39 +316,34 @@ const checkForChanges = () => {
 // اصلاح useEffect برای ترکیب rfiData و reportInfo:
 useEffect(() => {
   if (isOpen) {
-    console.log('📱 AddReportModal opening for RFI:', rfiData?.RFI_Numbering);
-    console.log('📊 Full rfiData:', rfiData);
-    console.log('📋 Available fields in rfiData:', Object.keys(rfiData || {}));
-    console.log('📊 reportInfo from hook:', reportInfo);
-    console.log('📝 Remark from reportInfo:', reportInfo?.Remark);
-    console.log('📝 Remark from rfiData:', rfiData?.Remark);
+   
 
     // اولویت‌بندی: اول از reportInfo استفاده کن، اگر نبود از rfiData
     const reportSource = reportInfo || rfiData;
     
-    console.log('🎯 Using report source:', {
-      source: reportInfo ? 'reportInfo' : 'rfiData',
-      reportNo: reportSource?.Report_No,
-      remark: reportSource?.Remark,
-      remarkLength: reportSource?.Remark?.length
-    });
+    // console.log('🎯 Using report source:', {
+    //   source: reportInfo ? 'reportInfo' : 'rfiData',
+    //   reportNo: reportSource?.Report_No,
+    //   remark: reportSource?.Remark,
+    //   remarkLength: reportSource?.Remark?.length
+    // });
 
     // بررسی وضعیت گزارش موجود
     const hasValidReport = reportSource?.Report_No && 
                           reportSource.Report_No.trim() !== '' && 
                           reportSource.Report_No !== '************';
     
-    console.log('🔍 Report status:', {
-      reportNo: reportSource?.Report_No,
-      hasValidReport,
-      isStars: reportSource?.Report_No === '************'
-    });
+    // console.log('🔍 Report status:', {
+    //   reportNo: reportSource?.Report_No,
+    //   hasValidReport,
+    //   isStars: reportSource?.Report_No === '************'
+    // });
 
     const todayPersianDate = convertToPersianDate(new Date());
     
     // اگر گزارش معتبر داریم
     if (hasValidReport) {
-      console.log('✅ Using existing report data');
+      // console.log('✅ Using existing report data');
       
       const initialRow = {
         id: 1,
@@ -367,11 +362,11 @@ useEffect(() => {
         issueDate: reportSource.IssueDate || new Date().toISOString().split('T')[0]
       };
 
-      console.log('📝 Initial row data:', {
-        ...initialRow,
-        correctionsLength: initialRow.corrections?.length,
-        correctionsPreview: initialRow.corrections?.substring(0, 50) + '...'
-      });
+      // console.log('📝 Initial row data:', {
+      //   ...initialRow,
+      //   correctionsLength: initialRow.corrections?.length,
+      //   correctionsPreview: initialRow.corrections?.substring(0, 50) + '...'
+      // });
 
       setReportRows([initialRow]);
       
@@ -393,10 +388,10 @@ useEffect(() => {
         }]
       };
       
-      console.log('💾 Initial corrections saved:', initialRow.corrections);
+      // console.log('💾 Initial corrections saved:', initialRow.corrections);
     } else {
       // اگر گزارش معتبر نداریم
-      console.log('📝 Creating new report form (no existing report)');
+      // console.log('📝 Creating new report form (no existing report)');
       
       const newRow = {
         id: 1,
@@ -435,7 +430,7 @@ useEffect(() => {
     }
     
     setHasChanges(false);
-    console.log('🎯 Initial data saved to ref:', initialDataRef.current?.reportRows?.[0]?.corrections);
+    // console.log('🎯 Initial data saved to ref:', initialDataRef.current?.reportRows?.[0]?.corrections);
   }
 }, [isOpen, rfiData, reportInfo, nextIRN]); // reportInfo به dependency اضافه شد
 
@@ -564,13 +559,12 @@ useEffect(() => {
   };
 
   // هندلر اصلی ذخیره
- // هندلر اصلی ذخیره
+// در AddReportModal.jsx - تابع handleSubmitInternal:
 const handleSubmitInternal = () => {
   if (!validateForm()) {
     return;
   }
   
-  // فیلتر ردیف‌های معتبر (فقط آنهایی که شماره گزارش دارند)
   const validRows = reportRows.filter(row => 
     row.reportNumber && row.reportNumber.trim() !== ''
   );
@@ -580,23 +574,16 @@ const handleSubmitInternal = () => {
     return;
   }
 
-  console.log('🚀 Submitting report data for RFI:', rfiData?.RFI_Numbering);
+  // console.log('🚀 Submitting report data for RFI:', rfiData?.RFI_Numbering);
 
-  // فقط اولین ردیف معتبر را ارسال کن
   const rowToSubmit = validRows[0];
   
-  // **فرمت تاریخ برای ارسال به API**
   const formattedReceivedDate = formatDateForAPI(rowToSubmit.receivedDate);
-  
-  // تاریخ امروز برای IssueDate
   const today = new Date();
-  const todayIsoDate = today.toISOString().split('T')[0]; // 2025-01-30
-  
-  // تاریخ شمسی امروز
+  const todayIsoDate = today.toISOString().split('T')[0];
   const todayPersian = convertToPersianDate(today);
-  const todayShamsi = todayPersian.format('YYYY/MM/DD'); // 1403/11/10
+  const todayShamsi = todayPersian.format('YYYY/MM/DD');
   
-  // آماده‌سازی داده برای ارسال
   const reportData = {
     reportNumber: rowToSubmit.reportNumber.trim(),
     revNumber: rowToSubmit.revNumber || '',
@@ -611,50 +598,32 @@ const handleSubmitInternal = () => {
     firstPrice: rowToSubmit.firstPrice || '80000000',
     rfiNumbering: rowToSubmit.rfiNumbering || rfiData?.RFI_Numbering,
     user: user?.username || '',
-    issueDate: todayIsoDate, // تاریخ امروز میلادی
-    dateShamsi: todayShamsi  // تاریخ امروز شمسی
+    issueDate: todayIsoDate,
+    dateShamsi: todayShamsi
   };
 
-  console.log('📋 Report data to submit:', reportData);
+  // console.log('📋 Report data to submit:', reportData);
   
-  // بررسی وضعیت گزارش موجود
-  const hasExistingReport = reportInfo && 
-                           reportInfo.reportNumber && 
-                           reportInfo.reportNumber.trim() !== '' && 
-                           reportInfo.reportNumber !== '************';
+  // **منطق جدید برای تشخیص PUT/POST**
+  // از reportInfo استفاده می‌کنیم چون هوک دقیقاً همین گزارش را دریافت کرده
+  const hasValidExistingReport = reportInfo && 
+                               reportInfo.Report_No && 
+                               reportInfo.Report_No.trim() !== '' && 
+                               reportInfo.Report_No !== '************' &&
+                               // همچنین مطمئن شویم که گزارش فعلی با گزارش موجود یکسان است
+                               reportInfo.Report_No === rowToSubmit.reportNumber.trim();
   
-  const isReportNumberChanged = hasExistingReport && 
-                               reportInfo.reportNumber !== rowToSubmit.reportNumber.trim();
-  
-  const hasEmptyReportNumber = !rowToSubmit.reportNumber || 
-                              rowToSubmit.reportNumber.trim() === '';
-  
-  console.log('📊 Report status check:', {
-    hasExistingReport,
-    isReportNumberChanged,
-    hasEmptyReportNumber,
-    existingReportNumber: reportInfo?.reportNumber,
-    newReportNumber: rowToSubmit.reportNumber
-  });
+  // console.log('📊 PUT/POST Decision:', {
+  //   hasReportInfo: !!reportInfo,
+  //   reportInfoReportNo: reportInfo?.Report_No,
+  //   rowReportNo: rowToSubmit.reportNumber.trim(),
+  //   hasValidExistingReport,
+  //   isSameReportNumber: reportInfo?.Report_No === rowToSubmit.reportNumber.trim()
+  // });
 
-  // **منطق شرطی برای تشخیص POST یا PUT**
-  // شرایط POST (گزارش جدید):
-  // 1. گزارش موجود ندارد (reportInfo = null)
-  // 2. شماره گزارش موجود ************ است
-  // 3. شماره گزارش خالی است
-  // 4. شماره گزارش تغییر کرده (مورد جدید)
-  // 5. خطای 404 دریافت کردیم
-  
-  const shouldUsePOST = 
-    !hasExistingReport ||                    // گزارش موجود ندارد
-    reportInfo?.reportNumber === '************' || // شماره گزارش ************ است
-    hasEmptyReportNumber ||                  // شماره گزارش خالی است
-    isReportNumberChanged ||                 // شماره گزارش تغییر کرده
-    (error && error.response?.status === 404); // خطای 404 دریافت کردیم
-
-  if (!shouldUsePOST) {
+  if (hasValidExistingReport) {
     // گزارش موجود و معتبر - PUT
-    console.log('🔄 Using PUT for existing report:', reportInfo.reportNumber);
+
     updateReport(
       {
         reportData: reportData,
@@ -662,8 +631,8 @@ const handleSubmitInternal = () => {
       },
       {
         onSuccess: (data) => {
-          console.log('✅ Update successful:', data);
-          toast.success('✅ گزارش با موفقیت به‌روزرسانی شد');
+          // console.log('✅ Update successful:', data);
+          
           // بروزرسانی داده‌های اولیه
           initialDataRef.current = {
             reportRows: reportRows.map(row => ({
@@ -673,27 +642,19 @@ const handleSubmitInternal = () => {
             }))
           };
           setHasChanges(false);
-          onClose();
+          setTimeout(() => {
+            onClose();
+          }, 750); // کمی تاخیر برای نمایش toast
         },
         onError: (error) => {
           console.error('❌ Update failed:', error);
-          const errorMessage = error.response?.data?.message || 
-                              error.response?.data?.detail || 
-                              error.message || 
-                              'خطای ناشناخته';
-          toast.error(`❌ خطا در به‌روزرسانی گزارش: ${errorMessage}`);
+          // toast توسط هوک نمایش داده می‌شود
         }
       }
     );
   } else {
     // گزارش جدید - POST
-    console.log('🆕 Using POST for new report. Reason:', {
-      hasExistingReport,
-      existingIsStars: reportInfo?.reportNumber === '************',
-      hasEmptyReportNumber,
-      isReportNumberChanged,
-      has404Error: error && error.response?.status === 404
-    });
+ 
     
     createReport(
       {
@@ -702,9 +663,22 @@ const handleSubmitInternal = () => {
       },
       {
         onSuccess: (data) => {
-          console.log('✅ Create successful:', data);
-          toast.success('✅ گزارش جدید با موفقیت ثبت شد');
-          // بروزرسانی داده‌های اولیه
+          // console.log('✅ Create successful:', data);
+          toast.success('✅ گزارش جدید با موفقیت ثبت شد', {
+            position: 'top-center',
+            duration: 3000,
+            icon: '✅',
+            style: {
+              background: '#10b981',
+              color: 'white',
+              borderRadius: '10px',
+              padding: '16px',
+              fontSize: '14px',
+              direction: 'rtl',
+              textAlign: 'right',
+            },
+          });
+          
           initialDataRef.current = {
             reportRows: reportRows.map(row => ({
               ...row,
@@ -713,15 +687,26 @@ const handleSubmitInternal = () => {
             }))
           };
           setHasChanges(false);
-          onClose();
+          setTimeout(() => {
+            onClose();
+          }, 750);
         },
         onError: (error) => {
           console.error('❌ Create failed:', error);
-          const errorMessage = error.response?.data?.message || 
-                              error.response?.data?.detail || 
-                              error.message || 
-                              'خطای ناشناخته';
-          toast.error(`❌ خطا در ثبت گزارش جدید: ${errorMessage}`);
+          toast.error(`❌ خطا در ثبت گزارش جدید: ${error.response?.data?.message || error.message}`, {
+            position: 'top-center',
+            duration: 4000,
+            icon: '❌',
+            style: {
+              background: '#ef4444',
+              color: 'white',
+              borderRadius: '10px',
+              padding: '16px',
+              fontSize: '14px',
+              direction: 'rtl',
+              textAlign: 'right',
+            },
+          });
         }
       }
     );
@@ -1244,28 +1229,29 @@ const handleSubmitInternal = () => {
 
             {/* دکمه‌های ثبت و انصراف */}
             <div className="flex gap-3 pt-6 border-t border-gray-200">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <>
-                    <FaSync className="animate-spin text-lg" />
-                    در حال ذخیره...
-                  </>
-                ) : reportInfo && !reportInfo.reportNumber  ? (
-                  <>
-                    <FaCheckCircle className="text-lg" />
-                    به‌روزرسانی گزارش
-                  </>
-                ) : (
-                  <>
-                    <FaCheckCircle className="text-lg" />
-                    ثبت گزارش جدید
-                  </>
-                )}
-              </button>
+              {/* در بخش دکمه‌ها اصلاح کنید: */}
+<button
+  type="submit"
+  disabled={isLoading}
+  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  {isLoading ? (
+    <>
+      <FaSync className="animate-spin text-lg" />
+      در حال ذخیره...
+    </>
+  ) : reportInfo && reportInfo.Report_No && reportInfo.Report_No !== '************' ? (
+    <>
+      <FaCheckCircle className="text-lg" />
+      بروزرسانی گزارش
+    </>
+  ) : (
+    <>
+      <FaCheckCircle className="text-lg" />
+      ثبت گزارش جدید
+    </>
+  )}
+</button>
               
               <button
                 type="button"
