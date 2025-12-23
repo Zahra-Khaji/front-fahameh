@@ -61,7 +61,24 @@ class ReportService {
       throw error;
     }
   }
+  async getReportStatuses() {
+    try {
+      const response = await http.get("/lookups/report-statuses");
 
+      // لاگ برای دیباگ
+      console.log("📋 Report statuses from API:", response.data);
+
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error fetching report statuses:", error);
+
+      // در صورت خطا، وضعیت‌های پیش‌فرض را برگردان
+      return {
+        5: "approved",
+        10: "Objection",
+      };
+    }
+  }
   // اصلاح تابع prepareReportUpdateData:
   prepareReportUpdateData(formData) {
     // rfiNumbering حذف شد چون در URL می‌رود

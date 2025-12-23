@@ -1,5 +1,5 @@
 // src/components/ui/NotificationInfoModal/NotificationInfoModal.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   FaTimes, 
   FaHashtag, 
@@ -28,8 +28,14 @@ import DatePicker from "react-multi-date-picker";
 import DateObject from "react-date-object";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import { useNotificationInfo, useUpdateNotification } from '../../../hooks/useNotificationNumber';
+import { useNotificationInfo, useUpdateNotification, useNotificationStatuses } from '../../../hooks/useNotificationNumber';
 import { toast } from 'react-hot-toast';
+import { 
+  getNotificationStatusInPersian, 
+  transformNotificationStatuses,
+  getEnglishNotificationStatus,
+  getNotificationStatusCode 
+} from '../../../utils/helpers';
 
 // پاپ‌آپ تأیید مینیمال
 const ConfirmationPopover = ({ 
@@ -116,6 +122,7 @@ const ConfirmationPopover = ({
 const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
   // استفاده از هوک‌های یکپارچه
   const { data: notificationData, isLoading, error } = useNotificationInfo(rfiNumber);
+  const { data: statusesData, isLoading: statusesLoading } = useNotificationStatuses();
   const { mutate: updateNotification, isLoading: isUpdating } = useUpdateNotification();
 
   // حالت‌های پاپ‌آپ
@@ -130,22 +137,15 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
   const [notificationRows, setNotificationRows] = useState([]);
   const [rfiDatesRows, setRfiDatesRows] = useState([]);
 
-  // حالت‌های ممکن
-  const statusOptions = [
-    { value: 'انجام شده', label: 'انجام شده' },
-    { value: 'در حال انجام', label: 'در حال انجام' }
-  ];
+  // تبدیل داده‌های API به options برای select
+  const statusOptions = useMemo(() => {
+    return transformNotificationStatuses(statusesData);
+  }, [statusesData]);
 
   // نوع بازرس
   const inspectorTypeOptions = [
     { value: 'فریلنسر', label: 'فریلنسر' },
     { value: 'بازرس داخلی', label: 'بازرس داخلی' }
-  ];
-
-  // وضعیت تأیید
-  const approvalOptions = [
-    { value: '1', label: 'تائید شده' },
-    { value: '0', label: 'تائید نشده' }
   ];
 
   // تابع تبدیل تاریخ به شمسی
@@ -212,11 +212,11 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
       const currentRow = current.notificationRows[i];
       
       const fields = [
-        'notificationNumber', 'status', 'inspectorType', 'description',
-        'receivedDate', 'location', 'inspectionDate', 'vendorName',
-        'duration', 'inspectorName', 'remark', 'folderNumber',
-        'material', 'goodsDescription', 'qty3rdPartyInspector',
-        'approvedDuration', 'projectType', 'rfiStatus'
+        'notificationNumber', 'status', 'statusCode', 'statusEnglish',
+        'inspectorType', 'description', 'receivedDate', 'location', 
+        'inspectionDate', 'vendorName', 'duration', 'inspectorName', 
+        'remark', 'folderNumber', 'material', 'goodsDescription', 
+        'qty3rdPartyInspector', 'approvedDuration', 'projectType', 'rfiStatus'
       ];
       
       for (const field of fields) {
@@ -235,7 +235,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
       const initialRow = initial.rfiDatesRows[i];
       const currentRow = current.rfiDatesRows[i];
       
-      const fields = ['inspectionDate', 'approvalStatus', 'inspectorName', 'fee'];
+      const fields = ['inspectionDate', 'approveManday', 'inspectorName', 'fee'];
       
       for (const field of fields) {
         if (!areValuesEqual(initialRow[field], currentRow[field])) {
@@ -258,10 +258,37 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
         
         // پر کردن جدول نوتیفیکیشن
         if (timeTable) {
+          // تبدیل وضعیت انگلیسی به کد عددی
+          const englishStatus = timeTable.RFI_Status || '';
+          let statusCode = '3'; // پیش‌فرض: در حال انجام
+          let persianStatus = 'در حال انجام';
+          
+          if (englishStatus === 'Done') {
+            statusCode = '2';
+            persianStatus = 'انجام شده';
+          } else if (englishStatus === 'Cancel') {
+            statusCode = '1';
+            persianStatus = 'لغو شده';
+          } else if (englishStatus === 'Ongoing') {
+            statusCode = '3';
+            persianStatus = 'در حال انجام';
+          }
+          
+          // اگر statusesData موجود بود، دقیق‌تر جستجو کن
+          if (statusesData) {
+            const entry = Object.entries(statusesData).find(([code, text]) => text === englishStatus);
+            if (entry) {
+              statusCode = entry[0];
+              persianStatus = getNotificationStatusInPersian(entry[0], entry[1]);
+            }
+          }
+          
           initialNotificationRows = [{
             id: 1,
             notificationNumber: timeTable.RFI_Numbering || rfiNumber || '',
-            status: timeTable.RFI_Status === 'Done' ? 'انجام شده' : 'در حال انجام',
+            status: persianStatus,
+            statusCode: statusCode,
+            statusEnglish: englishStatus,
             inspectorType: timeTable.Inspector_Type || 'فریلنسر',
             description: timeTable.Remark || '',
             receivedDate: convertToPersianDate(timeTable.RFI_Recived_Date),
@@ -277,7 +304,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             qty3rdPartyInspector: timeTable.QTY_3rdpartinspector || '0',
             approvedDuration: timeTable.approved_Duration || '0',
             projectType: timeTable.Over_Domestic || '',
-            rfiStatus: timeTable.RFI_Status || ''
+            rfiStatus: englishStatus
           }];
         } else {
           // اگر داده‌ای نبود، ردیف خالی ایجاد کن
@@ -285,6 +312,8 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             id: 1,
             notificationNumber: rfiNumber || '',
             status: 'در حال انجام',
+            statusCode: '3',
+            statusEnglish: 'Ongoing',
             inspectorType: 'فریلنسر',
             description: '',
             receivedDate: convertToPersianDate(new Date()),
@@ -300,7 +329,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             qty3rdPartyInspector: '0',
             approvedDuration: '0',
             projectType: '',
-            rfiStatus: ''
+            rfiStatus: 'Ongoing'
           }];
         }
 
@@ -311,7 +340,6 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             inspectionDate: convertToPersianDate(item.RFI_Date),
             approveManday: item.ApproveManday != null && item.ApproveManday !== '' ? 
             Number(item.ApproveManday) : '-',
-
             inspectorName: item.Inspector_Name || '',
             fee: item.InspectorPrice ? `${item.InspectorPrice.toLocaleString('fa-IR')}` : ''
           }));
@@ -319,7 +347,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           initialRfiDatesRows = [{
             id: 1,
             inspectionDate: convertToPersianDate(new Date()),
-            approvalStatus: '0',
+            approveManday: '-',
             inspectorName: '',
             fee: ''
           }];
@@ -330,6 +358,8 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           id: 1,
           notificationNumber: rfiNumber || '',
           status: 'در حال انجام',
+          statusCode: '3',
+          statusEnglish: 'Ongoing',
           inspectorType: 'فریلنسر',
           description: '',
           receivedDate: convertToPersianDate(new Date()),
@@ -345,13 +375,13 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           qty3rdPartyInspector: '0',
           approvedDuration: '0',
           projectType: '',
-          rfiStatus: ''
+          rfiStatus: 'Ongoing'
         }];
         
         initialRfiDatesRows = [{
           id: 1,
           inspectionDate: convertToPersianDate(new Date()),
-          approvalStatus: '0',
+          approveManday: '-',
           inspectorName: '',
           fee: ''
         }];
@@ -375,7 +405,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
       
       setHasChanges(false);
     }
-  }, [isOpen, notificationData, rfiNumber]);
+  }, [isOpen, notificationData, rfiNumber, statusesData]);
 
   // بررسی تغییرات هنگام تغییر داده‌ها
   useEffect(() => {
@@ -394,6 +424,8 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
         id: newId,
         notificationNumber: '',
         status: 'در حال انجام',
+        statusCode: '3',
+        statusEnglish: 'Ongoing',
         inspectorType: 'فریلنسر',
         description: '',
         receivedDate: convertToPersianDate(new Date()),
@@ -409,7 +441,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
         qty3rdPartyInspector: '0',
         approvedDuration: '0',
         projectType: '',
-        rfiStatus: ''
+        rfiStatus: 'Ongoing'
       }
     ]);
   };
@@ -436,11 +468,39 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
   };
 
   const handleNotificationRowChange = (id, field, value) => {
-    setNotificationRows(notificationRows.map(row => 
-      row.id === id 
-        ? { ...row, [field]: value }
-        : row
-    ));
+    setNotificationRows(notificationRows.map(row => {
+      if (row.id === id) {
+        // اگر فیلد status باشد
+        if (field === 'status') {
+          // پیدا کردن کد و متن انگلیسی متناظر
+          const selectedOption = statusOptions.find(opt => opt.label === value);
+          if (selectedOption) {
+            return { 
+              ...row, 
+              status: value,
+              statusCode: selectedOption.value,
+              statusEnglish: selectedOption.textValue,
+              rfiStatus: selectedOption.textValue
+            };
+          }
+          
+          // اگر گزینه پیدا نشد، سعی کن کد رو پیدا کنی
+          const code = getNotificationStatusCode(statusesData, value);
+          const englishStatus = getEnglishNotificationStatus(statusesData, code);
+          
+          return { 
+            ...row, 
+            status: value,
+            statusCode: code,
+            statusEnglish: englishStatus,
+            rfiStatus: englishStatus
+          };
+        }
+        
+        return { ...row, [field]: value };
+      }
+      return row;
+    }));
   };
 
   // ========== مدیریت ردیف‌های جدول صورت وضعیت بازرس ==========
@@ -451,9 +511,6 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
       {
         id: newId,
         inspectionDate: convertToPersianDate(new Date()),
-        // approvalStatus: '0',
-        // approvedManday: 0, 
-        // مقدار پیش‌فرض صفر
         approveManday: '-',
         inspectorName: '',
         fee: ''
@@ -544,7 +601,8 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
     updateNotification(
       {
         timeTableRows: validNotificationRows,
-        rfiDatesRows: validRfiDatesRows
+        rfiDatesRows: validRfiDatesRows,
+        statusesData: statusesData
       },
       {
         onSuccess: () => {
@@ -572,22 +630,22 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
     );
   };
 
-// تابع بررسی و نمایش مقدار ApproveManday
-const displayApproveManday = (value) => {
-  // اگر مقدار null یا undefined یا خالی باشد
-  if (value == null || value === '' || value === undefined) {
+  // تابع بررسی و نمایش مقدار ApproveManday
+  const displayApproveManday = (value) => {
+    // اگر مقدار null یا undefined یا خالی باشد
+    if (value == null || value === '' || value === undefined) {
+      return '-';
+    }
+    
+    // اگر عدد یا رشته عددی باشد
+    const numValue = Number(value);
+    if (!isNaN(numValue)) {
+      return numValue;
+    }
+    
+    // در غیر این صورت خط تیره
     return '-';
-  }
-  
-  // اگر عدد یا رشته عددی باشد
-  const numValue = Number(value);
-  if (!isNaN(numValue)) {
-    return numValue;
-  }
-  
-  // در غیر این صورت خط تیره
-  return '-';
-};
+  };
 
   // هندلر کلیک روی دکمه ذخیره
   const handleSubmit = (e) => {
@@ -620,6 +678,8 @@ const displayApproveManday = (value) => {
 
   if (!isOpen) return null;
 
+  const isLoadingAll = isLoading || statusesLoading;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -632,18 +692,12 @@ const displayApproveManday = (value) => {
                 <h3 className="text-lg font-bold text-gray-800">
                   اطلاعات نوتیفیکیشن شماره {rfiNumber}
                 </h3>
-                {isLoading && (
+                {isLoadingAll && (
                   <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                     <FaSync className="animate-spin" />
                     در حال دریافت اطلاعات...
                   </p>
                 )}
-                {/* {hasChanges && !isLoading && (
-                  <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
-                    <FaExclamationTriangle className="text-xs" />
-                    تغییرات ذخیره نشده دارید
-                  </p>
-                )} */}
               </div>
             </div>
           </div>
@@ -698,7 +752,6 @@ const displayApproveManday = (value) => {
                     <th className="p-3 text-right font-bold text-white text-xs min-w-28">نام بازرس</th>
                     <th className="p-3 text-right font-bold text-white text-xs min-w-32">Remark</th>
                     <th className="p-3 text-right font-bold text-white text-xs min-w-24">شماره فولدر</th>
-                    {/* <th className="p-3 text-right font-bold text-white text-xs min-w-24">عملیات</th> */}
                   </tr>
                 </thead>
                 <tbody>
@@ -717,7 +770,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'notificationNumber', e.target.value)}
                           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
                           placeholder="شماره نوتیفیکشن"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </td>
 
@@ -727,13 +780,20 @@ const displayApproveManday = (value) => {
                           value={row.status}
                           onChange={(e) => handleNotificationRowChange(row.id, 'status', e.target.value)}
                           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating || statusesLoading}
                         >
-                          {statusOptions.map(option => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
+                          {statusesLoading ? (
+                            <option value="">در حال دریافت لیست وضعیت‌ها...</option>
+                          ) : (
+                            <>
+                              <option value="">انتخاب وضعیت</option>
+                              {statusOptions.map(option => (
+                                <option key={option.value} value={option.label}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </>
+                          )}
                         </select>
                       </td>
 
@@ -743,7 +803,7 @@ const displayApproveManday = (value) => {
                           value={row.inspectorType}
                           onChange={(e) => handleNotificationRowChange(row.id, 'inspectorType', e.target.value)}
                           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         >
                           {inspectorTypeOptions.map(option => (
                             <option key={option.value} value={option.value}>
@@ -761,7 +821,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'description', e.target.value)}
                           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
                           placeholder="توضیحات"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </td>
 
@@ -774,7 +834,7 @@ const displayApproveManday = (value) => {
                           locale={persian_fa}
                           format="YYYY/MM/DD"
                           inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </td>
 
@@ -786,7 +846,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'location', e.target.value)}
                           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
                           placeholder="شهر"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </td>
 
@@ -799,7 +859,7 @@ const displayApproveManday = (value) => {
                           locale={persian_fa}
                           format="YYYY/MM/DD"
                           inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </td>
 
@@ -811,7 +871,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'vendorName', e.target.value)}
                           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
                           placeholder="نام وندور"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </td>
 
@@ -823,7 +883,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'duration', e.target.value)}
                           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
                           placeholder="مدت"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </td>
 
@@ -835,7 +895,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'inspectorName', e.target.value)}
                           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
                           placeholder="نام بازرس"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </td>
 
@@ -847,7 +907,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'remark', e.target.value)}
                           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
                           placeholder="توضیحات تکمیلی"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </td>
 
@@ -859,33 +919,9 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'folderNumber', e.target.value)}
                           className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-transparent"
                           placeholder="شماره فولدر"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </td>
-
-                      {/* عملیات */}
-                      {/* <td className="p-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleCopyNotificationRow(row.id)}
-                            className="text-gray-700 hover:text-gray-900 p-1.5 rounded hover:bg-blue-100 transition duration-200"
-                            title="کپی کردن سطر"
-                            disabled={isLoading || isUpdating}
-                          >
-                            <FaCopy className="text-xs" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteNotificationRow(row.id)}
-                            className="text-gray-700 hover:text-gray-900 p-1.5 rounded hover:bg-blue-100 transition duration-200"
-                            title="حذف سطر"
-                            disabled={notificationRows.length === 1 || isLoading || isUpdating}
-                          >
-                            <FaTrash className="text-xs" />
-                          </button>
-                        </div>
-                      </td> */}
                     </tr>
                   ))}
                 </tbody>
@@ -907,7 +943,7 @@ const displayApproveManday = (value) => {
                         onClick={() => handleCopyNotificationRow(row.id)}
                         className="text-gray-700 hover:text-gray-900 p-1"
                         title="کپی"
-                        disabled={isLoading || isUpdating}
+                        disabled={isLoadingAll || isUpdating}
                       >
                         <FaCopy className="text-sm" />
                       </button>
@@ -916,7 +952,7 @@ const displayApproveManday = (value) => {
                         onClick={() => handleDeleteNotificationRow(row.id)}
                         className="text-gray-700 hover:text-gray-900 p-1"
                         title="حذف"
-                        disabled={notificationRows.length === 1 || isLoading || isUpdating}
+                        disabled={notificationRows.length === 1 || isLoadingAll || isUpdating}
                       >
                         <FaTrash className="text-sm" />
                       </button>
@@ -933,7 +969,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'notificationNumber', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
                           placeholder="شماره"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </div>
                       <div>
@@ -942,13 +978,20 @@ const displayApproveManday = (value) => {
                           value={row.status}
                           onChange={(e) => handleNotificationRowChange(row.id, 'status', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating || statusesLoading}
                         >
-                          {statusOptions.map(option => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
+                          {statusesLoading ? (
+                            <option value="">در حال دریافت...</option>
+                          ) : (
+                            <>
+                              <option value="">انتخاب وضعیت</option>
+                              {statusOptions.map(option => (
+                                <option key={option.value} value={option.label}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </>
+                          )}
                         </select>
                       </div>
                     </div>
@@ -960,7 +1003,7 @@ const displayApproveManday = (value) => {
                           value={row.inspectorType}
                           onChange={(e) => handleNotificationRowChange(row.id, 'inspectorType', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         >
                           {inspectorTypeOptions.map(option => (
                             <option key={option.value} value={option.value}>
@@ -977,7 +1020,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'vendorName', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
                           placeholder="نام وندور"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </div>
                     </div>
@@ -990,7 +1033,7 @@ const displayApproveManday = (value) => {
                         onChange={(e) => handleNotificationRowChange(row.id, 'description', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
                         placeholder="توضیحات"
-                        disabled={isLoading || isUpdating}
+                        disabled={isLoadingAll || isUpdating}
                       />
                     </div>
 
@@ -1004,7 +1047,7 @@ const displayApproveManday = (value) => {
                           locale={persian_fa}
                           format="YYYY/MM/DD"
                           inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </div>
                       <div>
@@ -1016,7 +1059,7 @@ const displayApproveManday = (value) => {
                           locale={persian_fa}
                           format="YYYY/MM/DD"
                           inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </div>
                     </div>
@@ -1030,7 +1073,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'location', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
                           placeholder="شهر"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </div>
                       <div>
@@ -1041,7 +1084,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'duration', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
                           placeholder="مدت"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </div>
                     </div>
@@ -1055,7 +1098,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'inspectorName', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
                           placeholder="نام بازرس"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </div>
                       <div>
@@ -1066,7 +1109,7 @@ const displayApproveManday = (value) => {
                           onChange={(e) => handleNotificationRowChange(row.id, 'folderNumber', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
                           placeholder="123"
-                          disabled={isLoading || isUpdating}
+                          disabled={isLoadingAll || isUpdating}
                         />
                       </div>
                     </div>
@@ -1079,23 +1122,12 @@ const displayApproveManday = (value) => {
                         onChange={(e) => handleNotificationRowChange(row.id, 'remark', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
                         placeholder="توضیحات تکمیلی"
-                        disabled={isLoading || isUpdating}
+                        disabled={isLoadingAll || isUpdating}
                       />
                     </div>
                   </div>
                 </div>
               ))}
-              
-              {/* دکمه اضافه کردن برای موبایل */}
-              {/* <button
-                type="button"
-                onClick={handleAddNotificationRow}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading || isUpdating}
-              >
-                <FaPlusCircle className="text-base" />
-                افزودن سطر جدید
-              </button> */}
             </div>
           </div>
 
@@ -1109,271 +1141,234 @@ const displayApproveManday = (value) => {
                   {rfiDatesRows.length} مورد
                 </span>
               </div>
-              
-              {/* <button
-                type="button"
-                onClick={handleAddRfiDatesRow}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading || isUpdating}
-              >
-                <FaPlusCircle className="text-base" />
-                افزودن سطر جدید
-              </button> */}
             </div>
 
-       {/* Desktop Table - صورت وضعیت بازرس */}
-<div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
-  <table className="w-full text-xs table-fixed">
-    <thead>
-      <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
-        <th className="p-3 text-right font-bold text-white text-xs w-1/6">شروع تاریخ بازرسی</th>
-        <th className="p-3 text-right font-bold text-white text-xs w-1/6">تعداد روز تائید شده</th>
-        <th className="p-3 text-right font-bold text-white text-xs w-1/4">بازرس اول</th>
-        <th className="p-3 text-right font-bold text-white text-xs w-1/5">دستمزد</th>
-        {/* <th className="p-3 text-right font-bold text-white text-xs w-1/12">عملیات</th> */}
-      </tr>
-    </thead>
-    <tbody>
-      {rfiDatesRows.map((row, index) => (
-        <tr 
-          key={row.id} 
-          className={`border-b border-gray-200 transition duration-150 ${
-            index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-          } hover:bg-blue-50`}
-        >
-          {/* تاریخ بازرسی */}
-          <td className="p-2">
-            <DatePicker
-              value={row.inspectionDate}
-              onChange={(date) => handleRfiDatesRowChange(row.id, 'inspectionDate', date)}
-              calendar={persian}
-              locale={persian_fa}
-              format="YYYY/MM/DD"
-              inputClass="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent"
-              disabled={isLoading || isUpdating}
-            />
-          </td>
+            {/* Desktop Table - صورت وضعیت بازرس */}
+            <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
+              <table className="w-full text-xs table-fixed">
+                <thead>
+                  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
+                    <th className="p-3 text-right font-bold text-white text-xs w-1/6">شروع تاریخ بازرسی</th>
+                    <th className="p-3 text-right font-bold text-white text-xs w-1/6">تعداد روز تائید شده</th>
+                    <th className="p-3 text-right font-bold text-white text-xs w-1/4">بازرس اول</th>
+                    <th className="p-3 text-right font-bold text-white text-xs w-1/5">دستمزد</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rfiDatesRows.map((row, index) => (
+                    <tr 
+                      key={row.id} 
+                      className={`border-b border-gray-200 transition duration-150 ${
+                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                      } hover:bg-blue-50`}
+                    >
+                      {/* تاریخ بازرسی */}
+                      <td className="p-2">
+                        <DatePicker
+                          value={row.inspectionDate}
+                          onChange={(date) => handleRfiDatesRowChange(row.id, 'inspectionDate', date)}
+                          calendar={persian}
+                          locale={persian_fa}
+                          format="YYYY/MM/DD"
+                          inputClass="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent"
+                          disabled={isLoadingAll || isUpdating}
+                        />
+                      </td>
 
-{/* ستون جدید: تعداد روز تائید شده */}
-<td className="p-2">
-  <input
-    type="text"
-    value={displayApproveManday(row.approveManday)}
-    onChange={(e) => {
-      const newValue = e.target.value.trim();
-      
-      // اگر خالی یا خط تیره باشد
-      if (newValue === '' || newValue === '-') {
-        handleRfiDatesRowChange(row.id, 'approveManday', '-');
-      } 
-      // اگر عدد باشد
-      else {
-        const numValue = parseInt(newValue, 10);
-        if (!isNaN(numValue)) {
-          handleRfiDatesRowChange(row.id, 'approveManday', numValue);
-        } else {
-          // اگر عدد نبود، مقدار قبلی را نگه دار
-          handleRfiDatesRowChange(row.id, 'approveManday', row.approveManday);
-        }
-      }
-    }}
-    onFocus={(e) => {
-      if (e.target.value === '-') {
-        e.target.value = '';
-      }
-    }}
-    onBlur={(e) => {
-      const currentValue = e.target.value.trim();
-      if (currentValue === '') {
-        e.target.value = '-';
-        handleRfiDatesRowChange(row.id, 'approveManday', '-');
-      }
-    }}
-    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent text-center"
-    placeholder="-"
-    disabled={isLoading || isUpdating}
-  />
-</td>
+                      {/* ستون جدید: تعداد روز تائید شده */}
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          value={displayApproveManday(row.approveManday)}
+                          onChange={(e) => {
+                            const newValue = e.target.value.trim();
+                            
+                            // اگر خالی یا خط تیره باشد
+                            if (newValue === '' || newValue === '-') {
+                              handleRfiDatesRowChange(row.id, 'approveManday', '-');
+                            } 
+                            // اگر عدد باشد
+                            else {
+                              const numValue = parseInt(newValue, 10);
+                              if (!isNaN(numValue)) {
+                                handleRfiDatesRowChange(row.id, 'approveManday', numValue);
+                              } else {
+                                // اگر عدد نبود، مقدار قبلی را نگه دار
+                                handleRfiDatesRowChange(row.id, 'approveManday', row.approveManday);
+                              }
+                            }
+                          }}
+                          onFocus={(e) => {
+                            if (e.target.value === '-') {
+                              e.target.value = '';
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const currentValue = e.target.value.trim();
+                            if (currentValue === '') {
+                              e.target.value = '-';
+                              handleRfiDatesRowChange(row.id, 'approveManday', '-');
+                            }
+                          }}
+                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent text-center"
+                          placeholder="-"
+                          disabled={isLoadingAll || isUpdating}
+                        />
+                      </td>
 
-          {/* بازرس اول */}
-          <td className="p-2">
-            <input
-              type="text"
-              value={row.inspectorName}
-              onChange={(e) => handleRfiDatesRowChange(row.id, 'inspectorName', e.target.value)}
-              className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent"
-              placeholder="نام بازرس"
-              disabled={isLoading || isUpdating}
-            />
-          </td>
+                      {/* بازرس اول */}
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          value={row.inspectorName}
+                          onChange={(e) => handleRfiDatesRowChange(row.id, 'inspectorName', e.target.value)}
+                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent"
+                          placeholder="نام بازرس"
+                          disabled={isLoadingAll || isUpdating}
+                        />
+                      </td>
 
-          {/* دستمزد */}
-          <td className="p-2">
-            <div className="relative">
-              <input
-                type="text"
-                value={row.fee}
-                onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
-                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent pl-6"
-                placeholder="مبلغ"
-                disabled={isLoading || isUpdating}
-              />
-              <FaMoneyBillWave className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+                      {/* دستمزد */}
+                      <td className="p-2">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={row.fee}
+                            onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
+                            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent pl-6"
+                            placeholder="مبلغ"
+                            disabled={isLoadingAll || isUpdating}
+                          />
+                          <FaMoneyBillWave className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </td>
 
-          {/* عملیات */}
-          {/* <td className="p-2">
-            <div className="flex items-center justify-center gap-1">
-              <button
-                type="button"
-                onClick={() => handleCopyRfiDatesRow(row.id)}
-                className="text-gray-600 hover:text-blue-600 p-1.5 rounded hover:bg-blue-50 transition duration-200"
-                title="کپی کردن سطر"
-                disabled={isLoading || isUpdating}
-              >
-                <FaCopy className="text-xs" />
-              </button>
+            {/* Mobile View - صورت وضعیت بازرس */}
+            <div className="md:hidden space-y-4">
+              {rfiDatesRows.map((row, index) => (
+                <div key={row.id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2">
+                      <FaCalendarAlt className="text-gray-700" />
+                      <span className="font-semibold">سطر #{index + 1}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyRfiDatesRow(row.id)}
+                        className="text-gray-700 hover:text-gray-900 p-1"
+                        title="کپی"
+                        disabled={isLoadingAll || isUpdating}
+                      >
+                        <FaCopy className="text-sm" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRfiDatesRow(row.id)}
+                        className="text-gray-700 hover:text-gray-900 p-1"
+                        title="حذف"
+                        disabled={rfiDatesRows.length === 1 || isLoadingAll || isUpdating}
+                      >
+                        <FaTrash className="text-sm" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-3 text-xs">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-gray-600 block mb-1">تاریخ بازرسی</span>
+                        <DatePicker
+                          value={row.inspectionDate}
+                          onChange={(date) => handleRfiDatesRowChange(row.id, 'inspectionDate', date)}
+                          calendar={persian}
+                          locale={persian_fa}
+                          format="YYYY/MM/DD"
+                          inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
+                          disabled={isLoadingAll || isUpdating}
+                        />
+                      </div>
+                    
+                      <div>
+                        <span className="text-gray-600 block mb-1">تعداد روز تائید شده</span>
+                        <input
+                          type="text"
+                          value={displayApproveManday(row.approveManday)}
+                          onChange={(e) => {
+                            const newValue = e.target.value.trim();
+                            
+                            if (newValue === '' || newValue === '-') {
+                              handleRfiDatesRowChange(row.id, 'approveManday', '-');
+                            } else {
+                              const numValue = parseInt(newValue, 10);
+                              if (!isNaN(numValue)) {
+                                handleRfiDatesRowChange(row.id, 'approveManday', numValue);
+                              } else {
+                                handleRfiDatesRowChange(row.id, 'approveManday', row.approveManday);
+                              }
+                            }
+                          }}
+                          onFocus={(e) => {
+                            if (e.target.value === '-') {
+                              e.target.value = '';
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const currentValue = e.target.value.trim();
+                            if (currentValue === '') {
+                              e.target.value = '-';
+                              handleRfiDatesRowChange(row.id, 'approveManday', '-');
+                            }
+                          }}
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs text-center"
+                          placeholder="-"
+                          disabled={isLoadingAll || isUpdating}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-gray-600 block mb-1">بازرس اول</span>
+                      <input
+                        type="text"
+                        value={row.inspectorName}
+                        onChange={(e) => handleRfiDatesRowChange(row.id, 'inspectorName', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
+                        placeholder="نام بازرس"
+                        disabled={isLoadingAll || isUpdating}
+                      />
+                    </div>
+
+                    <div>
+                      <span className="text-gray-600 block mb-1">دستمزد</span>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={row.fee}
+                          onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs pl-8"
+                          placeholder="مبلغ"
+                          disabled={isLoadingAll || isUpdating}
+                        />
+                        <FaMoneyBillWave className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </td> */}
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-
-        {/* Mobile View - صورت وضعیت بازرس */}
-<div className="md:hidden space-y-4">
-  {rfiDatesRows.map((row, index) => (
-    <div key={row.id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm">
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-2">
-          <FaCalendarAlt className="text-gray-700" />
-          <span className="font-semibold">سطر #{index + 1}</span>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => handleCopyRfiDatesRow(row.id)}
-            className="text-gray-700 hover:text-gray-900 p-1"
-            title="کپی"
-            disabled={isLoading || isUpdating}
-          >
-            <FaCopy className="text-sm" />
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDeleteRfiDatesRow(row.id)}
-            className="text-gray-700 hover:text-gray-900 p-1"
-            title="حذف"
-            disabled={rfiDatesRows.length === 1 || isLoading || isUpdating}
-          >
-            <FaTrash className="text-sm" />
-          </button>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 gap-3 text-xs">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <span className="text-gray-600 block mb-1">تاریخ بازرسی</span>
-            <DatePicker
-              value={row.inspectionDate}
-              onChange={(date) => handleRfiDatesRowChange(row.id, 'inspectionDate', date)}
-              calendar={persian}
-              locale={persian_fa}
-              format="YYYY/MM/DD"
-              inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-              disabled={isLoading || isUpdating}
-            />
-          </div>
-        
-          <div>
-  <span className="text-gray-600 block mb-1">تعداد روز تائید شده</span>
-  <input
-    type="text"
-    value={displayApproveManday(row.approveManday)}
-    onChange={(e) => {
-      const newValue = e.target.value.trim();
-      
-      if (newValue === '' || newValue === '-') {
-        handleRfiDatesRowChange(row.id, 'approveManday', '-');
-      } else {
-        const numValue = parseInt(newValue, 10);
-        if (!isNaN(numValue)) {
-          handleRfiDatesRowChange(row.id, 'approveManday', numValue);
-        } else {
-          handleRfiDatesRowChange(row.id, 'approveManday', row.approveManday);
-        }
-      }
-    }}
-    onFocus={(e) => {
-      if (e.target.value === '-') {
-        e.target.value = '';
-      }
-    }}
-    onBlur={(e) => {
-      const currentValue = e.target.value.trim();
-      if (currentValue === '') {
-        e.target.value = '-';
-        handleRfiDatesRowChange(row.id, 'approveManday', '-');
-      }
-    }}
-    className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs text-center"
-    placeholder="-"
-    disabled={isLoading || isUpdating}
-  />
-</div>
-        </div>
-
-        <div>
-          <span className="text-gray-600 block mb-1">بازرس اول</span>
-          <input
-            type="text"
-            value={row.inspectorName}
-            onChange={(e) => handleRfiDatesRowChange(row.id, 'inspectorName', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-            placeholder="نام بازرس"
-            disabled={isLoading || isUpdating}
-          />
-        </div>
-
-        <div>
-          <span className="text-gray-600 block mb-1">دستمزد</span>
-          <div className="relative">
-            <input
-              type="text"
-              value={row.fee}
-              onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs pl-8"
-              placeholder="مبلغ"
-              disabled={isLoading || isUpdating}
-            />
-            <FaMoneyBillWave className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-          </div>
-        </div>
-      </div>
-    </div>
-  ))}
-  
-  {/* دکمه اضافه کردن برای موبایل */}
-  {/* <button
-    type="button"
-    onClick={handleAddRfiDatesRow}
-    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-    disabled={isLoading || isUpdating}
-  >
-    <FaPlusCircle className="text-base" />
-    افزودن سطر جدید
-  </button> */}
-</div>
           </div>
 
           {/* دکمه‌های ثبت و انصراف */}
           <div className="flex gap-3 pt-6 border-t border-gray-200">
             <button
               type="submit"
-              disabled={isLoading || isUpdating}
+              disabled={isLoadingAll || isUpdating}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUpdating ? (

@@ -1,5 +1,7 @@
 // src/components/ui/AddReportModal/AddReportModal.jsx
-import React, { useState, useEffect, useRef } from 'react';
+// فقط تغییرات مورد نیاز:
+
+import React, { useState, useEffect, useRef, useMemo } from 'react'; // useMemo رو اضافه کردیم
 import { 
   FaTimes, 
   FaFileAlt, 
@@ -22,6 +24,16 @@ import persian_fa from "react-date-object/locales/persian_fa";
 import { useReportInfo, useUpdateReport, useCreateNewReport } from '../../../hooks/useCreateReport';
 import { useUser } from '../../../hooks/useUser';
 import { toast } from 'react-hot-toast';
+
+// ایمپورت helper جدید
+import { 
+  getReportStatusInPersian, 
+  transformReportStatuses,
+  getEnglishStatus 
+} from '../../../utils/helpers';
+
+// ایمپورت هوک جدید برای وضعیت‌ها
+import { useReportStatuses } from '../../../hooks/useCreateReport'; // این خط رو اضافه کن
 
 // پاپ‌آپ تأیید مینیمال
 const ConfirmationPopover = ({ 
@@ -115,6 +127,9 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
   const { mutate: updateReport, isLoading: isUpdating } = useUpdateReport();
   const { mutate: createReport, isLoading: isCreating } = useCreateNewReport();
   
+  // هوک جدید برای دریافت وضعیت‌ها از API
+  const { data: statusesData, isLoading: statusesLoading } = useReportStatuses();
+  
   const { user } = useUser();
 
   // حالت‌های پاپ‌آپ
@@ -124,6 +139,11 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
   // ردِ تغییرات
   const initialDataRef = useRef(null);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // تبدیل داده‌های API به options برای select
+  const statusOptions = useMemo(() => {
+    return transformReportStatuses(statusesData);
+  }, [statusesData]);
 
   // تابع تبدیل تاریخ به شمسی
   const convertToPersianDate = (dateString) => {
@@ -228,11 +248,11 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = '' }) => {
   // حالت‌های جدول گزارش
   const [reportRows, setReportRows] = useState([]);
 
-  // وضعیت‌های ممکن - مطابق با مقادیر API
-  const statusOptions = [
-    { value: 'approved', label: 'تائید شده' },
-    { value: 'Objection', label: 'نیاز به اصلاحات' }
-  ];
+  // وضعیت‌های ممکن - حالا از API می‌گیریم
+  // const statusOptions = [
+  //   { value: 'approved', label: 'تائید شده' },
+  //   { value: 'Objection', label: 'نیاز به اصلاحات' }
+  // ]; // این خط رو حذف کردیم
 
   // تابع مقایسه دو مقدار
 // جایگزین تابع areValuesEqual
@@ -312,45 +332,82 @@ const checkForChanges = () => {
 
  
 // در AddReportModal.jsx - اصلاح منطق useEffect:
-// در AddReportModal.jsx - اصلاح کامل useEffect:
-// اصلاح useEffect برای ترکیب rfiData و reportInfo:
 useEffect(() => {
   if (isOpen) {
-   
+ 
 
     // اولویت‌بندی: اول از reportInfo استفاده کن، اگر نبود از rfiData
     const reportSource = reportInfo || rfiData;
     
-    // console.log('🎯 Using report source:', {
-    //   source: reportInfo ? 'reportInfo' : 'rfiData',
-    //   reportNo: reportSource?.Report_No,
-    //   remark: reportSource?.Remark,
-    //   remarkLength: reportSource?.Remark?.length
-    // });
-
     // بررسی وضعیت گزارش موجود
     const hasValidReport = reportSource?.Report_No && 
                           reportSource.Report_No.trim() !== '' && 
                           reportSource.Report_No !== '************';
     
-    // console.log('🔍 Report status:', {
-    //   reportNo: reportSource?.Report_No,
-    //   hasValidReport,
-    //   isStars: reportSource?.Report_No === '************'
-    // });
+
 
     const todayPersianDate = convertToPersianDate(new Date());
     
     // اگر گزارش معتبر داریم
     if (hasValidReport) {
-      // console.log('✅ Using existing report data');
+      const englishStatus = reportSource.Doc_Status || 'Acc'; // پیش‌فرض: Acc
+      // console.log('🎯 English status from API:', englishStatus);
       
+      // مقدار پیش‌فرض
+      let initialStatusValue = 'Acc';
+      
+      // اگر statusesData موجود باشد
+      if (statusesData && Object.values(statusesData).length > 0) {
+        // console.log('📊 Available statuses from API:', Object.values(statusesData));
+        
+        // جستجوی دقیق برای پیدا کردن status
+        // 1. اول جستجوی دقیق
+        const exactMatch = Object.values(statusesData).find(
+          status => status === englishStatus
+        );
+        
+        if (exactMatch) {
+          initialStatusValue = exactMatch;
+          // console.log('✅ Found exact match:', exactMatch);
+        } 
+        // 2. اگر پیدا نشد، جستجوی case-insensitive
+        else {
+          const caseInsensitiveMatch = Object.values(statusesData).find(
+            status => status.toLowerCase() === englishStatus.toLowerCase()
+          );
+          
+          if (caseInsensitiveMatch) {
+            initialStatusValue = caseInsensitiveMatch;
+            // console.log('✅ Found case-insensitive match:', caseInsensitiveMatch);
+          }
+          // 3. اگر هنوز پیدا نشد، partial match
+          else {
+            const partialMatch = Object.values(statusesData).find(status => 
+              status.toLowerCase().includes(englishStatus.toLowerCase()) ||
+              englishStatus.toLowerCase().includes(status.toLowerCase())
+            );
+            
+            if (partialMatch) {
+              initialStatusValue = partialMatch;
+              // console.log('✅ Found partial match:', partialMatch);
+            } else {
+              // 4. اگر هیچ matchی پیدا نشد، از اولین گزینه استفاده کن
+              initialStatusValue = Object.values(statusesData)[0];
+              // console.log('⚠️ No match found, using first option:', initialStatusValue);
+            }
+          }
+        }
+      }
+      
+      // console.log('✅ Final initial status value:', initialStatusValue);
+
       const initialRow = {
         id: 1,
         reportNumber: reportSource.Report_No || '',
         revNumber: reportSource.RevNO || '',
-        status: reportSource.Doc_Status || 'approved',
-        corrections: reportSource.Remark || '', // اینجا از reportSource استفاده شده
+        status: initialStatusValue, // استفاده از متن انگلیسی به عنوان value
+        statusEnglish: initialStatusValue,
+        corrections: reportSource.Remark || '',
         receivedDate: convertToPersianDate(reportSource.ReportReceivedDate || reportSource.IssueDate),
         approvedDays: reportSource.App_manday_1stPrice || '',
         unitNumber: reportSource.UnitNo || '',
@@ -362,12 +419,7 @@ useEffect(() => {
         issueDate: reportSource.IssueDate || new Date().toISOString().split('T')[0]
       };
 
-      // console.log('📝 Initial row data:', {
-      //   ...initialRow,
-      //   correctionsLength: initialRow.corrections?.length,
-      //   correctionsPreview: initialRow.corrections?.substring(0, 50) + '...'
-      // });
-
+      // console.log('📝 Initial row created:', initialRow);
       setReportRows([initialRow]);
       
       // ذخیره داده اولیه
@@ -375,8 +427,9 @@ useEffect(() => {
         reportRows: [{
           reportNumber: initialRow.reportNumber || '',
           revNumber: initialRow.revNumber || '',
-          status: initialRow.status || 'approved',
-          corrections: initialRow.corrections || '', // اینجا هم ذخیره می‌شود
+          status: initialRow.status || 'Acc',
+          statusEnglish: initialRow.statusEnglish || 'Acc',
+          corrections: initialRow.corrections || '',
           receivedDate: convertToString(initialRow.receivedDate),
           approvedDays: convertToString(initialRow.approvedDays),
           unitNumber: initialRow.unitNumber || '',
@@ -388,16 +441,22 @@ useEffect(() => {
         }]
       };
       
-      // console.log('💾 Initial corrections saved:', initialRow.corrections);
+      console.log('💾 Initial data saved to ref');
+      
     } else {
       // اگر گزارش معتبر نداریم
       // console.log('📝 Creating new report form (no existing report)');
+      
+      const defaultStatus = statusesData && Object.values(statusesData).length > 0 
+        ? Object.values(statusesData)[0] 
+        : 'Acc';
       
       const newRow = {
         id: 1,
         reportNumber: '',
         revNumber: '',
-        status: 'approved',
+        status: defaultStatus, // پیش‌فرض: اولین گزینه از statusesData یا 'Acc'
+        statusEnglish: defaultStatus,
         corrections: '',
         receivedDate: todayPersianDate,
         approvedDays: '',
@@ -410,12 +469,15 @@ useEffect(() => {
         issueDate: new Date().toISOString().split('T')[0]
       };
 
+      // console.log('📝 New row created:', newRow);
       setReportRows([newRow]);
+      
       initialDataRef.current = {
         reportRows: [{
           reportNumber: newRow.reportNumber || '',
           revNumber: newRow.revNumber || '',
-          status: newRow.status || 'approved',
+          status: newRow.status || 'Acc',
+          statusEnglish: newRow.statusEnglish || 'Acc',
           corrections: newRow.corrections || '',
           receivedDate: convertToString(newRow.receivedDate),
           approvedDays: convertToString(newRow.approvedDays),
@@ -430,9 +492,9 @@ useEffect(() => {
     }
     
     setHasChanges(false);
-    // console.log('🎯 Initial data saved to ref:', initialDataRef.current?.reportRows?.[0]?.corrections);
+    // console.log('✅ Modal initialization completed');
   }
-}, [isOpen, rfiData, reportInfo, nextIRN]); // reportInfo به dependency اضافه شد
+}, [isOpen, rfiData, reportInfo, nextIRN, statusesData]);
 
   // بررسی تغییرات هنگام تغییر داده‌ها
   useEffect(() => {
@@ -451,7 +513,8 @@ useEffect(() => {
         id: newId,
         reportNumber: '',
         revNumber: '',
-        status: 'approved',
+        status: '5',
+        statusEnglish: 'approved',
         corrections: '',
         receivedDate: convertToPersianDate(new Date()),
         approvedDays: '',
@@ -492,6 +555,21 @@ useEffect(() => {
   const handleRowChange = (id, field, value) => {
     setReportRows(reportRows.map(row => {
       if (row.id === id) {
+        // اگر فیلد status باشد
+        if (field === 'status') {
+          // پیدا کردن متن انگلیسی متناظر
+          const selectedOption = statusOptions.find(opt => opt.value === value);
+          const englishStatus = selectedOption?.textValue || value;
+          
+          return { 
+            ...row, 
+            [field]: value,
+            statusEnglish: englishStatus,
+            // اگر وضعیت Objection نیست، corrections را پاک کن
+            ...(englishStatus !== 'Objection' && { corrections: '' })
+          };
+        }
+        
         // اگر فیلد approvedDays باشد، مطمئن شو مقدار درست باشد
         if (field === 'approvedDays') {
           // اگر خالی بود، رشته خالی
@@ -529,11 +607,11 @@ useEffect(() => {
       
       // وضعیت اختیاری - اگر خالی بود به عنوان approved در نظر بگیر
       if (!row.status) {
-        handleRowChange(row.id, 'status', 'approved');
+        handleRowChange(row.id, 'status', '5');
       }
       
-      // **اگر وضعیت "نیاز به اصلاحات" (Objection) باشد، شرح اصلاحات الزامی است**
-      if (row.status === 'Objection' && (!row.corrections || !row.corrections.trim())) {
+      // **اگر وضعیت "Objection" باشد، شرح اصلاحات الزامی است**
+      if (row.statusEnglish === 'Objection' && (!row.corrections || !row.corrections.trim())) {
         toast.error('❌ برای وضعیت "نیاز به اصلاحات"، شرح نظرات الزامی است');
         return false;
       }
@@ -584,10 +662,15 @@ const handleSubmitInternal = () => {
   const todayPersian = convertToPersianDate(today);
   const todayShamsi = todayPersian.format('YYYY/MM/DD');
   
+  // استفاده از متن انگلیسی وضعیت
+  const englishStatus = rowToSubmit.statusEnglish || 
+                       getEnglishStatus(statusesData, rowToSubmit.status) || 
+                       'approved';
+  
   const reportData = {
     reportNumber: rowToSubmit.reportNumber.trim(),
     revNumber: rowToSubmit.revNumber || '',
-    status: rowToSubmit.status || 'approved',
+    status: englishStatus, // ارسال متن انگلیسی به API
     corrections: rowToSubmit.corrections || '',
     receivedDate: formattedReceivedDate,
     approvedDays: rowToSubmit.approvedDays || '',
@@ -744,7 +827,7 @@ const handleSubmitInternal = () => {
 
   if (!isOpen) return null;
 
-  const isLoading = isReportLoading || isUpdating || isCreating;
+  const isLoading = isReportLoading || isUpdating || isCreating || statusesLoading;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -792,15 +875,15 @@ const handleSubmitInternal = () => {
         )}
 
         {/* نمایش در حال لود */}
-        {isReportLoading && (
+        {(isReportLoading || statusesLoading) && (
           <div className="p-8 text-center">
             <FaSync className="animate-spin text-blue-500 text-2xl mx-auto mb-4" />
-            <p className="text-gray-600">در حال دریافت اطلاعات گزارش...</p>
+            <p className="text-gray-600">در حال دریافت اطلاعات...</p>
           </div>
         )}
 
         {/* Form */}
-        {!isReportLoading && (
+        {!isReportLoading && !statusesLoading && (
           <form onSubmit={handleSubmit} className="p-4 md:p-6">
             {/* Header با دکمه افزودن */}
             <div className="flex items-center justify-between mb-4">
@@ -878,21 +961,22 @@ const handleSubmitInternal = () => {
                         </td>
 
                         <td className="p-3 min-w-[130px]">
-                          <select
-                            value={row.status}
-                            onChange={(e) => {
-                              handleRowChange(row.id, 'status', e.target.value);
-                              if (e.target.value !== 'Objection') {
-                                handleRowChange(row.id, 'corrections', '');
-                              }
-                            }}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            disabled={isLoading}
-                          >
-                            <option value="approved">تائید شده</option>
-                            <option value="Objection">نیاز به اصلاحات</option>
-                          </select>
-                        </td>
+  <select
+    value={row.status}
+    onChange={(e) => {
+      handleRowChange(row.id, 'status', e.target.value);
+    }}
+    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    disabled={isLoading}
+  >
+    <option value="">انتخاب وضعیت</option>
+    {statusOptions.map(option => (
+      <option key={option.value} value={option.value}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+</td>
 
                         <td className="p-3 min-w-[350px] align-middle">
                           <textarea
@@ -900,7 +984,7 @@ const handleSubmitInternal = () => {
                             title={row.corrections}
                             onChange={(e) => handleRowChange(row.id, 'corrections', e.target.value)}
                             className={`w-full px-3 py-2 text-xs border-gray-300 focus:ring-blue-500 border rounded-md focus:ring-2 focus:border-transparent resize-y overflow-auto
-                              ${row.status === 'Objection' 
+                              ${row.statusEnglish === 'Objection' 
                                 ? 'border-red-300 focus:ring-red-500 bg-red-50' 
                                 : 'border-gray-300 focus:ring-blue-500'
                               }
@@ -909,9 +993,9 @@ const handleSubmitInternal = () => {
                               [&::-webkit-scrollbar-thumb]:bg-blue-300
                               [&::-webkit-scrollbar-thumb]:rounded-full
                               [&::-webkit-scrollbar-thumb:hover]:bg-blue-400`}
-                            placeholder={row.status === 'Objection' ? 'شرح نظرات الزامی است' : 'شرح نظرات (اختیاری)'}
+                            placeholder={row.statusEnglish === 'Objection' ? 'شرح نظرات الزامی است' : 'شرح نظرات (اختیاری)'}
                             disabled={isLoading}
-                            required={row.status === 'Objection'}
+                            required={row.statusEnglish === 'Objection'}
                             rows="2"
                             style={{
                               minHeight: '38px',
@@ -1096,17 +1180,16 @@ const handleSubmitInternal = () => {
                         <span className="text-gray-600 block mb-1">وضعیت</span>
                         <select
                           value={row.status}
-                          onChange={(e) => {
-                            handleRowChange(row.id, 'status', e.target.value);
-                            if (e.target.value !== 'Objection') {
-                              handleRowChange(row.id, 'corrections', '');
-                            }
-                          }}
+                          onChange={(e) => handleRowChange(row.id, 'status', e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
                           disabled={isLoading}
                         >
-                          <option value="approved">تائید شده</option>
-                          <option value="Objection">نیاز به اصلاحات</option>
+                          <option value="">انتخاب وضعیت</option>
+                          {statusOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div>
@@ -1130,11 +1213,11 @@ const handleSubmitInternal = () => {
                         value={row.corrections}
                         onChange={(e) => handleRowChange(row.id, 'corrections', e.target.value)}
                         className={`w-full px-3 py-2 border rounded-md text-xs ${
-                          row.status === 'Objection' 
+                          row.statusEnglish === 'Objection' 
                             ? 'border-red-300 bg-red-50' 
                             : 'border-gray-300'
                         }`}
-                        placeholder={row.status === 'Objection' ? 'شرح نظرات الزامی است' : 'شرح نظرات (اختیاری)'}
+                        placeholder={row.statusEnglish === 'Objection' ? 'شرح نظرات الزامی است' : 'شرح نظرات (اختیاری)'}
                         disabled={isLoading}
                       />
                     </div>

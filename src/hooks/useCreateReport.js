@@ -11,7 +11,9 @@ export const reportKeys = {
     "detail",
     rfiNumbering,
     reportNumber,
-  ], // تغییر: دو پارامتر
+  ],
+  // اضافه کردن کلید برای وضعیت‌ها
+  statuses: ["report-statuses"],
 };
 
 // هوک برای گرفتن اطلاعات گزارش
@@ -105,11 +107,6 @@ export const useCreateNewReport = () => {
 };
 
 // هوک برای آپدیت گزارش موجود (PUT)
-// src/hooks/useCreateReport.js
-// در تابع useUpdateReport:
-
-// src/hooks/useCreateReport.js
-// در تابع useUpdateReport:
 
 export const useUpdateReport = () => {
   const queryClient = useQueryClient();
@@ -241,5 +238,24 @@ export const useCreateReport = () => {
       );
     },
     onSettled: (data, error) => {},
+  });
+};
+
+// هوک برای دریافت لیست وضعیت‌های گزارش
+
+export const useReportStatuses = () => {
+  return useQuery({
+    queryKey: reportKeys.statuses,
+    queryFn: () => reportService.getReportStatuses(),
+    staleTime: 60 * 60 * 1000, // 1 ساعت
+    cacheTime: 24 * 60 * 60 * 1000, // 24 ساعت
+    onError: (error) => {
+      console.error("Error fetching report statuses:", error);
+    },
+    // fallback data در صورت خطا
+    placeholderData: {
+      5: "approved",
+      10: "Objection",
+    },
   });
 };

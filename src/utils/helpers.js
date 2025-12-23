@@ -238,3 +238,190 @@ export const getPersianProjectType = (type) => {
 
   return typeMap[type] || type;
 };
+
+
+
+
+
+// src/utils/helpers.js (آپدیت کامل توابع وضعیت گزارش)
+
+// تابع تبدیل کد وضعیت گزارش به فارسی - فقط بر اساس حروف لاتین
+export const getReportStatusInPersian = (statusText = "") => {
+  if (!statusText) return "نامشخص";
+  
+  // تبدیل به lowercase برای مقایسه آسان‌تر
+  const text = String(statusText).trim().toLowerCase();
+  
+  // نگاشت مستقیم حروف لاتین به فارسی
+  const statusMap = {
+    'acc': 'قابل قبول',
+    'objection': 'کامنت',
+    'not recived': 'دریافت نشده',
+    'not received': 'دریافت نشده',
+    'rej': 'ریجکت',
+    
+    // برای backward compatibility
+    'approved': 'تائید شده',
+    'conditional': 'مشروط',
+    'ncr': 'گزارش عدم انطباق',
+  };
+  
+  // جستجوی مستقیم
+  if (statusMap[text]) {
+    return statusMap[text];
+  }
+  
+  // جستجوی partial match
+  if (text.includes('acc')) return 'قابل قبول';
+  if (text.includes('objection')) return 'کامنت';
+  if (text.includes('not') && text.includes('recived')) return 'دریافت نشده';
+  if (text.includes('not') && text.includes('received')) return 'دریافت نشده';
+  if (text.includes('rej')) return 'ریجکت';
+  
+  // اگر هیچکدام پیدا نشد، همان متن اصلی رو برگردون
+  return statusText;
+};
+
+// تابع تبدیل لیست وضعیت‌ها از API به options برای select
+// در helpers.js - تابع transformReportStatuses:
+
+export const transformReportStatuses = (apiData) => {
+  // console.log('🔄 Transforming report statuses from:', apiData);
+  
+  if (!apiData || typeof apiData !== "object" || Object.keys(apiData).length === 0) {
+    // وضعیت‌های پیش‌فرض در صورت عدم وجود داده
+    // console.log('⚠️ No API data, using defaults');
+    return [
+      { value: "Acc", label: "قابل قبول", textValue: "Acc" },
+      { value: "Objection", label: "کامنت", textValue: "Objection" },
+      { value: "not recived", label: "دریافت نشده", textValue: "not recived" },
+      { value: "Rej", label: "ریجکت", textValue: "Rej" },
+    ];
+  }
+
+  const options = Object.entries(apiData).map(([code, text]) => {
+    const option = {
+      value: text, // استفاده از متن لاتین به عنوان value
+      label: getReportStatusInPersian(text),
+      textValue: text,
+      originalCode: code
+    };
+    // console.log('📝 Status option:', option);
+    return option;
+  });
+
+  // console.log('✅ Final options:', options);
+  return options;
+};
+
+// تابع پیدا کردن متن انگلیسی بر اساس value
+export const getEnglishStatus = (value) => {
+  return value || ''; // چون value الان خود متن انگلیسی است
+};
+
+
+
+
+
+// ==================== توابع جدید برای وضعیت نوتیفیکیشن ====================
+
+// تابع تبدیل کد وضعیت نوتیفیکیشن به فارسی
+export const getNotificationStatusInPersian = (statusCode, statusText = '') => {
+  const statusMap = {
+    // با استفاده از کد عددی
+    '1': 'لغو شده',
+    '2': 'انجام شده',
+    '3': 'در حال انجام',
+    '4': 'در حال انجام',
+    
+    // با استفاده از متن انگلیسی
+    'Cancel': 'لغو شده',
+    'Done': 'انجام شده',
+    'Ongoing': 'در حال انجام',
+    'در حال انجام': 'در حال انجام',
+    
+    // backward compatibility
+    'انجام شده': 'انجام شده',
+    'در حال انجام': 'در حال انجام'
+  };
+
+  // اول با کد عددی چک کن
+  if (statusMap[statusCode]) {
+    return statusMap[statusCode];
+  }
+  
+  // سپس با متن انگلیسی
+  if (statusMap[statusText]) {
+    return statusMap[statusText];
+  }
+  
+  // سپس با متن فارسی
+  if (statusMap[statusText]) {
+    return statusMap[statusText];
+  }
+  
+  // اگر پیدا نشد، همان متن اصلی رو برگردون
+  return statusText || statusCode || 'نامشخص';
+};
+
+// تابع تبدیل لیست وضعیت‌های نوتیفیکیشن از API به options برای select
+export const transformNotificationStatuses = (apiData) => {
+  if (!apiData || typeof apiData !== 'object') {
+    // وضعیت‌های پیش‌فرض در صورت عدم وجود داده
+    return [
+      { value: '3', label: 'در حال انجام', textValue: 'Ongoing' },
+      { value: '2', label: 'انجام شده', textValue: 'Done' },
+      { value: '1', label: 'لغو شده', textValue: 'Cancel' }
+    ];
+  }
+
+  const options = Object.entries(apiData).map(([code, text]) => ({
+    value: code,
+    label: getNotificationStatusInPersian(code, text),
+    textValue: text
+  }));
+
+  return options;
+};
+
+// تابع پیدا کردن متن انگلیسی بر اساس کد برای نوتیفیکیشن
+export const getEnglishNotificationStatus = (apiData, code) => {
+  if (!apiData || !code) return code;
+  
+  // اگر کد عددی باشد
+  if (apiData[code]) {
+    return apiData[code];
+  }
+  
+  // backward compatibility: اگر code متن انگلیسی باشد
+  const entry = Object.entries(apiData).find(([key, value]) => value === code);
+  if (entry) {
+    return entry[1];
+  }
+  
+  return code;
+};
+
+// تابع تبدیل متن فارسی به کد عددی برای نوتیفیکیشن
+export const getNotificationStatusCode = (apiData, persianStatus) => {
+  if (!apiData || !persianStatus) return '3'; // پیش‌فرض: در حال انجام
+  
+  const statusMap = {
+    'انجام شده': '2',
+    'در حال انجام': '3',
+    'لغو شده': '1'
+  };
+  
+  // اول از مپ فارسی استفاده کن
+  if (statusMap[persianStatus]) {
+    return statusMap[persianStatus];
+  }
+  
+  // اگر پیدا نشد، در داده‌های API جستجو کن
+  const entry = Object.entries(apiData).find(([code, englishText]) => {
+    const persianEquivalent = getNotificationStatusInPersian(code, englishText);
+    return persianEquivalent === persianStatus;
+  });
+  
+  return entry ? entry[0] : '3'; // پیش‌فرض: در حال انجام
+};

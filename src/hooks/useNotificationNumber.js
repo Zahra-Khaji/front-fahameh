@@ -7,6 +7,7 @@ export const notificationKeys = {
   all: ['notifications'],
   nextNumber: (projectId, projectTypeId) => [...notificationKeys.all, 'next', projectId, projectTypeId],
   detail: (rfiNumber) => [...notificationKeys.all, 'detail', rfiNumber],
+  statuses: ['notification-statuses'], // کلید جدید برای وضعیت‌ها
 };
 
 // هوک برای گرفتن شماره نوتیفیکیشن بعدی (موجود)
@@ -37,11 +38,34 @@ export const useNotificationInfo = (rfiNumber) => {
   });
 };
 
+// هوک جدید برای گرفتن لیست وضعیت‌های نوتیفیکیشن
+export const useNotificationStatuses = () => {
+  return useQuery({
+    queryKey: notificationKeys.statuses,
+    queryFn: () => notificationService.getNotificationStatuses(),
+    staleTime: 60 * 60 * 1000, // 1 ساعت
+    cacheTime: 24 * 60 * 60 * 1000, // 24 ساعت
+    onError: (error) => {
+      console.error("Error fetching notification statuses:", error);
+    },
+    placeholderData: {
+      '1': 'Cancel',
+      '2': 'Done',
+      '3': 'Ongoing',
+      '4': 'در حال انجام'
+    }
+  });
+};
+
 // هوک جدید برای آپدیت اطلاعات نوتیفیکیشن
 export const useUpdateNotification = () => {
   return useMutation({
-    mutationFn: async ({ timeTableRows, rfiDatesRows }) => {
-      const updateData = notificationService.prepareUpdateData(timeTableRows, rfiDatesRows);
+    mutationFn: async ({ timeTableRows, rfiDatesRows, statusesData }) => {
+      const updateData = notificationService.prepareUpdateData(
+        timeTableRows, 
+        rfiDatesRows,
+        statusesData
+      );
       return await notificationService.updateNotificationInfo(updateData);
     },
     onSuccess: (data) => {
@@ -57,10 +81,12 @@ export const useUpdateNotification = () => {
 // هوک ترکیبی برای تمام عملیات نوتیفیکیشن
 export const useNotifications = () => {
   const updateMutation = useUpdateNotification();
+  const statusesQuery = useNotificationStatuses();
   
   return {
     useNotificationNumber,
     useNotificationInfo,
+    useNotificationStatuses: () => statusesQuery,
     useUpdateNotification: () => updateMutation,
     
     // helper functions

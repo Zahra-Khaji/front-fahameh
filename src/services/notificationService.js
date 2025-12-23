@@ -5,18 +5,7 @@ class NotificationService {
   // گرفتن شماره نوتیفیکیشن بعدی از بک‌اند
   async getNextNotificationNumber(projectId, projectTypeId) {
     try {
-      // const response = await http.get('/next-rfi-full', {
-      //   params: {
-      //     idp: projectId,
-      //     in_out: projectTypeId
-      //   }
-      // }
-      
-      // )
       const response = await http.get(`/projects/${projectId}/rfi/next?in_out=${projectTypeId}`);
-      
-      ;
-      
       console.log('Next notification API response:', response.data);
       return response.data;
     } catch (error) {
@@ -29,10 +18,7 @@ class NotificationService {
   async getNotificationInfo(rfiNumber) {
     try {
       console.log("🎯 NotificationService: Fetching notification for RFI:", rfiNumber);
-      
-      // const response = await http.get(`/notification?rfi_number=${rfiNumber}`);
       const response = await http.get(`/notifications/${rfiNumber}`);
-      
       console.log("✅ NotificationService: API response:", response.data);
       return response.data;
     } catch (error) {
@@ -42,13 +28,31 @@ class NotificationService {
     }
   }
 
+  // گرفتن لیست وضعیت‌های نوتیفیکیشن
+  async getNotificationStatuses() {
+    try {
+      console.log("🎯 NotificationService: Fetching notification statuses");
+      const response = await http.get('/notifications/statuses');
+      console.log("✅ NotificationService: Statuses response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ NotificationService: Error fetching statuses:", error);
+      
+      // در صورت خطا، وضعیت‌های پیش‌فرض را برگردان
+      return {
+        '1': 'Cancel',
+        '2': 'Done',
+        '3': 'Ongoing',
+        '4': 'در حال انجام'
+      };
+    }
+  }
+
   // آپدیت اطلاعات نوتیفیکیشن
   async updateNotificationInfo(notificationData) {
     try {
       console.log("🎯 NotificationService: Updating notification:", notificationData);
-      
       const response = await http.put("/notification", notificationData);
-      
       console.log("✅ NotificationService: Update response:", response.data);
       return response.data;
     } catch (error) {
@@ -71,28 +75,38 @@ class NotificationService {
   }
 
   // ساخت داده‌های قابل ارسال برای آپدیت
-  prepareUpdateData(timeTableRows, rfiDatesRows) {
+  prepareUpdateData(timeTableRows, rfiDatesRows, statusesData) {
     return {
-      notifications: timeTableRows.map(row => ({
-        RFI_Numbering: row.notificationNumber,
-        RFI_Status: row.status === 'انجام شده' ? 'Done' : 'Ongoing',
-        Inspector_Type: row.inspectorType,
-        Remark: row.description,
-        RFI_Recived_Date: this.formatDateForAPI(row.receivedDate),
-        InspectionLocation: row.location,
-        InspectionDate: this.formatDateForAPI(row.inspectionDate),
-        VendorName: row.vendorName,
-        Inspection_Duration: row.duration,
-        Inspector_Name: row.inspectorName,
-        FolderNo: row.folderNumber,
-        Material: row.material,
-        Goods_Description: row.goodsDescription,
-        QTY_3rdpartinspector: row.qty3rdPartyInspector,
-        approved_Duration: row.approvedDuration
-      })),
+      notifications: timeTableRows.map(row => {
+        // تبدیل وضعیت فارسی به انگلیسی
+        let englishStatus = 'Ongoing'; // پیش‌فرض
+        if (statusesData && row.statusCode) {
+          englishStatus = statusesData[row.statusCode] || row.statusEnglish || 'Ongoing';
+        } else if (row.statusEnglish) {
+          englishStatus = row.statusEnglish;
+        }
+        
+        return {
+          RFI_Numbering: row.notificationNumber,
+          RFI_Status: englishStatus, // استفاده از متن انگلیسی
+          Inspector_Type: row.inspectorType,
+          Remark: row.description,
+          RFI_Recived_Date: this.formatDateForAPI(row.receivedDate),
+          InspectionLocation: row.location,
+          InspectionDate: this.formatDateForAPI(row.inspectionDate),
+          VendorName: row.vendorName,
+          Inspection_Duration: row.duration,
+          Inspector_Name: row.inspectorName,
+          FolderNo: row.folderNumber,
+          Material: row.material,
+          Goods_Description: row.goodsDescription,
+          QTY_3rdpartinspector: row.qty3rdPartyInspector,
+          approved_Duration: row.approvedDuration
+        };
+      }),
       rfi_dates: rfiDatesRows.map(row => ({
         RFI_Date: this.formatDateForAPI(row.inspectionDate),
-        ApproveManday: row.approvalStatus,
+        ApproveManday: row.approveManday === '-' ? null : parseInt(row.approveManday) || 0,
         Inspector_Name: row.inspectorName,
         InspectorPrice: parseFloat(row.fee?.replace(/[^0-9.]/g, '')) || 0
       }))
