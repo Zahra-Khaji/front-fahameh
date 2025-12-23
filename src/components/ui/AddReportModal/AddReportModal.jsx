@@ -828,7 +828,7 @@ const handleSubmitInternal = () => {
               </div>
               
               {/* دکمه افزودن سطر جدید */}
-              <button
+              {/* <button
                 type="button"
                 onClick={handleAddNewRow}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -836,7 +836,7 @@ const handleSubmitInternal = () => {
               >
                 <FaPlusCircle className="text-base" />
                 افزودن سطر جدید
-              </button>
+              </button> */}
             </div>
 
             {/* Desktop Table */}
@@ -855,7 +855,7 @@ const handleSubmitInternal = () => {
                       <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>شماره واحد</th>
                       <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>IRN</th>
                       <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '8%' }}>SRN</th>
-                      <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '6%' }}>عملیات</th>
+                      {/* <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '6%' }}>عملیات</th> */}
                     </tr>
                   </thead>
 
@@ -1017,7 +1017,7 @@ const handleSubmitInternal = () => {
                           />
                         </td>
 
-                        <td className="p-3" style={{ width: '6%' }}>
+                        {/* <td className="p-3" style={{ width: '6%' }}>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"
@@ -1038,7 +1038,7 @@ const handleSubmitInternal = () => {
                               <FaTrash className="text-xs" />
                             </button>
                           </div>
-                        </td>
+                        </td> */}
                       </tr>
                     ))}
                   </tbody>
@@ -1231,7 +1231,7 @@ const handleSubmitInternal = () => {
               ))}
               
               {/* دکمه اضافه کردن برای موبایل */}
-              <button
+              {/* <button
                 type="button"
                 onClick={handleAddNewRow}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1239,7 +1239,7 @@ const handleSubmitInternal = () => {
               >
                 <FaPlusCircle className="text-base" />
                 افزودن سطر جدید
-              </button>
+              </button> */}
             </div>
 
             {/* دکمه‌های ثبت و انصراف */}

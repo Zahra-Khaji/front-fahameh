@@ -698,7 +698,7 @@ const displayApproveManday = (value) => {
                     <th className="p-3 text-right font-bold text-white text-xs min-w-28">نام بازرس</th>
                     <th className="p-3 text-right font-bold text-white text-xs min-w-32">Remark</th>
                     <th className="p-3 text-right font-bold text-white text-xs min-w-24">شماره فولدر</th>
-                    <th className="p-3 text-right font-bold text-white text-xs min-w-24">عملیات</th>
+                    {/* <th className="p-3 text-right font-bold text-white text-xs min-w-24">عملیات</th> */}
                   </tr>
                 </thead>
                 <tbody>
@@ -864,7 +864,7 @@ const displayApproveManday = (value) => {
                       </td>
 
                       {/* عملیات */}
-                      <td className="p-3">
+                      {/* <td className="p-3">
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
@@ -885,7 +885,7 @@ const displayApproveManday = (value) => {
                             <FaTrash className="text-xs" />
                           </button>
                         </div>
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>
@@ -1087,7 +1087,7 @@ const displayApproveManday = (value) => {
               ))}
               
               {/* دکمه اضافه کردن برای موبایل */}
-              <button
+              {/* <button
                 type="button"
                 onClick={handleAddNotificationRow}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1095,7 +1095,7 @@ const displayApproveManday = (value) => {
               >
                 <FaPlusCircle className="text-base" />
                 افزودن سطر جدید
-              </button>
+              </button> */}
             </div>
           </div>
 
@@ -1110,7 +1110,7 @@ const displayApproveManday = (value) => {
                 </span>
               </div>
               
-              <button
+              {/* <button
                 type="button"
                 onClick={handleAddRfiDatesRow}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1118,7 +1118,7 @@ const displayApproveManday = (value) => {
               >
                 <FaPlusCircle className="text-base" />
                 افزودن سطر جدید
-              </button>
+              </button> */}
             </div>
 
        {/* Desktop Table - صورت وضعیت بازرس */}
@@ -1130,7 +1130,7 @@ const displayApproveManday = (value) => {
         <th className="p-3 text-right font-bold text-white text-xs w-1/6">تعداد روز تائید شده</th>
         <th className="p-3 text-right font-bold text-white text-xs w-1/4">بازرس اول</th>
         <th className="p-3 text-right font-bold text-white text-xs w-1/5">دستمزد</th>
-        <th className="p-3 text-right font-bold text-white text-xs w-1/12">عملیات</th>
+        {/* <th className="p-3 text-right font-bold text-white text-xs w-1/12">عملیات</th> */}
       </tr>
     </thead>
     <tbody>
@@ -1223,7 +1223,7 @@ const displayApproveManday = (value) => {
           </td>
 
           {/* عملیات */}
-          <td className="p-2">
+          {/* <td className="p-2">
             <div className="flex items-center justify-center gap-1">
               <button
                 type="button"
@@ -1235,7 +1235,7 @@ const displayApproveManday = (value) => {
                 <FaCopy className="text-xs" />
               </button>
             </div>
-          </td>
+          </td> */}
         </tr>
       ))}
     </tbody>
@@ -1357,7 +1357,7 @@ const displayApproveManday = (value) => {
   ))}
   
   {/* دکمه اضافه کردن برای موبایل */}
-  <button
+  {/* <button
     type="button"
     onClick={handleAddRfiDatesRow}
     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1365,7 +1365,7 @@ const displayApproveManday = (value) => {
   >
     <FaPlusCircle className="text-base" />
     افزودن سطر جدید
-  </button>
+  </button> */}
 </div>
           </div>
 
