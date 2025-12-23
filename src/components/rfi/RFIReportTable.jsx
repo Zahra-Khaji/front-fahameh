@@ -641,9 +641,56 @@ case 'Duration':
   };
 
   // تغییر صفحه هنگام تغییر داده‌ها
-  useEffect(() => {
+  // useEffect(() => {
+  //   setCurrentPage(1);
+  // }, [filteredAndSortedData]);
+  
+
+  // این useEffect را جایگزین کنید:
+// تغییر صفحه هنگام تغییر داده‌ها
+useEffect(() => {
+  // فقط زمانی به صفحه اول برگرد که:
+  // 1. داده‌ها تغییر کرده باشند
+  // 2. و ما از فیلتر جدیدی استفاده کرده باشیم
+  const hasActiveFilters = 
+    searchTerm.trim() !== '' ||
+    columnFilters.RFI_Number.trim() !== '' ||
+    columnFilters.Report_No.trim() !== '' ||
+    columnFilters.RFI_Numbering.trim() !== '' ||
+    activeProjectTypeCount > 0;
+  
+  if (hasActiveFilters && filteredAndSortedData.length > 0) {
+    // اگر فیلتر فعال داریم، بگذار روی صفحه اول بماند یا به صفحه اول برود
+    // این منطق را می‌توانید بر اساس نیاز تغییر دهید
+  } else {
+    // در غیر این صورت، صفحه را تغییر نده
+    // یا منطق دیگری را اعمال کنید
+  }
+}, [filteredAndSortedData]);
+
+// در عوض، این useEffect اضافه کنید:
+// ریست صفحه فقط هنگام تغییر فیلترها
+useEffect(() => {
+  // وقتی جستجو تغییر کرد
+  if (searchTerm.trim() !== '') {
     setCurrentPage(1);
-  }, [filteredAndSortedData]);
+  }
+}, [searchTerm]);
+
+useEffect(() => {
+  // وقتی فیلتر ستونی تغییر کرد
+  const hasColumnFilter = Object.values(columnFilters).some(filter => filter.trim() !== '');
+  if (hasColumnFilter) {
+    setCurrentPage(1);
+  }
+}, [columnFilters]);
+
+useEffect(() => {
+  // وقتی فیلتر نوع پروژه تغییر کرد
+  if (activeProjectTypeCount > 0) {
+    setCurrentPage(1);
+  }
+}, [activeProjectTypeCount]);
 
   // ========== پایان منطق صفحه‌بندی ==========
 

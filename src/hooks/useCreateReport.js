@@ -1,7 +1,7 @@
 // src/hooks/useCreateReport.js
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"; // اضافه کردن useQueryClient
 import reportService from "../services/reportService";
-import { toast } from 'react-hot-toast'; // اضافه کردن این خط
+import { toast } from "react-hot-toast"; // اضافه کردن این خط
 
 // کلیدهای query برای cache management
 export const reportKeys = {
@@ -21,16 +21,18 @@ export const reportKeys = {
 // src/hooks/useCreateReport.js
 export const useReportInfo = (rfiNumbering, reportNumber = null) => {
   return useQuery({
-    queryKey: ['report-info', rfiNumbering, reportNumber],
+    queryKey: ["report-info", rfiNumbering, reportNumber],
     queryFn: () => reportService.getReportInfo(rfiNumbering, reportNumber),
-    enabled: !!(reportNumber && 
-               reportNumber !== '************' && 
-               reportNumber.trim() !== ''), // اینجا باید reportNumber باشه
+    enabled: !!(
+      reportNumber &&
+      reportNumber !== "************" &&
+      reportNumber.trim() !== ""
+    ), // اینجا باید reportNumber باشه
     staleTime: 5 * 60 * 1000,
     retry: 1,
     onError: (error) => {
-      console.error('Error fetching report info:', error);
-    }
+      console.error("Error fetching report info:", error);
+    },
   });
 };
 
@@ -40,8 +42,6 @@ export const useCreateNewReport = () => {
 
   return useMutation({
     mutationFn: async ({ reportData, rfiNumbering }) => {
-  
-
       // فرمت تاریخ برای ارسال به API
       const formatDateForAPI = (dateStr) => {
         if (!dateStr) return null;
@@ -68,14 +68,11 @@ export const useCreateNewReport = () => {
           reportData.issueDate || new Date().toISOString().split("T")[0], // با حروف بزرگ
       };
 
-  
       const result = await reportService.createReport(apiData);
 
       return result;
     },
     onSuccess: (data, variables) => {
-  
-
       // اینوالیدیت queryهای RFIReportTable
       queryClient.invalidateQueries({
         queryKey: ["rfiReport"], // کلید اصلی که useRFIReport استفاده می‌کند
@@ -86,7 +83,16 @@ export const useCreateNewReport = () => {
         queryKey: reportKeys.detail(variables.rfiNumbering),
       });
 
-   
+      // 3. اینوالیدیت query عمومی report-info
+      queryClient.invalidateQueries({
+        queryKey: ["report-info"],
+      });
+
+      // **4. اینوالیدیت queryهای lastIRN (اضافه شد)**
+      // این کار باعث می‌شود useLastIRN دوباره fetch شود
+      queryClient.invalidateQueries({
+        queryKey: ["lastIRN"],
+      });
     },
     onError: (error, variables) => {
       console.error(
@@ -110,36 +116,31 @@ export const useUpdateReport = () => {
 
   return useMutation({
     mutationFn: async ({ reportData, rfiNumbering }) => {
-    
-      
       const updateData = reportService.prepareReportUpdateData(reportData);
-   
-      
+
       const result = await reportService.updateReport(rfiNumbering, updateData);
-    
+
       return result;
     },
     onSuccess: (data, variables) => {
-   
-      
       // نمایش toast موفقیت
-      toast.success('✅ گزارش با موفقیت بروزرسانی شد', {
-        position: 'top-center',
+      toast.success("✅ گزارش با موفقیت بروزرسانی شد", {
+        position: "top-center",
         duration: 3000,
-        icon: '✅',
+        icon: "✅",
         style: {
-          background: '#10b981',
-          color: 'white',
-          borderRadius: '10px',
-          padding: '16px',
-          fontSize: '14px',
-          direction: 'rtl',
-          textAlign: 'right',
+          background: "#10b981",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
         },
       });
 
       // **مهم: اینوالیدیت تمام queryهای مرتبط**
-      
+
       // 1. اینوالیدیت query اصلی گزارش
       queryClient.invalidateQueries({
         queryKey: ["rfiReport"],
@@ -147,17 +148,27 @@ export const useUpdateReport = () => {
 
       // 2. اینوالیدیت query جزئیات این گزارش خاص
       queryClient.invalidateQueries({
-        queryKey: reportKeys.detail(variables.rfiNumbering, variables.reportData.reportNumber),
+        queryKey: reportKeys.detail(
+          variables.rfiNumbering,
+          variables.reportData.reportNumber
+        ),
       });
 
       // 3. اینوالیدیت query عمومی report-info
       queryClient.invalidateQueries({
-        queryKey: ['report-info'],
+        queryKey: ["report-info"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["lastIRN"],
       });
 
       // 4. همچنین cache را به صورت دستی آپدیت کن
       queryClient.setQueryData(
-        reportKeys.detail(variables.rfiNumbering, variables.reportData.reportNumber),
+        reportKeys.detail(
+          variables.rfiNumbering,
+          variables.reportData.reportNumber
+        ),
         (oldData) => {
           if (!oldData) return data;
           return {
@@ -174,28 +185,34 @@ export const useUpdateReport = () => {
           };
         }
       );
-
-    
     },
     onError: (error, variables) => {
-      console.error("❌ useUpdateReport: Update failed for RFI:", variables.rfiNumbering);
+      console.error(
+        "❌ useUpdateReport: Update failed for RFI:",
+        variables.rfiNumbering
+      );
       console.error("❌ useUpdateReport: Error:", error);
-      
+
       // نمایش toast خطا
-      toast.error(`❌ خطا در بروزرسانی گزارش: ${error.response?.data?.message || error.message}`, {
-        position: 'top-center',
-        duration: 4000,
-        icon: '❌',
-        style: {
-          background: '#ef4444',
-          color: 'white',
-          borderRadius: '10px',
-          padding: '16px',
-          fontSize: '14px',
-          direction: 'rtl',
-          textAlign: 'right',
-        },
-      });
+      toast.error(
+        `❌ خطا در بروزرسانی گزارش: ${
+          error.response?.data?.message || error.message
+        }`,
+        {
+          position: "top-center",
+          duration: 4000,
+          icon: "❌",
+          style: {
+            background: "#ef4444",
+            color: "white",
+            borderRadius: "10px",
+            padding: "16px",
+            fontSize: "14px",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        }
+      );
     },
   });
 };
@@ -206,14 +223,11 @@ export const useCreateReport = () => {
 
   return useMutation({
     mutationFn: async (reportData) => {
-    
       const result = await reportService.createReport(reportData);
-    
+
       return result;
     },
     onSuccess: (data) => {
-   
-
       // اینوالیدیت queryهای RFIReportTable برای backward compatibility
       queryClient.invalidateQueries({
         queryKey: ["rfiReport"],
@@ -226,8 +240,6 @@ export const useCreateReport = () => {
         error.response?.data
       );
     },
-    onSettled: (data, error) => {
-    
-    },
+    onSettled: (data, error) => {},
   });
 };
