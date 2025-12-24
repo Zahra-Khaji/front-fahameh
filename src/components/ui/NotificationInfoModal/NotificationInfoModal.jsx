@@ -760,7 +760,7 @@ const handleConfirmRowSave = () => {
       );
       
       // 4. نمایش toast موفقیت
-      toast.success('✅ تغییرات با موفقیت ذخیره شد', {
+      toast.success('تغییرات با موفقیت ذخیره شد', {
         position: 'top-center',
         duration: 2000,
         icon: '✅',
