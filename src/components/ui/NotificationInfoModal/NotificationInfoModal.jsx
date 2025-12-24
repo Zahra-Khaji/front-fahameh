@@ -7,7 +7,7 @@ import {
   FaUserTie, 
   FaComment, 
   FaCalendarAlt, 
-  FaMapMarkerAlt, 
+  FaMapMarkerAlt, FaSave,
   FaBuilding, 
   FaClock,
   FaUser,
@@ -28,14 +28,19 @@ import DatePicker from "react-multi-date-picker";
 import DateObject from "react-date-object";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import { useNotificationInfo, useUpdateNotification, useNotificationStatuses } from '../../../hooks/useNotificationNumber';
+import { useNotificationInfo, useUpdateNotification, useNotificationStatuses,useUpdateNotificationRow  } from '../../../hooks/useNotificationNumber';
 import { toast } from 'react-hot-toast';
 import { 
   getNotificationStatusInPersian, 
   transformNotificationStatuses,
   getEnglishNotificationStatus,
-  getNotificationStatusCode 
+  getNotificationStatusCode ,
+  toNumber,
+  parseApproveManday,
+  extractNumber,
+  formatWithCommas,
 } from '../../../utils/helpers';
+import RowSaveConfirmationPopover from './RowSaveConfirmationPopover';
 
 // پاپ‌آپ تأیید مینیمال
 const ConfirmationPopover = ({ 
@@ -124,10 +129,14 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
   const { data: notificationData, isLoading, error } = useNotificationInfo(rfiNumber);
   const { data: statusesData, isLoading: statusesLoading } = useNotificationStatuses();
   const { mutate: updateNotification, isLoading: isUpdating } = useUpdateNotification();
+  const { mutate: updateNotificationRow, isLoading: isUpdatingRow } = useUpdateNotificationRow();
 
   // حالت‌های پاپ‌آپ
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showRowSaveConfirm, setShowRowSaveConfirm] = useState(false);
+const [selectedRowForSave, setSelectedRowForSave] = useState(null);
+const [rowToSaveData, setRowToSaveData] = useState(null);
   
   // ردِ تغییرات
   const initialDataRef = useRef(null);
@@ -341,7 +350,8 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
             approveManday: item.ApproveManday != null && item.ApproveManday !== '' ? 
             Number(item.ApproveManday) : '-',
             inspectorName: item.Inspector_Name || '',
-            fee: item.InspectorPrice ? `${item.InspectorPrice.toLocaleString('fa-IR')}` : ''
+            fee: item.InspectorPrice ? `${item.InspectorPrice.toLocaleString('fa-IR')}` : '',
+            idrd: item.IDRD || 0
           }));
         } else {
           initialRfiDatesRows = [{
@@ -675,6 +685,209 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
       onClose();
     }
   };
+
+  // 3. تابع برای ذخیره هر سطر:
+// تابع handleSaveRow را با نسخه جدید جایگزین کنید:
+// تابع handleSaveRow:
+const handleSaveRow = (rowId) => {
+  console.log('💾 Preparing to save row ID:', rowId);
+  
+  const row = rfiDatesRows.find(r => r.id === rowId);
+  if (!row) {
+    toast.error('❌ ردیف مورد نظر یافت نشد');
+    return;
+  }
+  
+  console.log('📦 Found row:', row);
+  
+  const approveManday = parseApproveManday(row.approveManday);
+  const fee = extractNumber(row.fee);
+  const idrd = toNumber(row.idrd, 0);
+  
+  console.log('🔢 Processed values:', { approveManday, fee, idrd });
+  
+  setSelectedRowForSave(rowId);
+  setRowToSaveData({
+    approveManday,
+    fee,
+    idrd,
+    rawData: row
+  });
+  
+  setShowRowSaveConfirm(true);
+};
+
+// تابع handleConfirmRowSave:
+
+const handleConfirmRowSave = () => {
+  if (!selectedRowForSave || !rowToSaveData) return;
+  
+  console.log('💾 Saving row:', selectedRowForSave);
+  
+  const rowPayload = {
+    rfiNumber: rfiNumber,
+    rowData: {
+      approveManday: rowToSaveData.approveManday,
+      idrd: rowToSaveData.idrd,
+      fee: rowToSaveData.fee
+    }
+  };
+  
+  updateNotificationRow(rowPayload, {
+    onSuccess: (data) => {
+      console.log('✅ Row saved successfully:', data);
+      
+      // 1. بستن پاپ‌آپ
+      setShowRowSaveConfirm(false);
+      
+      // 2. ذخیره rowId برای فیدبک UI
+      const savedRowId = selectedRowForSave;
+      setSelectedRowForSave(null);
+      setRowToSaveData(null);
+      
+      // 3. فیدبک فوری UI - سطر را highlight کن
+      setRfiDatesRows(prevRows => 
+        prevRows.map(row => {
+          if (row.id === savedRowId) {
+            return {
+              ...row,
+              _saved: true,
+              _savedAt: new Date().toISOString()
+            };
+          }
+          return row;
+        })
+      );
+      
+      // 4. نمایش toast موفقیت
+      toast.success('✅ تغییرات با موفقیت ذخیره شد', {
+        position: 'top-center',
+        duration: 2000,
+        icon: '✅',
+        style: {
+          background: '#10b981',
+          color: 'white',
+          borderRadius: '8px',
+          padding: '12px',
+          fontSize: '14px',
+        },
+      });
+      
+      // **مهم: اینوالیدیت query در هوک انجام شده، داده‌های جدید از سرور دریافت می‌شود**
+      // **اما ما فیدبک UI را فوری نشان می‌دهیم**
+      
+      // 5. پس از 3 ثانیه highlight را بردار
+      setTimeout(() => {
+        setRfiDatesRows(prevRows => 
+          prevRows.map(row => ({
+            ...row,
+            _saved: false
+          }))
+        );
+      }, 3000);
+      
+      // 6. اگر می‌خواهید داده‌ها را دوباره fetch کنید، می‌توانید از refetch استفاده کنید
+      // اما اینوالیدیت query در هوک کافی است
+    },
+    onError: (error) => {
+      console.error('❌ Row save failed:', error);
+      
+      toast.error(`❌ خطا در ذخیره: ${error.response?.data?.message || 'لطفا مجدد تلاش کنید'}`, {
+        position: 'top-center',
+        duration: 3000,
+        icon: '❌',
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          borderRadius: '8px',
+          padding: '12px',
+          fontSize: '14px',
+        },
+      });
+      
+      setShowRowSaveConfirm(false);
+    }
+  });
+};
+
+const getDateTimestamp = (date) => {
+  console.log("🔍 getDateTimestamp input:", date);
+  
+  if (!date) return 0;
+  
+  try {
+    // اگر DateObject از react-multi-date-picker هست
+    if (date && typeof date === 'object') {
+      // روش ۱: استفاده مستقیم از properties (بهتر)
+      if (date.year && date.month && date.day) {
+        console.log("📅 Direct properties:", date.year, date.month, date.day);
+        
+        // تبدیل اعداد فارسی به انگلیسی اگر لازم است
+        const persianToEnglish = (num) => {
+          if (typeof num === 'string') {
+            return num
+              .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+              .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+          }
+          return num;
+        };
+        
+        const year = parseInt(persianToEnglish(date.year.toString()));
+        const month = parseInt(persianToEnglish(date.month.toString()));
+        const day = parseInt(persianToEnglish(date.day.toString()));
+        
+        console.log("🔢 Converted to numbers:", year, month, day);
+        
+        // ساخت عدد قابل مقایسه
+        const sortableNumber = year * 10000 + month * 100 + day;
+        console.log("🧮 Sortable number:", sortableNumber);
+        
+        return sortableNumber;
+      }
+      
+      // روش ۲: استفاده از format method
+      if (typeof date.format === 'function') {
+        try {
+          // فرمت بدون جداکننده
+          const formatted = date.format("YYYYMMDD");
+          console.log("📅 Formatted (YYYYMMDD):", formatted);
+          
+          // تبدیل اعداد فارسی به انگلیسی
+          const englishNumbers = formatted
+            .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+            .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+          
+          console.log("🔢 English numbers:", englishNumbers);
+          
+          return parseInt(englishNumbers) || 0;
+        } catch (formatError) {
+          console.error("❌ Format error:", formatError);
+        }
+      }
+    }
+    
+    return 0;
+  } catch (error) {
+    console.error("❌ Error in getDateTimestamp:", error);
+    return 0;
+  }
+};
+
+const sortedRfiDatesRows = useMemo(() => {
+  return [...rfiDatesRows].sort((a, b) => {
+    const timestampA = getDateTimestamp(a.inspectionDate);
+    const timestampB = getDateTimestamp(b.inspectionDate);
+    console.log("timestampA",timestampA)
+    console.log("timestampB",timestampB)
+
+    
+    // برای نزولی: بزرگ‌ترین (جدیدترین) اول
+    // return timestampB - timestampA;
+    
+    // اگر می‌خواهید صعودی (قدیمی‌ترین اول): 
+    return timestampA - timestampB;
+  });
+}, [rfiDatesRows]);
 
   if (!isOpen) return null;
 
@@ -1152,99 +1365,116 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                     <th className="p-3 text-right font-bold text-white text-xs w-1/6">تعداد روز تائید شده</th>
                     <th className="p-3 text-right font-bold text-white text-xs w-1/4">بازرس اول</th>
                     <th className="p-3 text-right font-bold text-white text-xs w-1/5">دستمزد</th>
+                    <th className="p-3 text-right font-bold text-white text-xs w-1/12">عملیات</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rfiDatesRows.map((row, index) => (
-                    <tr 
-                      key={row.id} 
-                      className={`border-b border-gray-200 transition duration-150 ${
-                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                      } hover:bg-blue-50`}
-                    >
-                      {/* تاریخ بازرسی */}
-                      <td className="p-2">
-                        <DatePicker
-                          value={row.inspectionDate}
-                          onChange={(date) => handleRfiDatesRowChange(row.id, 'inspectionDate', date)}
-                          calendar={persian}
-                          locale={persian_fa}
-                          format="YYYY/MM/DD"
-                          inputClass="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent"
-                          disabled={isLoadingAll || isUpdating}
-                        />
-                      </td>
+  {sortedRfiDatesRows.map((row, index) => (
+    <tr 
+      key={row.id} 
+      className={`border-b border-gray-200 transition duration-150 ${
+        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+      } hover:bg-blue-50`}
+    >
+      {/* تاریخ بازرسی - فقط خواندنی */}
+      <td className="p-2">
+        <DatePicker
+          value={row.inspectionDate}
+          onChange={(date) => handleRfiDatesRowChange(row.id, 'inspectionDate', date)}
+          calendar={persian}
+          locale={persian_fa}
+          format="YYYY/MM/DD"
+          inputClass="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
+          disabled={true} // غیرفعال شده
+          readOnly={true} // فقط خواندنی
+        />
+      </td>
 
-                      {/* ستون جدید: تعداد روز تائید شده */}
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          value={displayApproveManday(row.approveManday)}
-                          onChange={(e) => {
-                            const newValue = e.target.value.trim();
-                            
-                            // اگر خالی یا خط تیره باشد
-                            if (newValue === '' || newValue === '-') {
-                              handleRfiDatesRowChange(row.id, 'approveManday', '-');
-                            } 
-                            // اگر عدد باشد
-                            else {
-                              const numValue = parseInt(newValue, 10);
-                              if (!isNaN(numValue)) {
-                                handleRfiDatesRowChange(row.id, 'approveManday', numValue);
-                              } else {
-                                // اگر عدد نبود، مقدار قبلی را نگه دار
-                                handleRfiDatesRowChange(row.id, 'approveManday', row.approveManday);
-                              }
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (e.target.value === '-') {
-                              e.target.value = '';
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const currentValue = e.target.value.trim();
-                            if (currentValue === '') {
-                              e.target.value = '-';
-                              handleRfiDatesRowChange(row.id, 'approveManday', '-');
-                            }
-                          }}
-                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent text-center"
-                          placeholder="-"
-                          disabled={isLoadingAll || isUpdating}
-                        />
-                      </td>
+      {/* ستون جدید: تعداد روز تائید شده - قابل ویرایش */}
+      <td className="p-2">
+        <input
+          type="text"
+          value={displayApproveManday(row.approveManday)}
+          onChange={(e) => {
+            const newValue = e.target.value.trim();
+            
+            // اگر خالی یا خط تیره باشد
+            if (newValue === '' || newValue === '-') {
+              handleRfiDatesRowChange(row.id, 'approveManday', '-');
+            } 
+            // اگر عدد باشد
+            else {
+              const numValue = parseInt(newValue, 10);
+              if (!isNaN(numValue)) {
+                handleRfiDatesRowChange(row.id, 'approveManday', numValue);
+              } else {
+                // اگر عدد نبود، مقدار قبلی را نگه دار
+                handleRfiDatesRowChange(row.id, 'approveManday', row.approveManday);
+              }
+            }
+          }}
+          onFocus={(e) => {
+            if (e.target.value === '-') {
+              e.target.value = '';
+            }
+          }}
+          onBlur={(e) => {
+            const currentValue = e.target.value.trim();
+            if (currentValue === '') {
+              e.target.value = '-';
+              handleRfiDatesRowChange(row.id, 'approveManday', '-');
+            }
+          }}
+          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent text-center"
+          placeholder="-"
+          disabled={isLoadingAll || isUpdating}
+        />
+      </td>
 
-                      {/* بازرس اول */}
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          value={row.inspectorName}
-                          onChange={(e) => handleRfiDatesRowChange(row.id, 'inspectorName', e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent"
-                          placeholder="نام بازرس"
-                          disabled={isLoadingAll || isUpdating}
-                        />
-                      </td>
+      {/* بازرس اول - فقط خواندنی */}
+      <td className="p-2">
+        <input
+          type="text"
+          value={row.inspectorName}
+          readOnly={true} // فقط خواندنی
+          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
+          placeholder="نام بازرس"
+        />
+      </td>
 
-                      {/* دستمزد */}
-                      <td className="p-2">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={row.fee}
-                            onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
-                            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent pl-6"
-                            placeholder="مبلغ"
-                            disabled={isLoadingAll || isUpdating}
-                          />
-                          <FaMoneyBillWave className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+      {/* دستمزد - قابل ویرایش */}
+      <td className="p-2">
+        <div className="relative">
+          <input
+            type="text"
+            value={row.fee}
+            onChange={(e) => handleRfiDatesRowChange(row.id, 'fee', e.target.value)}
+            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent pl-6"
+            placeholder="مبلغ"
+            disabled={isLoadingAll || isUpdating}
+          />
+          <FaMoneyBillWave className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+        </div>
+      </td>
+      
+      {/* ستون عملیات */}
+      <td className="p-2">
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => handleSaveRow(row.id)}
+            disabled={isUpdatingRow}
+            className="px-3 py-1.5 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="ذخیره این سطر"
+          >
+            <FaSave className="text-xs" />
+            ذخیره
+          </button>
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
               </table>
             </div>
 
@@ -1365,10 +1595,11 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           </div>
 
           {/* دکمه‌های ثبت و انصراف */}
-          <div className="flex gap-3 pt-6 border-t border-gray-200">
+          {/* <div className="flex gap-3 pt-6 border-t border-gray-200">
             <button
               type="submit"
               disabled={isLoadingAll || isUpdating}
+              // disabled={true}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUpdating ? (
@@ -1393,7 +1624,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               <FaTimes className="text-lg" />
               انصراف
             </button>
-          </div>
+          </div> */}
         </form>
       </div>
 
@@ -1420,6 +1651,17 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
         confirmText="بله، انصراف بده"
         cancelText="بازگشت"
       />
+          <RowSaveConfirmationPopover
+      isOpen={showRowSaveConfirm}
+      onClose={() => {
+        setShowRowSaveConfirm(false);
+        setSelectedRowForSave(null);
+        setRowToSaveData(null);
+      }}
+      onConfirm={handleConfirmRowSave}
+      rowData={rowToSaveData}
+      isLoading={isUpdatingRow}
+    />
     </div>
   );
 };

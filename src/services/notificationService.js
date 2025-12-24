@@ -48,6 +48,39 @@ class NotificationService {
     }
   }
 
+  // src/services/notificationService.js
+
+// اضافه کردن متد جدید برای آپدیت ردیف‌های جدول تاریخ‌های بازرسی
+async updateNotificationRow(rfiNumber, rowData) {
+  try {
+    console.log("🎯 Updating notification row for RFI:", rfiNumber);
+    console.log("📦 Row data received:", rowData);
+    
+    // اطمینان حاصل کنیم که مقادیر عددی هستند
+    const payload = {
+      ApproveManday: parseInt(rowData.approveManday) || 0,
+      IDRD: parseInt(rowData.idrd) || 0,
+      InspectorPrice: parseFloat(rowData.fee) || 0
+    };
+    
+    console.log("📤 Final payload for API:", payload);
+    
+    // **تغییر مهم: ارسال درخواست PUT به آدرس جدید**
+    // rfiNumber در path قرار می‌گیرد
+    const response = await http.put(`/notifications/${rfiNumber}`, payload);
+    
+    console.log("✅ Update successful:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Update failed:", error);
+    if (error.response) {
+      console.error("❌ Response status:", error.response.status);
+      console.error("❌ Response data:", error.response.data);
+    }
+    throw error;
+  }
+}
+
   // آپدیت اطلاعات نوتیفیکیشن
   async updateNotificationInfo(notificationData) {
     try {

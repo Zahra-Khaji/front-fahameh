@@ -52,8 +52,8 @@ export const formatPersianDate = (date) => {
 
 // تابع برای استخراج عدد خالص از رشته مالی فارسی
 export const extractCleanNumber = (financialString) => {
-  if (!financialString) return '';
-  
+  if (!financialString) return "";
+
   if (typeof financialString === "number") {
     return financialString.toString();
   }
@@ -61,20 +61,20 @@ export const extractCleanNumber = (financialString) => {
   if (typeof financialString === "string") {
     // حذف "تومان" و جداکننده‌ها
     let cleanString = financialString
-      .replace(/تومان/g, '')
-      .replace(/[٬,]/g, '')
+      .replace(/تومان/g, "")
+      .replace(/[٬,]/g, "")
       .trim();
-    
+
     // تبدیل اعداد فارسی به انگلیسی
     cleanString = cleanString.replace(/[۰-۹]/g, (char) => {
       const persianNumbers = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
       return persianNumbers.indexOf(char).toString();
     });
-    
+
     return cleanString;
   }
 
-  return '';
+  return "";
 };
 
 // تابع جدید برای لیست تاریخ‌ها:
@@ -239,45 +239,41 @@ export const getPersianProjectType = (type) => {
   return typeMap[type] || type;
 };
 
-
-
-
-
 // src/utils/helpers.js (آپدیت کامل توابع وضعیت گزارش)
 
 // تابع تبدیل کد وضعیت گزارش به فارسی - فقط بر اساس حروف لاتین
 export const getReportStatusInPersian = (statusText = "") => {
   if (!statusText) return "نامشخص";
-  
+
   // تبدیل به lowercase برای مقایسه آسان‌تر
   const text = String(statusText).trim().toLowerCase();
-  
+
   // نگاشت مستقیم حروف لاتین به فارسی
   const statusMap = {
-    'acc': 'قابل قبول',
-    'objection': 'کامنت',
-    'not recived': 'دریافت نشده',
-    'not received': 'دریافت نشده',
-    'rej': 'ریجکت',
-    
+    acc: "قابل قبول",
+    objection: "کامنت",
+    "not recived": "دریافت نشده",
+    "not received": "دریافت نشده",
+    rej: "ریجکت",
+
     // برای backward compatibility
-    'approved': 'تائید شده',
-    'conditional': 'مشروط',
-    'ncr': 'گزارش عدم انطباق',
+    approved: "تائید شده",
+    conditional: "مشروط",
+    ncr: "گزارش عدم انطباق",
   };
-  
+
   // جستجوی مستقیم
   if (statusMap[text]) {
     return statusMap[text];
   }
-  
+
   // جستجوی partial match
-  if (text.includes('acc')) return 'قابل قبول';
-  if (text.includes('objection')) return 'کامنت';
-  if (text.includes('not') && text.includes('recived')) return 'دریافت نشده';
-  if (text.includes('not') && text.includes('received')) return 'دریافت نشده';
-  if (text.includes('rej')) return 'ریجکت';
-  
+  if (text.includes("acc")) return "قابل قبول";
+  if (text.includes("objection")) return "کامنت";
+  if (text.includes("not") && text.includes("recived")) return "دریافت نشده";
+  if (text.includes("not") && text.includes("received")) return "دریافت نشده";
+  if (text.includes("rej")) return "ریجکت";
+
   // اگر هیچکدام پیدا نشد، همان متن اصلی رو برگردون
   return statusText;
 };
@@ -287,8 +283,12 @@ export const getReportStatusInPersian = (statusText = "") => {
 
 export const transformReportStatuses = (apiData) => {
   // console.log('🔄 Transforming report statuses from:', apiData);
-  
-  if (!apiData || typeof apiData !== "object" || Object.keys(apiData).length === 0) {
+
+  if (
+    !apiData ||
+    typeof apiData !== "object" ||
+    Object.keys(apiData).length === 0
+  ) {
     // وضعیت‌های پیش‌فرض در صورت عدم وجود داده
     // console.log('⚠️ No API data, using defaults');
     return [
@@ -304,7 +304,7 @@ export const transformReportStatuses = (apiData) => {
       value: text, // استفاده از متن لاتین به عنوان value
       label: getReportStatusInPersian(text),
       textValue: text,
-      originalCode: code
+      originalCode: code,
     };
     // console.log('📝 Status option:', option);
     return option;
@@ -316,69 +316,65 @@ export const transformReportStatuses = (apiData) => {
 
 // تابع پیدا کردن متن انگلیسی بر اساس value
 export const getEnglishStatus = (value) => {
-  return value || ''; // چون value الان خود متن انگلیسی است
+  return value || ""; // چون value الان خود متن انگلیسی است
 };
-
-
-
-
 
 // ==================== توابع جدید برای وضعیت نوتیفیکیشن ====================
 
 // تابع تبدیل کد وضعیت نوتیفیکیشن به فارسی
-export const getNotificationStatusInPersian = (statusCode, statusText = '') => {
+export const getNotificationStatusInPersian = (statusCode, statusText = "") => {
   const statusMap = {
     // با استفاده از کد عددی
-    '1': 'لغو شده',
-    '2': 'انجام شده',
-    '3': 'در حال انجام',
-    '4': 'در حال انجام',
-    
+    1: "لغو شده",
+    2: "انجام شده",
+    3: "در حال انجام",
+    4: "در حال انجام",
+
     // با استفاده از متن انگلیسی
-    'Cancel': 'لغو شده',
-    'Done': 'انجام شده',
-    'Ongoing': 'در حال انجام',
-    'در حال انجام': 'در حال انجام',
-    
+    Cancel: "لغو شده",
+    Done: "انجام شده",
+    Ongoing: "در حال انجام",
+    "در حال انجام": "در حال انجام",
+
     // backward compatibility
-    'انجام شده': 'انجام شده',
-    'در حال انجام': 'در حال انجام'
+    "انجام شده": "انجام شده",
+    "در حال انجام": "در حال انجام",
   };
 
   // اول با کد عددی چک کن
   if (statusMap[statusCode]) {
     return statusMap[statusCode];
   }
-  
+
   // سپس با متن انگلیسی
   if (statusMap[statusText]) {
     return statusMap[statusText];
   }
-  
+
   // سپس با متن فارسی
   if (statusMap[statusText]) {
     return statusMap[statusText];
   }
-  
+
   // اگر پیدا نشد، همان متن اصلی رو برگردون
-  return statusText || statusCode || 'نامشخص';
+  return statusText || statusCode || "نامشخص";
 };
 
 // تابع تبدیل لیست وضعیت‌های نوتیفیکیشن از API به options برای select
 export const transformNotificationStatuses = (apiData) => {
-  if (!apiData || typeof apiData !== 'object') {
+  if (!apiData || typeof apiData !== "object") {
     // وضعیت‌های پیش‌فرض در صورت عدم وجود داده
     return [
-      { value: '3', label: 'در حال انجام', textValue: 'Ongoing' },
-      { value: '2', label: 'انجام شده', textValue: 'Done' },
-      { value: '1', label: 'لغو شده', textValue: 'Cancel' }
+      { value: "3", label: "در حال انجام", textValue: "Ongoing" },
+      { value: "2", label: "انجام شده", textValue: "Done" },
+      { value: "1", label: "لغو شده", textValue: "Cancel" },
     ];
   }
 
   const options = Object.entries(apiData).map(([code, text]) => ({
     value: code,
     label: getNotificationStatusInPersian(code, text),
-    textValue: text
+    textValue: text,
   }));
 
   return options;
@@ -387,41 +383,104 @@ export const transformNotificationStatuses = (apiData) => {
 // تابع پیدا کردن متن انگلیسی بر اساس کد برای نوتیفیکیشن
 export const getEnglishNotificationStatus = (apiData, code) => {
   if (!apiData || !code) return code;
-  
+
   // اگر کد عددی باشد
   if (apiData[code]) {
     return apiData[code];
   }
-  
+
   // backward compatibility: اگر code متن انگلیسی باشد
   const entry = Object.entries(apiData).find(([key, value]) => value === code);
   if (entry) {
     return entry[1];
   }
-  
+
   return code;
 };
 
 // تابع تبدیل متن فارسی به کد عددی برای نوتیفیکیشن
 export const getNotificationStatusCode = (apiData, persianStatus) => {
-  if (!apiData || !persianStatus) return '3'; // پیش‌فرض: در حال انجام
-  
+  if (!apiData || !persianStatus) return "3"; // پیش‌فرض: در حال انجام
+
   const statusMap = {
-    'انجام شده': '2',
-    'در حال انجام': '3',
-    'لغو شده': '1'
+    "انجام شده": "2",
+    "در حال انجام": "3",
+    "لغو شده": "1",
   };
-  
+
   // اول از مپ فارسی استفاده کن
   if (statusMap[persianStatus]) {
     return statusMap[persianStatus];
   }
-  
+
   // اگر پیدا نشد، در داده‌های API جستجو کن
   const entry = Object.entries(apiData).find(([code, englishText]) => {
     const persianEquivalent = getNotificationStatusInPersian(code, englishText);
     return persianEquivalent === persianStatus;
   });
-  
-  return entry ? entry[0] : '3'; // پیش‌فرض: در حال انجام
+
+  return entry ? entry[0] : "3"; // پیش‌فرض: در حال انجام
+};
+
+// ==================== توابع جدید برای پردازش اعداد و مقادیر ====================
+
+// تبدیل هر مقداری به عدد
+export const toNumber = (value, defaultValue = 0) => {
+  if (value === null || value === undefined || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    // حذف فرمت‌های فارسی و انگلیسی
+    let cleaned = value
+      .replace(/[٬,]/g, "") // حذف جداکننده هزارگان فارسی و انگلیسی
+      .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)) // تبدیل اعداد فارسی به انگلیسی
+      .replace(/[^\d.]/g, ""); // حذف همه چیز غیر از عدد و نقطه
+
+    // اگر پس از پاکسازی چیزی باقی نماند
+    if (cleaned === "") {
+      return defaultValue;
+    }
+
+    const result = parseFloat(cleaned);
+    return isNaN(result) ? defaultValue : result;
+  }
+
+  // سایر انواع داده
+  const result = Number(value);
+  return isNaN(result) ? defaultValue : result;
+};
+
+// تبدیل approveManday
+export const parseApproveManday = (value) => {
+  if (value === "-" || value === null || value === undefined || value === "") {
+    return 0;
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    // حذف همه کاراکترهای غیرعددی
+    const cleaned = value.replace(/[^0-9]/g, "");
+    return cleaned ? parseInt(cleaned, 10) : 0;
+  }
+
+  return 0;
+};
+
+// تابع برای استخراج عدد خالص از رشته (برای دستمزد و قیمت)
+export const extractNumber = (value) => {
+  return toNumber(value, 0);
+};
+
+// تابع برای فرمت کردن عدد با جداکننده هزارگان فارسی
+export const formatWithCommas = (number) => {
+  const num = toNumber(number);
+  return num.toLocaleString("fa-IR");
 };
