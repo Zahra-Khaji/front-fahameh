@@ -40,7 +40,7 @@ class ReportService {
     }
   }
 
-  // src/services/reportService.js
+  
 
   async updateReport(rfiNumbering, reportData) {
     // تغییر: دو پارامتر
@@ -61,12 +61,26 @@ class ReportService {
       throw error;
     }
   }
+
+  async deleteReport(reportNumber) {
+    try {
+      const response = await http.delete(`/reports/report/?report_no=${encodeURIComponent(reportNumber)}`);
+      return response.data;
+    } catch (error) {
+      console.error("❌ ReportService: Error deleting report:", error);
+      if (error.response) {
+        console.error("❌ ReportService: Error status:", error.response.status);
+        console.error("❌ ReportService: Error data:", error.response.data);
+      }
+      throw error;
+    }
+  }
   async getReportStatuses() {
     try {
       const response = await http.get("/lookups/report-statuses");
 
       // لاگ برای دیباگ
-      console.log("📋 Report statuses from API:", response.data);
+      // console.log("📋 Report statuses from API:", response.data);
 
       return response.data;
     } catch (error) {

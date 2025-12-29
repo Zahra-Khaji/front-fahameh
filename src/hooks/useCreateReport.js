@@ -1,7 +1,7 @@
 // src/hooks/useCreateReport.js
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"; // اضافه کردن useQueryClient
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import reportService from "../services/reportService";
-import { toast } from "react-hot-toast"; // اضافه کردن این خط
+import { toast } from "react-hot-toast";
 
 // کلیدهای query برای cache management
 export const reportKeys = {
@@ -193,6 +193,79 @@ export const useUpdateReport = () => {
       // نمایش toast خطا
       toast.error(
         `❌ خطا در بروزرسانی گزارش: ${
+          error.response?.data?.message || error.message
+        }`,
+        {
+          position: "top-center",
+          duration: 4000,
+          icon: "❌",
+          style: {
+            background: "#ef4444",
+            color: "white",
+            borderRadius: "10px",
+            padding: "16px",
+            fontSize: "14px",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        }
+      );
+    },
+  });
+};
+
+// هوک جدید: حذف گزارش
+export const useDeleteReport = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (reportNumber) => {
+      if (!reportNumber || reportNumber.trim() === "") {
+        throw new Error("شماره گزارش برای حذف الزامی است");
+      }
+
+      const result = await reportService.deleteReport(reportNumber);
+      return result;
+    },
+    onSuccess: (data, reportNumber) => {
+      // نمایش toast موفقیت
+      toast.success(`با موفقیت حذف شد`, {
+        position: "top-center",
+        duration: 3000,
+        icon: "✅",
+        style: {
+          background: "#10b981",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
+
+      // اینوالیدیت queryهای مرتبط
+      queryClient.invalidateQueries({
+        queryKey: ["rfiReport"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["report-info"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["lastIRN"],
+      });
+    },
+    onError: (error, reportNumber) => {
+      console.error(
+        `❌ useDeleteReport: Delete failed for report: ${reportNumber}`,
+        error
+      );
+
+      // نمایش toast خطا
+      toast.error(
+        `❌ خطا در حذف گزارش: ${
           error.response?.data?.message || error.message
         }`,
         {

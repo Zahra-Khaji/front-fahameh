@@ -1207,7 +1207,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       } hover:bg-blue-50`}
                     >
                       {/* شماره نوتیفیکشن */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <input
                           type="text"
                           value={row.notificationNumber}
@@ -1225,7 +1225,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* وضعیت */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <select
                           value={row.status}
                           onChange={(e) =>
@@ -1258,7 +1258,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* نوع بازرس */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <select
                           value={row.inspectorType}
                           onChange={(e) =>
@@ -1280,7 +1280,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* توضیحات */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <input
                           type="text"
                           value={row.goodsDescription || ""}
@@ -1298,7 +1298,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* تاریخ دریافت */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <DatePicker
                           value={row.receivedDate}
                           onChange={(date) =>
@@ -1317,7 +1317,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* لوکیشن */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <input
                           type="text"
                           value={row.location}
@@ -1335,7 +1335,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* تاریخ بازرسی */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <DatePicker
                           value={row.inspectionDate}
                           onChange={(date) =>
@@ -1354,7 +1354,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* نام وندور */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <input
                           type="text"
                           value={row.vendorName}
@@ -1372,7 +1372,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* مدت */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <input
                           type="text"
                           value={row.duration}
@@ -1390,7 +1390,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* نام بازرس */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <input
                           type="text"
                           value={row.inspectorName}
@@ -1408,7 +1408,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* Remark */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <input
                           type="text"
                           value={row.remark}
@@ -1426,7 +1426,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* شماره فولدر */}
-                      <td className="p-3">
+                      <td className="p-3 text-gray-800">
                         <input
                           type="text"
                           value={row.folderNumber}
@@ -1839,7 +1839,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       } hover:bg-blue-50`}
                     >
                       {/* تاریخ بازرسی - فقط خواندنی */}
-                      <td className="p-2">
+                      <td className="p-2 text-gray-800">
                         <DatePicker
                           value={row.inspectionDate}
                           onChange={(date) =>
@@ -1859,7 +1859,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* ستون جدید: تعداد روز تائید شده - قابل ویرایش */}
-                      <td className="p-2">
+                      <td className="p-2 text-gray-800">
                         <input
                           type="text"
                           value={displayApproveManday(row.approveManday)}
@@ -1916,7 +1916,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* بازرس اول - فقط خواندنی */}
-                      <td className="p-2">
+                      <td className="p-2 text-gray-800">
                         <input
                           type="text"
                           value={row.inspectorName}
@@ -1927,7 +1927,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
                       </td>
 
                       {/* دستمزد - قابل ویرایش */}
-                      <td className="p-2">
+                      <td className="p-2 text-gray-800">
                         <div className="relative">
                           <input
                             type="text"
