@@ -955,29 +955,27 @@ const RFIReportTable = () => {
             <div className="mb-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                 {/* کارت آخرین IRN */}
-
                 <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-2 text-white shadow">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-0.5">
-                      <FaCalendarCheck className="text-base" />
-                      <span className="text-xs font-medium whitespace-nowrap">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between  sm:gap-2">
+                    <div className="flex items-center gap-0 sm:gap-1">
+                      <FaCalendarCheck className="text-base flex-shrink-0" />
+                      <span className="text-xs font-medium  flex-shrink-0">
                         آخرین‌IRN:
                       </span>
-                      <div className="flex items-center gap-0.5 text-xs whitespace-nowrap">
-                        <span className="text-base font-bold ">
-                          {irnLoading ? (
-                            <FaSync className="animate-spin inline text-xs" />
-                          ) : (
-                            lastIRNData?.irnno || 0
-                          )}
-                        </span>
-                        {lastIRNData?.rfi_numer && (
-                          <span className="text-purple-50">
-                            (برای شماره پروژه {lastIRNData.rfi_numer})
-                          </span>
+                      <span className="text-base font-bold flex-shrink-0 ">
+                        {irnLoading ? (
+                          <FaSync className="animate-spin inline text-xs" />
+                        ) : (
+                          lastIRNData?.irnno || 0
                         )}
-                      </div>
+                      </span>
                     </div>
+
+                    {lastIRNData?.rfi_numer && (
+                      <div className="text-white text-sm font-semibold whitespace-nowrap sm:whitespace-normal break-words">
+                        {`(RFI:${lastIRNData.rfi_numer})`}
+                      </div>
+                    )}
                   </div>
                 </div>
 
