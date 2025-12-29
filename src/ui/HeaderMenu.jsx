@@ -6,14 +6,14 @@ import Logout from "../features/authentication/Logout";
 function HeaderMenu() {
   return (
     <ul className="flex gap-x-4 items-center">
-      <li className="flex" >
+      <li className="flex" title="داشبورد" >
         <Link to="dashboard">
           <HiOutlineUser  className="w-5 h-5 text-primary-900" />
         </Link>
       </li>
-      <li className="flex" title="حالت شب">
+      {/* <li className="flex" title="حالت شب">
         <DarkModeToggle />
-      </li>
+      </li> */}
       <li className="flex" title="خروج">
         <Logout />
       </li>
