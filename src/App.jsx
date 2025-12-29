@@ -7,7 +7,7 @@ import RegisterInspection from "./pages/RegisterInspection";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
-import { DarkModeProvier } from "./context/DarkModeContext";
+// import { DarkModeProvier } from "./context/DarkModeContext";
 
 import Proposals from "./pages/Proposals";
 import SubmittedProjects from "./pages/SubmittedProjects";
@@ -28,7 +28,7 @@ const queryClient = new QueryClient();
 
 function App() {
   return (
-    <DarkModeProvier>
+    // <DarkModeProvier>
       <QueryClientProvider client={queryClient}>
         <ReactQueryDevtools initialIsOpen={false} />
     
@@ -120,7 +120,7 @@ function App() {
           <Route path="*" element={<NotFound />} /> */}
         </Routes>
       </QueryClientProvider>
-    </DarkModeProvier>
+    // </DarkModeProvier>
   );
 }
 
