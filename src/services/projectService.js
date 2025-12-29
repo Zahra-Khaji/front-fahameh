@@ -5,7 +5,7 @@ class ProjectService {
   async getAllProjects() {
     try {
       const response = await http.get("/projects");
-      console.log("Projects API Response:", response.data);
+      // console.log("Projects API Response:", response.data);
       return this.transformProjectsData(response.data);
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -27,7 +27,7 @@ class ProjectService {
   // **افزودن پروژه جدید**
   async createProject(projectData) {
     try {
-      console.log("Creating new project:", projectData);
+      // console.log("Creating new project:", projectData);
 
       // **ارسال داده به فرمت مورد نیاز بک‌اند**
       const apiData = {
@@ -35,10 +35,10 @@ class ProjectService {
         project_code: projectData.project_code,
       };
 
-      console.log("📤 Sending to API:", apiData);
+      // console.log("📤 Sending to API:", apiData);
 
       const response = await http.post("/projects/projects", apiData);
-      console.log("✅ Project created successfully:", response.data);
+      // console.log("✅ Project created successfully:", response.data);
 
       // **تغییر مهم: استفاده از ID واقعی از API**
       const apiResponse = response.data;
@@ -57,7 +57,7 @@ class ProjectService {
         isNew: true, // پرچم برای تشخیص پروژه جدید
       };
 
-      console.log("📦 Formatted project:", newProject);
+      // console.log("📦 Formatted project:", newProject);
       return newProject;
     } catch (error) {
       console.error("❌ Error creating project:", error);
@@ -104,7 +104,7 @@ class ProjectService {
   // دریافت آخرین IRN برای پروژه
   async getLastIRN(projectName, projectType) {
     try {
-      console.log("Getting last IRN for:", { projectName, projectType });
+      // console.log("Getting last IRN for:", { projectName, projectType });
 
       const params = {
         project_name: projectName,
@@ -116,7 +116,7 @@ class ProjectService {
       const response = await http.get(
         `/projects/${projectName}/irnno?Over_Domestic=${projectType}`
       );
-      console.log("Last IRN API response:", response.data);
+      // console.log("Last IRN API response:", response.data);
 
       return response.data;
     } catch (error) {
@@ -125,6 +125,7 @@ class ProjectService {
       return {
         irnno: 0,
         next_irnno: 1,
+        rfi_numer: 0,
       };
     }
   }
