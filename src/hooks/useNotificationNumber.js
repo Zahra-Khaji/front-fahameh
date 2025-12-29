@@ -92,10 +92,10 @@ export const useUpdateNotificationRow = () => {
       );
     },
     onSuccess: (data, variables) => {
-      console.log(
-        "✅ useUpdateNotificationRow: Row update successful:",
-        variables.rfiNumber
-      );
+      // console.log(
+      //   "✅ useUpdateNotificationRow: Row update successful:",
+      //   variables.rfiNumber
+      // );
 
       // **مهم: اینوالیدیت query برای دریافت داده‌های تازه**
       queryClient.invalidateQueries({
@@ -123,7 +123,6 @@ export const useUpdateNotificationRow = () => {
   });
 };
 
-
 // src/hooks/useNotificationNumber.js
 
 // هوک جدید برای آپدیت ردیف جدول نوتیفیکیشن
@@ -138,10 +137,10 @@ export const useUpdateNotificationInfoRow = () => {
       );
     },
     onSuccess: (data, variables) => {
-      console.log(
-        "✅ useUpdateNotificationInfoRow: Notification row update successful:",
-        variables.rfiNumber
-      );
+      // console.log(
+      //   "✅ useUpdateNotificationInfoRow: Notification row update successful:",
+      //   variables.rfiNumber
+      // );
 
       // اینوالیدیت query برای دریافت داده‌های تازه
       queryClient.invalidateQueries({
@@ -156,21 +155,14 @@ export const useUpdateNotificationInfoRow = () => {
       return data;
     },
     onError: (error, variables) => {
-      console.error("❌ useUpdateNotificationInfoRow: Row update failed:", error);
+      console.error(
+        "❌ useUpdateNotificationInfoRow: Row update failed:",
+        error
+      );
       throw error;
     },
   });
 };
-
-
-
-
-
-
-
-
-
-
 
 // هوک ترکیبی برای تمام عملیات نوتیفیکیشن
 export const useNotifications = () => {
