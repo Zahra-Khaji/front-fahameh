@@ -28,7 +28,7 @@ import DatePicker from "react-multi-date-picker";
 import DateObject from "react-date-object";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import { useNotificationInfo, useUpdateNotification, useNotificationStatuses,useUpdateNotificationRow  } from '../../../hooks/useNotificationNumber';
+import { useNotificationInfo, useUpdateNotification, useNotificationStatuses,useUpdateNotificationRow ,useUpdateNotificationInfoRow   } from '../../../hooks/useNotificationNumber';
 import { toast } from 'react-hot-toast';
 import { 
   getNotificationStatusInPersian, 
@@ -41,6 +41,7 @@ import {
   formatWithCommas,
 } from '../../../utils/helpers';
 import RowSaveConfirmationPopover from './RowSaveConfirmationPopover';
+import NotificationRowSaveConfirmationPopover from './NotificationRowSaveConfirmationPopover';
 
 // پاپ‌آپ تأیید مینیمال
 const ConfirmationPopover = ({ 
@@ -130,6 +131,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
   const { data: statusesData, isLoading: statusesLoading } = useNotificationStatuses();
   const { mutate: updateNotification, isLoading: isUpdating } = useUpdateNotification();
   const { mutate: updateNotificationRow, isLoading: isUpdatingRow } = useUpdateNotificationRow();
+  const { mutate: updateNotificationInfoRow, isLoading: isUpdatingInfoRow } = useUpdateNotificationInfoRow();
 
   // حالت‌های پاپ‌آپ
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
@@ -137,6 +139,124 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
   const [showRowSaveConfirm, setShowRowSaveConfirm] = useState(false);
 const [selectedRowForSave, setSelectedRowForSave] = useState(null);
 const [rowToSaveData, setRowToSaveData] = useState(null);
+// حالت‌های جدید برای ذخیره ردیف نوتیفیکیشن
+const [showNotificationRowSaveConfirm, setShowNotificationRowSaveConfirm] = useState(false);
+const [selectedNotificationRowForSave, setSelectedNotificationRowForSave] = useState(null);
+const [notificationRowToSaveData, setNotificationRowToSaveData] = useState(null);
+// تابع handleSaveNotificationRow:
+const handleSaveNotificationRow = (rowId) => {
+  console.log('💾 Preparing to save notification row ID:', rowId);
+  
+  const row = notificationRows.find(r => r.id === rowId);
+  if (!row) {
+    toast.error('❌ ردیف مورد نظر یافت نشد');
+    return;
+  }
+  
+  console.log('📦 Found notification row:', row);
+  
+  // آماده‌سازی داده‌ها
+  const rowData = {
+    notificationNumber: row.notificationNumber,
+    rfiStatus: row.rfiStatus || row.statusEnglish || 'Ongoing',
+    inspectorType: row.inspectorType || 'فریلنسر',
+    goodsDescription: row.goodsDescription || row.description || '',
+    receivedDate: row.receivedDate,
+    location: row.location || '',
+    inspectionDate: row.inspectionDate,
+    vendorName: row.vendorName || '',
+    approvedDuration: row.approvedDuration || '0',
+    inspectorName: row.inspectorName || '',
+    remark: row.remark || '',
+    folderNumber: row.folderNumber || ''
+  };
+  
+  setSelectedNotificationRowForSave(rowId);
+  setNotificationRowToSaveData(rowData);
+  setShowNotificationRowSaveConfirm(true);
+};
+
+// تابع handleConfirmNotificationRowSave:
+const handleConfirmNotificationRowSave = () => {
+  if (!selectedNotificationRowForSave || !notificationRowToSaveData) return;
+  
+  console.log('💾 Saving notification row:', selectedNotificationRowForSave);
+  
+  const rowPayload = {
+    rfiNumber: rfiNumber, // شماره RFI اصلی از props
+    rowData: notificationRowToSaveData
+  };
+  
+  updateNotificationInfoRow(rowPayload, {
+    onSuccess: (data) => {
+      console.log('✅ Notification row saved successfully:', data);
+      
+      // بستن پاپ‌آپ
+      setShowNotificationRowSaveConfirm(false);
+      
+      // ذخیره rowId برای فیدبک UI
+      const savedRowId = selectedNotificationRowForSave;
+      setSelectedNotificationRowForSave(null);
+      setNotificationRowToSaveData(null);
+      
+      // فیدبک فوری UI - سطر را highlight کن
+      setNotificationRows(prevRows => 
+        prevRows.map(row => {
+          if (row.id === savedRowId) {
+            return {
+              ...row,
+              _saved: true,
+              _savedAt: new Date().toISOString()
+            };
+          }
+          return row;
+        })
+      );
+      
+      // نمایش toast موفقیت
+      toast.success('تغییرات نوتیفیکیشن با موفقیت ذخیره شد', {
+        position: 'top-center',
+        duration: 2000,
+        icon: '✅',
+        style: {
+          background: '#10b981',
+          color: 'white',
+          borderRadius: '8px',
+          padding: '12px',
+          fontSize: '14px',
+        },
+      });
+      
+      // پس از 3 ثانیه highlight را بردار
+      setTimeout(() => {
+        setNotificationRows(prevRows => 
+          prevRows.map(row => ({
+            ...row,
+            _saved: false
+          }))
+        );
+      }, 3000);
+    },
+    onError: (error) => {
+      console.error('❌ Notification row save failed:', error);
+      
+      toast.error(`❌ خطا در ذخیره نوتیفیکیشن: ${error.response?.data?.message || 'لطفا مجدد تلاش کنید'}`, {
+        position: 'top-center',
+        duration: 3000,
+        icon: '❌',
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          borderRadius: '8px',
+          padding: '12px',
+          fontSize: '14px',
+        },
+      });
+      
+      setShowNotificationRowSaveConfirm(false);
+    }
+  });
+};
   
   // ردِ تغییرات
   const initialDataRef = useRef(null);
@@ -965,6 +1085,7 @@ const sortedRfiDatesRows = useMemo(() => {
                     <th className="p-3 text-right font-bold text-white text-xs min-w-28">نام بازرس</th>
                     <th className="p-3 text-right font-bold text-white text-xs min-w-32">Remark</th>
                     <th className="p-3 text-right font-bold text-white text-xs min-w-24">شماره فولدر</th>
+                    <th className="p-3 text-right font-bold text-white text-xs min-w-24">عملیات</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1135,6 +1256,32 @@ const sortedRfiDatesRows = useMemo(() => {
                           disabled={isLoadingAll || isUpdating}
                         />
                       </td>
+                     
+<td className="p-3">
+  <div className="flex justify-center">
+    <button
+      type="button"
+      onClick={() => handleSaveNotificationRow(row.id)}
+      disabled={isUpdatingInfoRow || isLoadingAll}
+      className={`px-3 py-1.5 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+        row._saved ? 'bg-green-600' : ''
+      }`}
+      title="ذخیره این سطر"
+    >
+      {row._saved ? (
+        <>
+          <FaCheck className="text-xs" />
+          ذخیره شد
+        </>
+      ) : (
+        <>
+          <FaSave className="text-xs" />
+          ذخیره
+        </>
+      )}
+    </button>
+  </div>
+</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1338,6 +1485,28 @@ const sortedRfiDatesRows = useMemo(() => {
                         disabled={isLoadingAll || isUpdating}
                       />
                     </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+  <button
+    type="button"
+    onClick={() => handleSaveNotificationRow(row.id)}
+    disabled={isUpdatingInfoRow || isLoadingAll}
+    className={`w-full py-2 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+      row._saved ? 'bg-green-600' : ''
+    }`}
+  >
+    {row._saved ? (
+      <>
+        <FaCheck className="text-xs" />
+        تغییرات ذخیره شد
+      </>
+    ) : (
+      <>
+        <FaSave className="text-xs" />
+        ذخیره تغییرات این سطر
+      </>
+    )}
+  </button>
+</div>
                   </div>
                 </div>
               ))}
@@ -1662,6 +1831,17 @@ const sortedRfiDatesRows = useMemo(() => {
       rowData={rowToSaveData}
       isLoading={isUpdatingRow}
     />
+    <NotificationRowSaveConfirmationPopover
+  isOpen={showNotificationRowSaveConfirm}
+  onClose={() => {
+    setShowNotificationRowSaveConfirm(false);
+    setSelectedNotificationRowForSave(null);
+    setNotificationRowToSaveData(null);
+  }}
+  onConfirm={handleConfirmNotificationRowSave}
+  rowData={notificationRowToSaveData}
+  isLoading={isUpdatingInfoRow}
+/>
     </div>
   );
 };

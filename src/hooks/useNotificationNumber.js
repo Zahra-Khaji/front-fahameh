@@ -123,6 +123,55 @@ export const useUpdateNotificationRow = () => {
   });
 };
 
+
+// src/hooks/useNotificationNumber.js
+
+// هوک جدید برای آپدیت ردیف جدول نوتیفیکیشن
+export const useUpdateNotificationInfoRow = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ rfiNumber, rowData }) => {
+      return await notificationService.updateNotificationInfoRow(
+        rfiNumber,
+        rowData
+      );
+    },
+    onSuccess: (data, variables) => {
+      console.log(
+        "✅ useUpdateNotificationInfoRow: Notification row update successful:",
+        variables.rfiNumber
+      );
+
+      // اینوالیدیت query برای دریافت داده‌های تازه
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", "detail", variables.rfiNumber],
+      });
+
+      // اینوالیدیت queryهای مربوط به گزارش
+      queryClient.invalidateQueries({
+        queryKey: ["rfiReport"],
+      });
+
+      return data;
+    },
+    onError: (error, variables) => {
+      console.error("❌ useUpdateNotificationInfoRow: Row update failed:", error);
+      throw error;
+    },
+  });
+};
+
+
+
+
+
+
+
+
+
+
+
 // هوک ترکیبی برای تمام عملیات نوتیفیکیشن
 export const useNotifications = () => {
   const updateMutation = useUpdateNotification();
@@ -135,6 +184,7 @@ export const useNotifications = () => {
     useNotificationStatuses: () => statusesQuery,
     useUpdateNotification: () => updateMutation,
     useUpdateNotificationRow: () => updateRowMutation,
+    useUpdateNotificationInfoRow,
 
     // helper functions
     formatDateForAPI:

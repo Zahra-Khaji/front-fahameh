@@ -48,6 +48,51 @@ class NotificationService {
     }
   }
 
+
+  // src/services/notificationService.js
+
+// متد جدید برای آپدیت هر ردیف از جدول نوتیفیکیشن
+async updateNotificationInfoRow(rfiNumber, rowData) {
+  try {
+    console.log("🎯 Updating notification info row for RFI:", rfiNumber);
+    console.log("📦 Row data received:", rowData);
+    
+    // ساخت payload مطابق API
+    const payload = {
+      NotificationNo: rowData.notificationNumber,
+      RFI_Status: rowData.rfiStatus || rowData.statusEnglish || 'Ongoing',
+      Inspector_Type: rowData.inspectorType || 'فریلنسر',
+      Goods_Description: rowData.goodsDescription || '',
+      RFI_Recived_Date: this.formatDateForAPI(rowData.receivedDate),
+      InspectionLocation: rowData.location || '',
+      InspectionDate: this.formatDateForAPI(rowData.inspectionDate),
+      VendorName: rowData.vendorName || '',
+      approved_Duration: rowData.approvedDuration || '0',
+      Inspector_Name: rowData.inspectorName || '',
+      Remark: rowData.remark || '',
+      FolderNo: String(rowData.folderNumber || '')
+    };
+    
+    console.log("📤 Final payload for API:", payload);
+    
+    // درخواست PUT با rfiNumber در query parameter
+    const response = await http.put(
+      `/notifications/notification/?rfi_number=${rfiNumber}`, 
+      payload
+    );
+    
+    console.log("✅ Notification info update successful:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Notification info update failed:", error);
+    if (error.response) {
+      console.error("❌ Response status:", error.response.status);
+      console.error("❌ Response data:", error.response.data);
+    }
+    throw error;
+  }
+}
+
   // src/services/notificationService.js
 
 // اضافه کردن متد جدید برای آپدیت ردیف‌های جدول تاریخ‌های بازرسی
