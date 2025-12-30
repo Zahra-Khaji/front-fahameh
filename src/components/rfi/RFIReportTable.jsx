@@ -1095,7 +1095,7 @@ const RFIReportTable = () => {
                   <thead>
                     <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
                       <FilterableSortHeader
-                        title="RFI"
+                        title="شماره‌پروژه"
                         sortKey="RFI_Number"
                         sortConfig={sortConfig}
                         onSort={handleSort}
