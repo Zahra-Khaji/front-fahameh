@@ -2,6 +2,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import notificationService from "../services/notificationService";
 import { useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 // کلیدهای query برای cache management
 export const notificationKeys = {
@@ -76,6 +77,75 @@ export const useUpdateNotification = () => {
         statusesData
       );
       return await notificationService.updateNotificationInfo(updateData);
+    },
+  });
+};
+
+// هوک جدید برای حذف نوتیفیکیشن
+export const useDeleteNotification = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (rfiNumbering) => {
+      if (!rfiNumbering || rfiNumbering.trim() === "") {
+        throw new Error("شماره RFI برای حذف الزامی است");
+      }
+
+      return await notificationService.deleteNotification(rfiNumbering);
+    },
+    onSuccess: (data, rfiNumbering) => {
+      // نمایش toast موفقیت
+      toast.success(`سطر با موفقیت حذف شد`, {
+        position: "top-center",
+        duration: 3000,
+        icon: "✅",
+        style: {
+          background: "#10b981",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
+
+      // اینوالیدیت queryهای مرتبط
+      queryClient.invalidateQueries({
+        queryKey: ["rfiReport"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: notificationKeys.all,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", "detail", rfiNumbering],
+      });
+    },
+    onError: (error, rfiNumbering) => {
+      console.error(`❌ Failed to delete notification ${rfiNumbering}:`, error);
+
+      // نمایش toast خطا
+      toast.error(
+        `❌ خطا در حذف نوتیفیکیشن: ${
+          error.response?.data?.message || error.message
+        }`,
+        {
+          position: "top-center",
+          duration: 4000,
+          icon: "❌",
+          style: {
+            background: "#ef4444",
+            color: "white",
+            borderRadius: "10px",
+            padding: "16px",
+            fontSize: "14px",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        }
+      );
     },
   });
 };

@@ -130,6 +130,25 @@ class NotificationService {
     }
   }
 
+    // متد جدید: حذف نوتیفیکیشن
+    async deleteNotification(rfiNumbering) {
+      try {
+        // console.log("🗑️ Deleting notification:", rfiNumbering);
+        const response = await http.delete(
+          `/notifications/notification/?rfi_numbering=${encodeURIComponent(rfiNumbering)}`
+        );
+        // console.log("✅ Notification deleted successfully:", response.data);
+        return response.data;
+      } catch (error) {
+        console.error("❌ Error deleting notification:", error);
+        if (error.response) {
+          console.error("❌ Response status:", error.response.status);
+          console.error("❌ Response data:", error.response.data);
+        }
+        throw error;
+      }
+    }
+
   // آپدیت اطلاعات نوتیفیکیشن
   async updateNotificationInfo(notificationData) {
     try {

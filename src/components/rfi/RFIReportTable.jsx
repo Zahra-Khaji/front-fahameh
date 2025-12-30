@@ -6,7 +6,7 @@ import {
   FaTable,
   FaSearch,
   FaSync,
-  FaFileAlt,
+  FaFileAlt,FaTrash ,
   FaArrowRight,
   FaCheckCircle,
   FaClock,
@@ -34,6 +34,8 @@ import PaginationControls from "../ui/PaginationControls";
 // Hooks
 import { useProjects } from "../../hooks/useProjects";
 import { useRFIReport } from "../../hooks/useRFIReport";
+import DeleteNotificationPopover from "./DeleteNotificationPopover";
+import { useDeleteNotification } from "../../hooks/useNotificationNumber";
 
 //helper
 import {
@@ -56,6 +58,7 @@ const ProjectTypeFilterDropdown = ({
   buttonRef,
 }) => {
   const [position, setPosition] = useState({ top: 0, right: 0 });
+
 
   useEffect(() => {
     if (isOpen && buttonRef.current) {
@@ -185,6 +188,43 @@ const RFIReportTable = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedReportRFI, setSelectedReportRFI] = useState(null);
   const [projectType, setProjectType] = useState("");
+      // اضافه کردن state برای حذف
+      const [showDeleteNotification, setShowDeleteNotification] = useState(false);
+      const [selectedNotificationToDelete, setSelectedNotificationToDelete] = useState(null);
+      const { mutate: deleteNotification, isLoading: isDeletingNotification } = useDeleteNotification();
+      
+      // استفاده از هوک حذف
+        // تابع handleDeleteNotification
+    const handleDeleteNotification = (item) => {
+      // console.log("item.RFI_Numbering",item.RFI_Numbering)
+
+      if (!item.RFI_Numbering || item.RFI_Numbering === "************") {
+      // console.log("in ifff")
+
+        console.error("شماره نوتیفیکیشن معتبر نیست");
+        return;
+      }
+      // console.log("in 55555")
+  
+      setSelectedNotificationToDelete({
+        rfiNumbering: item.RFI_Numbering,
+        rfiNumber: item.RFI_Number,
+        vendorName: item.VendorName
+      });
+      setShowDeleteNotification(true);
+    };
+  
+    // تابع confirmDeleteNotification
+    const confirmDeleteNotification = () => {
+      if (!selectedNotificationToDelete) return;
+      
+      deleteNotification(selectedNotificationToDelete.rfiNumbering, {
+        onSuccess: () => {
+          setSelectedNotificationToDelete(null);
+          setShowDeleteNotification(false);
+        }
+      });
+    };
 
   // حالت‌های جدید برای فیلترها
   const [searchTerm, setSearchTerm] = useState("");
@@ -1204,6 +1244,10 @@ const RFIReportTable = () => {
                             )}
                         </div>
                       </th>
+
+                      <th className="p-3 font-semibold text-white text-xs text-center min-w-[70px]">
+                      عملیات
+                    </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1327,6 +1371,27 @@ const RFIReportTable = () => {
                             </span>
                           </div>
                         </td>
+                                   {/* ستون عملیات */}
+                      <td className="p-3 text-center">
+                        <div className="flex justify-center">
+                          <button
+                            onClick={() => handleDeleteNotification(item)}
+                            disabled={
+                              !item.RFI_Numbering ||
+                              item.RFI_Numbering === "************" ||
+                              isDeletingNotification
+                            }
+                            className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={
+                              !item.RFI_Numbering || item.RFI_Numbering === "************"
+                                ? "نوتیفیکیشن معتبر نیست"
+                                : "حذف نوتیفیکیشن"
+                            }
+                          >
+                            <FaTrash className="text-xs" />
+                          </button>
+                        </div>
+                      </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1615,6 +1680,22 @@ const RFIReportTable = () => {
         onClose={() => setShowNotificationModal(false)}
         notificationData={selectedNotification}
         rfiNumber={selectedRFINumber}
+      />
+
+            {/* پاپ‌آپ تأیید حذف نوتیفیکیشن */}
+            <DeleteNotificationPopover
+        isOpen={showDeleteNotification}
+        onClose={() => {
+          setShowDeleteNotification(false);
+          setSelectedNotificationToDelete(null);
+        }}
+        onConfirm={confirmDeleteNotification}
+        rfiNumbering={selectedNotificationToDelete?.rfiNumbering || ''}
+        title="حذف سطر"
+        message={`آیا مطمئن هستید که می‌خواهید اطلاعات ${selectedNotificationToDelete?.rfiNumbering} را حذف کنید؟ این عمل تمام اطلاعات مرتبط با این سطر را پاک می‌کند.`}
+        confirmText={isDeletingNotification ? "در حال حذف..." : "بله، حذف شود"}
+        cancelText="انصراف"
+        isLoading={isDeletingNotification}
       />
 
       {/* Dropdown فیلتر نوع پروژه با Portal */}
