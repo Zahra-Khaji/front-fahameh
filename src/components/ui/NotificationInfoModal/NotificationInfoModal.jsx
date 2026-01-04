@@ -462,7 +462,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
           initialNotificationRows = [
             {
               id: 1,
-              notificationNumber: timeTable.RFI_Numbering || rfiNumber || "",
+              notificationNumber: timeTable.NotificationNo  || "",
               status: persianStatus,
               statusCode: statusCode,
               statusEnglish: englishStatus,
@@ -474,6 +474,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
               inspectionDate: convertToPersianDate(timeTable.InspectionDate),
               vendorName: timeTable.VendorName || "",
               duration: timeTable.Inspection_Duration || "",
+             
               inspectorName: timeTable.Inspector_Name || "",
               // remark: timeTable.Remark || '',
               folderNumber: timeTable.FolderNo || "",
