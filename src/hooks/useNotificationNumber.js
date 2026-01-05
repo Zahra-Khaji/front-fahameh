@@ -151,6 +151,7 @@ export const useDeleteNotification = () => {
 };
 
 // هوک جدید برای آپدیت هر ردیف از جدول تاریخ‌های بازرسی
+// هوک جدید برای آپدیت هر ردیف از جدول تاریخ‌های بازرسی
 export const useUpdateNotificationRow = () => {
   const queryClient = useQueryClient();
 
@@ -162,32 +163,32 @@ export const useUpdateNotificationRow = () => {
       );
     },
     onSuccess: (data, variables) => {
-      // console.log(
-      //   "✅ useUpdateNotificationRow: Row update successful:",
-      //   variables.rfiNumber
-      // );
+      console.log(
+        "✅ useUpdateNotificationRow: Row update successful. RFI:",
+        variables.rfiNumber
+      );
 
-      // **مهم: اینوالیدیت query برای دریافت داده‌های تازه**
+      // **مهم: باید با همان NotificationNo که query اصلی cache شده invalidate کنیم**
+      // اما متأسفانه ما RFI_Numbering داریم
+      
+      // راه‌حل: invalidate همه queryهای مرتبط
       queryClient.invalidateQueries({
-        queryKey: ["notifications", "detail", variables.rfiNumber],
+        queryKey: ["notifications"],
       });
 
-      // **همچنین می‌توانیم queryهای مربوط به گزارش را هم اینوالیدیت کنیم**
       queryClient.invalidateQueries({
-        queryKey: ["rfiReport"], // اگر جدول اصلی RFIReport دارید
+        queryKey: ["rfiReport"],
       });
 
-      // **پیام موفقیت به کامپوننت بازمی‌گردد - اینجا toast نشان ندهیم**
+      // همچنین queryهای عمومی را هم invalidate کن
+      queryClient.invalidateQueries({
+        queryKey: ["notification-info"],
+      });
+
       return data;
     },
     onError: (error, variables) => {
       console.error("❌ useUpdateNotificationRow: Row update failed:", error);
-      console.error(
-        "❌ useUpdateNotificationRow: Error response:",
-        error.response?.data
-      );
-
-      // خطا را propagate کنیم تا کامپوننت مدیریت کند
       throw error;
     },
   });
