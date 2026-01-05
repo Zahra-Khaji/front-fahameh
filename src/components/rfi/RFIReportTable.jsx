@@ -774,8 +774,8 @@ const RFIReportTable = () => {
 
   // تابع باز کردن مدال نوتیفیکیشن
   const handleOpenNotificationModal = (item) => {
-    if (item.RFI_Numbering && item.RFI_Numbering !== "************") {
-      setSelectedRFINumber(item.RFI_Numbering);
+    if (item.NotificationNo && item.NotificationNo !== "************") {
+      setSelectedRFINumber(item.NotificationNo);
       setShowNotificationModal(true);
     } else {
       console.error("شماره نوتیفیکیشن معتبر نیست");
@@ -1342,23 +1342,23 @@ const RFIReportTable = () => {
                             <button
                               onClick={() => handleOpenNotificationModal(item)}
                               className={`text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium ${
-                                !item.RFI_Numbering ||
-                                item.RFI_Numbering === "************"
+                                !item.NotificationNo ||
+                                item.NotificationNo === "************"
                                   ? "opacity-50 cursor-not-allowed"
                                   : ""
                               }`}
                               title={
-                                !item.RFI_Numbering ||
-                                item.RFI_Numbering === "************"
+                                !item.NotificationNo ||
+                                item.NotificationNo === "************"
                                   ? "شماره نوتیفیکیشن معتبر نیست"
                                   : "مشاهده اطلاعات نوتیفیکیشن"
                               }
-                              disabled={
-                                !item.RFI_Numbering ||
-                                item.RFI_Numbering === "************"
-                              }
+                              // disabled={
+                              //   !item.NotificationNo ||
+                              //   item.NotificationNo === "************"
+                              // }
                             >
-                              {item.RFI_Numbering}
+                              {item.NotificationNo}
                             </button>
                           </div>
                         </td>
