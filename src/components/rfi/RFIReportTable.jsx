@@ -185,6 +185,7 @@ const RFIReportTable = () => {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [selectedRFINumber, setSelectedRFINumber] = useState("");
+  const [selectedRFINumbering, setSelectedRFINumbering] = useState("");
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedReportRFI, setSelectedReportRFI] = useState(null);
   const [projectType, setProjectType] = useState("");
@@ -773,14 +774,15 @@ const RFIReportTable = () => {
   // ========== پایان منطق صفحه‌بندی ==========
 
   // تابع باز کردن مدال نوتیفیکیشن
-  const handleOpenNotificationModal = (item) => {
-    if (item.NotificationNo && item.NotificationNo !== "************") {
-      setSelectedRFINumber(item.NotificationNo);
-      setShowNotificationModal(true);
-    } else {
-      console.error("شماره نوتیفیکیشن معتبر نیست");
-    }
-  };
+// خط 264 - تابع handleOpenNotificationModal را اینطور تغییر بده:
+const handleOpenNotificationModal = (item) => {
+  if (item.RFI_Numbering && item.RFI_Numbering !== "************") {
+    setSelectedRFINumbering(item.RFI_Numbering); // تغییر از RFINumber به RFINumbering
+    setShowNotificationModal(true);
+  } else {
+    console.error("شماره RFI_Numbering معتبر نیست");
+  }
+};
 
   // src/components/rfi/RFIReportTable.jsx
   // در تابع handleOpenReportModal:
@@ -1339,27 +1341,23 @@ const RFIReportTable = () => {
                         {/* شماره نوتیفیکشن */}
                         <td className="p-3 font-mono text-gray-900 text-xs text-center">
                           <div className="flex justify-center">
-                            <button
-                              onClick={() => handleOpenNotificationModal(item)}
-                              className={`text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium ${
-                                !item.NotificationNo ||
-                                item.NotificationNo === "************"
-                                  ? "opacity-50 cursor-not-allowed"
-                                  : ""
-                              }`}
-                              title={
-                                !item.NotificationNo ||
-                                item.NotificationNo === "************"
-                                  ? "شماره نوتیفیکیشن معتبر نیست"
-                                  : "مشاهده اطلاعات نوتیفیکیشن"
-                              }
-                              // disabled={
-                              //   !item.NotificationNo ||
-                              //   item.NotificationNo === "************"
-                              // }
-                            >
-                              {item.NotificationNo}
-                            </button>
+                          <button
+  onClick={() => handleOpenNotificationModal(item)}
+  className={`text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium ${
+    !item.RFI_Numbering ||  // تغییر از NotificationNo به RFI_Numbering
+    item.RFI_Numbering === "************"
+      ? "opacity-50 cursor-not-allowed"
+      : ""
+  }`}
+  title={
+    !item.RFI_Numbering ||  // تغییر از NotificationNo به RFI_Numbering
+    item.RFI_Numbering === "************"
+      ? "شماره RFI_Numbering معتبر نیست"
+      : "مشاهده اطلاعات نوتیفیکیشن"
+  }
+>
+  {item.NotificationNo} 
+</button>
                           </div>
                         </td>
 
@@ -1679,7 +1677,8 @@ const RFIReportTable = () => {
         isOpen={showNotificationModal}
         onClose={() => setShowNotificationModal(false)}
         notificationData={selectedNotification}
-        rfiNumber={selectedRFINumber}
+        // rfiNumber={selectedRFINumber}
+        rfiNumber={selectedRFINumbering}
       />
 
             {/* پاپ‌آپ تأیید حذف نوتیفیکیشن */}

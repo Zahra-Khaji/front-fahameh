@@ -131,7 +131,9 @@ const ConfirmationPopover = ({
 };
 
 const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
+ 
   // استفاده از هوک‌های یکپارچه
+
   const {
     data: notificationData,
     isLoading,
@@ -1190,7 +1192,7 @@ const handleConfirmRowSave = () => {
               <FaHashtag className="text-gray-700 text-xl" />
               <div>
                 <h3 className="text-lg font-bold text-gray-800">
-                  اطلاعات نوتیفیکیشن شماره {rfiNumber}
+                  اطلاعات نوتیفیکیشن شماره {notificationData?.timeTable?.NotificationNo}
                 </h3>
                 {isLoadingAll && (
                   <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
