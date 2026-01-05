@@ -392,12 +392,45 @@ const handleConfirmNotificationRowSave = () => {
   };
 
   // تابع مقایسه دو مقدار
-  const areValuesEqual = (val1, val2) => {
-    if (val1 instanceof DateObject && val2 instanceof DateObject) {
-      return val1.format() === val2.format();
-    }
-    return val1 === val2;
+  // const areValuesEqual = (val1, val2) => {
+  //   if (val1 instanceof DateObject && val2 instanceof DateObject) {
+  //     return val1.format() === val2.format();
+  //   }
+  //   return val1 === val2;
+  // };
+  // تابع مقایسه دو مقدار - اصلاح نهایی
+const areValuesEqual = (val1, val2) => {
+  if (val1 instanceof DateObject && val2 instanceof DateObject) {
+    return val1.format() === val2.format();
+  }
+
+  // تبدیل هر دو به رشته
+  const str1 = String(val1 || '');
+  const str2 = String(val2 || '');
+
+  // اگر هر دو خالی هستند
+  if (str1 === '' && str2 === '') return true;
+
+  // استخراج اعداد از رشته
+  const extractNumbers = (str) => {
+    return str
+      .replace(/[٬،,\.\s]/g, '')
+      .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+      .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+      .match(/\d+/g);
   };
+
+  const nums1 = extractNumbers(str1);
+  const nums2 = extractNumbers(str2);
+
+  // اگر اعداد متفاوتی پیدا شد
+  if (nums1 && nums2 && nums1.length === 1 && nums2.length === 1) {
+    return parseInt(nums1[0]) === parseInt(nums2[0]);
+  }
+
+  // در غیر این صورت مقایسه رشته‌ای
+  return str1 === str2;
+};
 
   // بررسی تغییرات
   const checkForChanges = () => {
