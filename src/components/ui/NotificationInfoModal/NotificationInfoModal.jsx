@@ -885,8 +885,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
     }
   };
 
-  // 3. تابع برای ذخیره هر سطر:
-  // تابع handleSaveRow را با نسخه جدید جایگزین کنید:
+ 
   // تابع handleSaveRow:
   const handleSaveRow = (rowId) => {
     // console.log('💾 Preparing to save row ID:', rowId);
@@ -898,7 +897,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
     }
 
     // console.log('📦 Found row:', row);
-
+    const rfiNumbering = notificationData?.timeTable?.RFI_Numbering || rfiNumber;
     const approveManday = parseApproveManday(row.approveManday);
     const fee = extractNumber(row.fee);
     const idrd = toNumber(row.idrd, 0);
@@ -911,6 +910,7 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
       fee,
       idrd,
       rawData: row,
+      rfiNumbering: rfiNumbering,
     });
 
     setShowRowSaveConfirm(true);
@@ -924,7 +924,8 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
     // console.log('💾 Saving row:', selectedRowForSave);
 
     const rowPayload = {
-      rfiNumber: rfiNumber,
+      // rfiNumber: rfiNumber,
+      rfiNumber: rowToSaveData.rfiNumbering,
       rowData: {
         approveManday: rowToSaveData.approveManday,
         idrd: rowToSaveData.idrd,
