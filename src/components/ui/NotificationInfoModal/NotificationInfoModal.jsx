@@ -160,48 +160,60 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
   const [notificationRowToSaveData, setNotificationRowToSaveData] =
     useState(null);
   // تابع handleSaveNotificationRow:
-  const handleSaveNotificationRow = (rowId) => {
-    // console.log('💾 Preparing to save notification row ID:', rowId);
+// src/components/ui/NotificationInfoModal/NotificationInfoModal.jsx
+// تابع handleSaveNotificationRow - خطوط 139-174
 
-    const row = notificationRows.find((r) => r.id === rowId);
-    if (!row) {
-      toast.error("❌ ردیف مورد نظر یافت نشد");
-      return;
-    }
+const handleSaveNotificationRow = (rowId) => {
+  console.log('💾 Preparing to save notification row ID:', rowId);
 
-    // console.log('📦 Found notification row:', row);
+  const row = notificationRows.find((r) => r.id === rowId);
+  if (!row) {
+    toast.error("❌ ردیف مورد نظر یافت نشد");
+    return;
+  }
 
-    // آماده‌سازی داده‌ها
-    const rowData = {
-      notificationNumber: row.notificationNumber,
-      rfiStatus: row.rfiStatus || row.statusEnglish || "Ongoing",
-      inspectorType: row.inspectorType || "فریلنسر",
-      goodsDescription: row.goodsDescription || row.description || "",
+  console.log('📦 Found notification row:', row);
 
-      receivedDate: row.receivedDate,
-      location: row.location || "",
-      inspectionDate: row.inspectionDate,
-      vendorName: row.vendorName || "",
-      approvedDuration: row.approvedDuration || "0",
-      inspectorName: row.inspectorName || "",
-      remark: row.remark || "",
-      folderNumber: row.folderNumber || "",
-    };
+  // **تغییر مهم: دریافت RFI_Numbering به جای rfiNumber ساده**
+  const rfiNumbering = notificationData?.timeTable?.RFI_Numbering || rfiNumber;
+  console.log('🔤 Using RFI_Numbering for API call:', rfiNumbering);
 
-    setSelectedNotificationRowForSave(rowId);
-    setNotificationRowToSaveData(rowData);
-    setShowNotificationRowSaveConfirm(true);
+  // آماده‌سازی داده‌ها
+  const rowData = {
+    notificationNumber: row.notificationNumber,
+    rfiStatus: row.rfiStatus || row.statusEnglish || "Ongoing",
+    inspectorType: row.inspectorType || "فریلنسر",
+    goodsDescription: row.goodsDescription || row.description || "",
+
+    receivedDate: row.receivedDate,
+    location: row.location || "",
+    inspectionDate: row.inspectionDate,
+    vendorName: row.vendorName || "",
+    approvedDuration: row.approvedDuration || "0",
+    inspectorName: row.inspectorName || "",
+    remark: row.remark || "",
+    folderNumber: row.folderNumber || "",
   };
 
- // تابع handleConfirmNotificationRowSave را اینگونه اصلاح کنید:
+  setSelectedNotificationRowForSave(rowId);
+  setNotificationRowToSaveData(rowData);
+  setShowNotificationRowSaveConfirm(true);
+};
 
+// تابع handleConfirmNotificationRowSave - خطوط 176-255
 const handleConfirmNotificationRowSave = () => {
   if (!selectedNotificationRowForSave || !notificationRowToSaveData) return;
 
+  // **تغییر مهم: استفاده از RFI_Numbering به جای rfiNumber ساده**
+  const rfiNumbering = notificationData?.timeTable?.RFI_Numbering || rfiNumber;
+  console.log('🚀 Confirming save with RFI_Numbering:', rfiNumbering);
+
   const rowPayload = {
-    rfiNumber: rfiNumber,
+    rfiNumber: rfiNumbering, // اینجا RFI_Numbering ارسال می‌شود
     rowData: notificationRowToSaveData,
   };
+
+  console.log('📤 Payload for API:', rowPayload);
 
   updateNotificationInfoRow(rowPayload, {
     onSuccess: (data) => {
