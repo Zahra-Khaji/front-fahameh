@@ -215,103 +215,76 @@ const handleConfirmNotificationRowSave = () => {
     rowData: notificationRowToSaveData,
   };
 
-  console.log('📤 Payload for API:', rowPayload);
+  // console.log('📤 Payload for API:', rowPayload);
 
   updateNotificationInfoRow(rowPayload, {
-    onSuccess: (data) => {
-      // بستن پاپ‌آپ
-      setShowNotificationRowSaveConfirm(false);
+// در تابع handleConfirmNotificationRowSave - بعد از ذخیره موفق:
+onSuccess: (data) => {
+  // بستن پاپ‌آپ
+  setShowNotificationRowSaveConfirm(false);
 
-      // ذخیره rowId برای فیدبک UI
-      const savedRowId = selectedNotificationRowForSave;
-      setSelectedNotificationRowForSave(null);
-      setNotificationRowToSaveData(null);
+  // ذخیره rowId برای فیدبک UI
+  const savedRowId = selectedNotificationRowForSave;
+  setSelectedNotificationRowForSave(null);
+  setNotificationRowToSaveData(null);
 
-      // **مهم: آپدیت initialDataRef.current با مقادیر جدید**
-      if (initialDataRef.current) {
-        initialDataRef.current = {
-          ...initialDataRef.current,
-          notificationRows: initialDataRef.current.notificationRows.map((row) => {
-            if (row.id === savedRowId) {
-              // پیدا کردن ردیف فعلی
-              const currentRow = notificationRows.find(r => r.id === savedRowId);
-              return {
-                ...row,
-                notificationNumber: currentRow?.notificationNumber || row.notificationNumber,
-                status: currentRow?.status || row.status,
-                statusCode: currentRow?.statusCode || row.statusCode,
-                statusEnglish: currentRow?.statusEnglish || row.statusEnglish,
-                inspectorType: currentRow?.inspectorType || row.inspectorType,
-                goodsDescription: currentRow?.goodsDescription || row.goodsDescription,
-                description: currentRow?.description || row.description,
-                receivedDate: currentRow?.receivedDate?.format?.() || row.receivedDate,
-                location: currentRow?.location || row.location,
-                inspectionDate: currentRow?.inspectionDate?.format?.() || row.inspectionDate,
-                vendorName: currentRow?.vendorName || row.vendorName,
-                duration: currentRow?.duration || row.duration,
-                inspectorName: currentRow?.inspectorName || row.inspectorName,
-                remark: currentRow?.remark || row.remark,
-                folderNumber: currentRow?.folderNumber || row.folderNumber,
-                material: currentRow?.material || row.material,
-                qty3rdPartyInspector: currentRow?.qty3rdPartyInspector || row.qty3rdPartyInspector,
-                approvedDuration: currentRow?.approvedDuration || row.approvedDuration,
-                projectType: currentRow?.projectType || row.projectType,
-                rfiStatus: currentRow?.rfiStatus || row.rfiStatus,
-              };
-            }
-            return row;
-          }),
+  // **مهم: کل initialDataRef.current را با stateهای فعلی همگام کن**
+  if (initialDataRef.current) {
+    initialDataRef.current = {
+      notificationRows: notificationRows.map((row) => ({
+        ...row,
+        receivedDate: row.receivedDate?.format?.() || row.receivedDate,
+        inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
+      })),
+      rfiDatesRows: rfiDatesRows.map((row) => ({
+        ...row,
+        inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
+      })),
+    };
+  }
+
+  // فیدبک فوری UI - سطر را highlight کن
+  setNotificationRows((prevRows) =>
+    prevRows.map((row) => {
+      if (row.id === savedRowId) {
+        return {
+          ...row,
+          _saved: true,
+          _savedAt: new Date().toISOString(),
         };
       }
+      return row;
+    })
+  );
 
-      // فیدبک فوری UI - سطر را highlight کن
-      setNotificationRows((prevRows) =>
-        prevRows.map((row) => {
-          if (row.id === savedRowId) {
-            return {
-              ...row,
-              _saved: true,
-              _savedAt: new Date().toISOString(),
-            };
-          }
-          return row;
-        })
-      );
+  // **فوراً وضعیت hasChanges را به false تنظیم کن**
+  setHasChanges(false);
 
-      // **فوراً وضعیت hasChanges را بررسی و آپدیت کن**
-      setHasChanges(false); // ابتدا false کن
-      
-      // کمی تاخیر برای اطمینان از آپدیت stateها
-      setTimeout(() => {
-        const changed = checkForChanges();
-        setHasChanges(changed);
-        console.log('🔍 پس از ذخیره نوتیفیکیشن، وضعیت تغییرات:', changed);
-      }, 100);
-
-      // نمایش toast موفقیت
-      toast.success("تغییرات نوتیفیکیشن با موفقیت ذخیره شد", {
-        position: "top-center",
-        duration: 2000,
-        icon: "✅",
-        style: {
-          background: "#10b981",
-          color: "white",
-          borderRadius: "8px",
-          padding: "12px",
-          fontSize: "14px",
-        },
-      });
-
-      // پس از 3 ثانیه highlight را بردار
-      setTimeout(() => {
-        setNotificationRows((prevRows) =>
-          prevRows.map((row) => ({
-            ...row,
-            _saved: false,
-          }))
-        );
-      }, 3000);
+  // نمایش toast موفقیت
+  toast.success("تغییرات نوتیفیکیشن با موفقیت ذخیره شد", {
+    position: "top-center",
+    duration: 2000,
+    icon: "✅",
+    style: {
+      background: "#10b981",
+      color: "white",
+      borderRadius: "8px",
+      padding: "12px",
+      fontSize: "14px",
     },
+  });
+
+  // پس از 3 ثانیه highlight را بردار
+  setTimeout(() => {
+    setNotificationRows((prevRows) =>
+      prevRows.map((row) => ({
+        ...row,
+        _saved: false,
+      }))
+    );
+  }, 3000);
+},
+
     onError: (error) => {
       console.error("❌ Notification row save failed:", error);
 
@@ -1029,84 +1002,74 @@ const handleConfirmRowSave = () => {
   };
 
   updateNotificationRow(rowPayload, {
-    onSuccess: (data) => {
-      // 1. بستن پاپ‌آپ
-      setShowRowSaveConfirm(false);
+   // در تابع handleConfirmRowSave - بعد از ذخیره موفق:
+onSuccess: (data) => {
+  // 1. بستن پاپ‌آپ
+  setShowRowSaveConfirm(false);
 
-      // 2. ذخیره rowId برای فیدبک UI
-      const savedRowId = selectedRowForSave;
-      setSelectedRowForSave(null);
-      setRowToSaveData(null);
+  // 2. ذخیره rowId برای فیدبک UI
+  const savedRowId = selectedRowForSave;
+  setSelectedRowForSave(null);
+  setRowToSaveData(null);
 
-      // 3. آپدیت initialDataRef.current با مقادیر جدید
-      if (initialDataRef.current) {
-        initialDataRef.current = {
-          ...initialDataRef.current,
-          rfiDatesRows: initialDataRef.current.rfiDatesRows.map((row) => {
-            if (row.id === savedRowId) {
-              // پیدا کردن ردیف فعلی
-              const currentRow = rfiDatesRows.find(r => r.id === savedRowId);
-              return {
-                ...row,
-                approveManday: currentRow?.approveManday || row.approveManday,
-                fee: currentRow?.fee || row.fee,
-                inspectorName: currentRow?.inspectorName || row.inspectorName,
-                inspectionDate: currentRow?.inspectionDate?.format?.() || row.inspectionDate,
-              };
-            }
-            return row;
-          }),
+  // 3. **مهم: کل initialDataRef.current را با stateهای فعلی همگام کن**
+  if (initialDataRef.current) {
+    initialDataRef.current = {
+      notificationRows: notificationRows.map((row) => ({
+        ...row,
+        receivedDate: row.receivedDate?.format?.() || row.receivedDate,
+        inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
+      })),
+      rfiDatesRows: rfiDatesRows.map((row) => ({
+        ...row,
+        inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
+        // برای fee مقدار بدون فرمت ذخیره کن
+        fee: row.fee ? extractNumber(row.fee) : row.fee,
+      })),
+    };
+  }
+
+  // 4. فیدبک فوری UI - سطر را highlight کن
+  setRfiDatesRows((prevRows) =>
+    prevRows.map((row) => {
+      if (row.id === savedRowId) {
+        return {
+          ...row,
+          _saved: true,
+          _savedAt: new Date().toISOString(),
         };
       }
+      return row;
+    })
+  );
 
-      // 4. فیدبک فوری UI - سطر را highlight کن
-      setRfiDatesRows((prevRows) =>
-        prevRows.map((row) => {
-          if (row.id === savedRowId) {
-            return {
-              ...row,
-              _saved: true,
-              _savedAt: new Date().toISOString(),
-            };
-          }
-          return row;
-        })
-      );
+  // 5. **فوراً وضعیت hasChanges را به false تنظیم کن**
+  setHasChanges(false);
 
-      // 5. فوراً وضعیت hasChanges را بررسی و آپدیت کن
-      setHasChanges(false); // ابتدا false کن
-      
-      // 6. کمی تاخیر برای اطمینان از آپدیت stateها
-      setTimeout(() => {
-        const changed = checkForChanges();
-        setHasChanges(changed);
-        console.log('🔍 پس از ذخیره، وضعیت تغییرات:', changed);
-      }, 100);
-
-      // 7. نمایش toast موفقیت
-      toast.success("تغییرات با موفقیت ذخیره شد", {
-        position: "top-center",
-        duration: 2000,
-        icon: "✅",
-        style: {
-          background: "#10b981",
-          color: "white",
-          borderRadius: "8px",
-          padding: "12px",
-          fontSize: "14px",
-        },
-      });
-
-      // 8. پس از 3 ثانیه highlight را بردار
-      setTimeout(() => {
-        setRfiDatesRows((prevRows) =>
-          prevRows.map((row) => ({
-            ...row,
-            _saved: false,
-          }))
-        );
-      }, 3000);
+  // 6. نمایش toast موفقیت
+  toast.success("تغییرات با موفقیت ذخیره شد", {
+    position: "top-center",
+    duration: 2000,
+    icon: "✅",
+    style: {
+      background: "#10b981",
+      color: "white",
+      borderRadius: "8px",
+      padding: "12px",
+      fontSize: "14px",
     },
+  });
+
+  // 7. پس از 3 ثانیه highlight را بردار
+  setTimeout(() => {
+    setRfiDatesRows((prevRows) =>
+      prevRows.map((row) => ({
+        ...row,
+        _saved: false,
+      }))
+    );
+  }, 3000);
+},
     onError: (error) => {
       console.error("❌ Row save failed:", error);
 
