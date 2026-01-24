@@ -235,10 +235,84 @@ export const useUpdateNotificationInfoRow = () => {
   });
 };
 
+
+export const useDeleteNotificationDate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ rfiNumbering, date_ }) => {
+      if (!rfiNumbering || rfiNumbering.trim() === "") {
+        throw new Error("شماره RFI برای حذف الزامی است");
+      }
+      
+      if (!date_ || date_.trim() === "") {
+        throw new Error("تاریخ برای حذف الزامی است");
+      }
+
+      return await notificationService.deleteNotificationDate(rfiNumbering, date_);
+    },
+    onSuccess: (data, variables) => {
+      // نمایش toast موفقیت
+      toast.success(`تاریخ ${variables.date_} با موفقیت حذف شد`, {
+        position: "top-center",
+        duration: 3000,
+        icon: "✅",
+        style: {
+          background: "#10b981",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
+
+      // اینوالیدیت queryهای مرتبط
+      queryClient.invalidateQueries({
+        queryKey: ["rfiReport"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: notificationKeys.all,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["notifications", "detail", variables.rfiNumbering],
+      });
+    },
+    onError: (error, variables) => {
+      console.error(`❌ Failed to delete notification date:`, error);
+
+      // نمایش toast خطا
+      toast.error(
+        `❌ خطا در حذف تاریخ: ${
+          error.response?.data?.message || error.message
+        }`,
+        {
+          position: "top-center",
+          duration: 4000,
+          icon: "❌",
+          style: {
+            background: "#ef4444",
+            color: "white",
+            borderRadius: "10px",
+            padding: "16px",
+            fontSize: "14px",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        }
+      );
+    },
+  });
+};
+
 // هوک ترکیبی برای تمام عملیات نوتیفیکیشن
 export const useNotifications = () => {
   const updateMutation = useUpdateNotification();
   const updateRowMutation = useUpdateNotificationRow();
+  const deleteDateMutation = useDeleteNotificationDate(); // اضافه شد
   const statusesQuery = useNotificationStatuses();
 
   return {
@@ -248,6 +322,7 @@ export const useNotifications = () => {
     useUpdateNotification: () => updateMutation,
     useUpdateNotificationRow: () => updateRowMutation,
     useUpdateNotificationInfoRow,
+    useDeleteNotificationDate: () => deleteDateMutation, // اضافه شد
 
     // helper functions
     formatDateForAPI:

@@ -34,7 +34,7 @@ import {
   useUpdateNotification,
   useNotificationStatuses,
   useUpdateNotificationRow,
-  useUpdateNotificationInfoRow,
+  useUpdateNotificationInfoRow,useDeleteNotificationDate 
 } from "../../../hooks/useNotificationNumber";
 import { toast } from "react-hot-toast";
 import {
@@ -49,6 +49,7 @@ import {
 } from "../../../utils/helpers";
 import RowSaveConfirmationPopover from "./RowSaveConfirmationPopover";
 import NotificationRowSaveConfirmationPopover from "./NotificationRowSaveConfirmationPopover";
+import DeleteConfirmationPopover from "./DeleteConfirmationPopover";
 
 // پاپ‌آپ تأیید مینیمال
 const ConfirmationPopover = ({
@@ -147,6 +148,8 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
     useUpdateNotificationRow();
   const { mutate: updateNotificationInfoRow, isLoading: isUpdatingInfoRow } =
     useUpdateNotificationInfoRow();
+    // در بخش هوک‌های کامپوننت
+const { mutate: deleteNotificationDate, isLoading: isDeletingNotificationDate } = useDeleteNotificationDate();
 
   // حالت‌های پاپ‌آپ
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
@@ -323,6 +326,8 @@ onSuccess: (data) => {
   // حالت‌های جدول نوتیفیکیشن
   const [notificationRows, setNotificationRows] = useState([]);
   const [rfiDatesRows, setRfiDatesRows] = useState([]);
+  const [showDeleteNotificationConfirm, setShowDeleteNotificationConfirm] = useState(false);
+const [notificationRowToDelete, setNotificationRowToDelete] = useState(null);
 
   // تبدیل داده‌های API به options برای select
   const statusOptions = useMemo(() => {
@@ -712,11 +717,80 @@ const areValuesEqual = (val1, val2) => {
     ]);
   };
 
-  const handleDeleteNotificationRow = (id) => {
-    if (notificationRows.length > 1) {
-      setNotificationRows(notificationRows.filter((row) => row.id !== id));
+// تابع جدید برای حذف ردیف نوتیفیکیشن - بدون شرط تعداد ردیف
+// تابع برای حذف ردیف نوتیفیکیشن
+const handleDeleteNotificationRow = (rowId) => {
+  const rowToDelete = notificationRows.find((row) => row.id === rowId);
+  if (rowToDelete) {
+    setNotificationRowToDelete({
+      rowId,
+      notificationNumber: rowToDelete.notificationNumber,
+      // اطلاعات اضافی برای API
+      rfiNumbering: notificationData?.timeTable?.RFI_Numbering || rfiNumber,
+      date_: "1404/05/09", // مقدار ثابت فعلی
+    });
+    setShowDeleteNotificationConfirm(true);
+  }
+};
+
+// تابع تأیید حذف - با استفاده از هوک
+const confirmDeleteNotificationRow = () => {
+  if (!notificationRowToDelete) return;
+  
+  // استفاده از هوک برای فراخوانی API
+  deleteNotificationDate({
+    rfiNumbering: notificationRowToDelete.rfiNumbering,
+    date_: notificationRowToDelete.date_,
+  }, {
+    onSuccess: () => {
+      // حذف از state
+      setNotificationRows((prevRows) => {
+        const newRows = prevRows.filter((row) => row.id !== notificationRowToDelete.rowId);
+        
+        // اگر همه ردیف‌ها حذف شدند، یک ردیف خالی اضافه کن
+        if (newRows.length === 0) {
+          return [{
+            id: 1,
+            notificationNumber: "",
+            status: "در حال انجام",
+            statusCode: "3",
+            statusEnglish: "Ongoing",
+            inspectorType: "فریلنسر",
+            description: "",
+            receivedDate: convertToPersianDate(new Date()),
+            location: "",
+            inspectionDate: convertToPersianDate(new Date()),
+            vendorName: "",
+            duration: "",
+            inspectorName: "",
+            remark: "",
+            folderNumber: "",
+            material: "",
+            goodsDescription: "",
+            qty3rdPartyInspector: "0",
+            approvedDuration: "0",
+            projectType: "",
+            rfiStatus: "Ongoing",
+          }];
+        }
+        
+        return newRows;
+      });
+      
+      // بستن پاپ‌آپ
+      setShowDeleteNotificationConfirm(false);
+      setNotificationRowToDelete(null);
+    },
+    onError: (error) => {
+      // در صورت خطا در API، بستن پاپ‌آپ
+      setShowDeleteNotificationConfirm(false);
+      setNotificationRowToDelete(null);
+      
+      // خطا توسط هوک نمایش داده می‌شود (toast)
+      // حذف از UI را انجام نده چون API خطا داده
     }
-  };
+  });
+};
 
   const handleCopyNotificationRow = (id) => {
     const rowToCopy = notificationRows.find((row) => row.id === id);
@@ -1527,7 +1601,7 @@ onSuccess: (data) => {
                       </td>
 
                       <td className="p-3">
-                        <div className="flex justify-center">
+                        <div className="flex justify-center gap-1">
                           <button
                             type="button"
                             onClick={() => handleSaveNotificationRow(row.id)}
@@ -1549,6 +1623,17 @@ onSuccess: (data) => {
                               </>
                             )}
                           </button>
+                          <button
+                type="button"
+                onClick={() => handleDeleteNotificationRow(row.id)}
+                // disabled={notificationRows.length <= 1 || isUpdatingInfoRow || isLoadingAll}
+                disabled={isUpdatingInfoRow || isLoadingAll}
+                className="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="حذف این سطر"
+              >
+                <FaTrash className="text-xs" />
+                حذف
+              </button>
                         </div>
                       </td>
                     </tr>
@@ -1584,11 +1669,7 @@ onSuccess: (data) => {
                         onClick={() => handleDeleteNotificationRow(row.id)}
                         className="text-gray-700 hover:text-gray-900 p-1"
                         title="حذف"
-                        disabled={
-                          notificationRows.length === 1 ||
-                          isLoadingAll ||
-                          isUpdating
-                        }
+                        disabled={isUpdatingInfoRow || isLoadingAll}
                       >
                         <FaTrash className="text-sm" />
                       </button>
@@ -2293,6 +2374,34 @@ onSuccess: (data) => {
         rowData={notificationRowToSaveData}
         isLoading={isUpdatingInfoRow}
       />
+{/* پاپ‌آپ تأیید حذف سطر نوتیفیکیشن */}
+<DeleteConfirmationPopover
+  isOpen={showDeleteNotificationConfirm}
+  onClose={() => {
+    if (!isDeletingNotificationDate) {
+      setShowDeleteNotificationConfirm(false);
+      setNotificationRowToDelete(null);
+    }
+  }}
+  onConfirm={confirmDeleteNotificationRow}
+  title="تأیید حذف سطر نوتیفیکیشن"
+  // message={
+  //   notificationRows.length === 1 
+  //     ? "این آخرین ردیف نوتیفیکیشن است. با حذف آن، جدول خالی خواهد شد. آیا مطمئن هستید؟" +
+  //       "\n\nمقادیر ارسالی به API:" +
+  //       `\n• RFI Numbering: ${notificationRowToDelete?.rfiNumbering || 'asas-asas-asas'}` +
+  //       `\n• تاریخ: ${notificationRowToDelete?.date_ || '1404/05/09'}`
+  //     : `آیا مطمئن هستید که می‌خواهید سطر "${notificationRowToDelete?.notificationNumber}" را حذف کنید؟` +
+  //       "\n\nمقادیر ارسالی به API:" +
+  //       `\n• RFI Numbering: ${notificationRowToDelete?.rfiNumbering || 'asas-asas-asas'}` +
+  //       `\n• تاریخ: ${notificationRowToDelete?.date_ || '1404/05/09'}`
+  // }
+  message={`آیا از حذف نوتیفیکشن با شماره ${notificationRowToDelete?.rfiNumbering} مطمئن هستید؟`}
+  confirmText={isDeletingNotificationDate ? "در حال حذف..." : "بله، حذف کن"}
+  cancelText="انصراف"
+  type={notificationRows.length === 1 ? "danger" : "warning"}
+  isLoading={isDeletingNotificationDate} // وضعیت لودینگ از هوک
+/>
     </div>
   );
 };

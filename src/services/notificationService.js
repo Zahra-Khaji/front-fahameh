@@ -98,6 +98,29 @@ class NotificationService {
   }
 
   // src/services/notificationService.js
+// متد جدید برای حذف یک تاریخ خاص از نوتیفیکیشن
+async deleteNotificationDate(rfiNumbering, date_) {
+  try {
+    console.log("🗑️ Deleting notification date for RFI:", rfiNumbering, "Date:", date_);
+    
+    // ساخت URL مطابق API مورد نظر
+    const response = await http.delete(
+      `/notifications/one_date/?rfi_numbering=${encodeURIComponent(rfiNumbering)}&date_=${encodeURIComponent(date_)}`
+    );
+    
+    console.log("✅ Notification date deleted successfully:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error deleting notification date:", error);
+    if (error.response) {
+      console.error("❌ Response status:", error.response.status);
+      console.error("❌ Response data:", error.response.data);
+    }
+    throw error;
+  }
+}
+
+  // src/services/notificationService.js
 
   // اضافه کردن متد جدید برای آپدیت ردیف‌های جدول تاریخ‌های بازرسی
   async updateNotificationRow(rfiNumber, rowData) {
