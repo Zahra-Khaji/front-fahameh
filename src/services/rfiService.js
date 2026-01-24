@@ -4,16 +4,58 @@ import authService from './authService';
 
 class RFIService {
   // دریافت گزارش RFI بر اساس نام پروژه
-  async getRFIReport(projectName) {
+  // async getRFIReport(projectName) {
+  //   if (!projectName) {
+  //     throw new Error('نام پروژه الزامی است');
+  //   }
+
+  //   try {
+  //     console.log('در حال دریافت گزارش RFI برای پروژه:', projectName);
+
+  //     const response = await http.get(
+  //       `/reports/rfi/?project_name=${encodeURIComponent(projectName)}`,
+  //       {
+  //         headers: authService.getAuthHeader(),
+  //         timeout: 10000,
+  //       }
+  //     );
+
+  //     console.log('گزارش RFI دریافت شد:', response.data);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error('خطا در دریافت گزارش RFI:', error);
+      
+  //     let errorMessage = 'خطا در دریافت گزارش RFI';
+  //     if (error.response) {
+  //       errorMessage = error.response.data?.detail || 
+  //                     error.response.data?.message || 
+  //                     `خطا: ${error.response.status}`;
+  //     } else if (error.request) {
+  //       errorMessage = 'سرور پاسخ نمی‌دهد';
+  //     }
+      
+  //     const customError = new Error(errorMessage);
+  //     customError.originalError = error;
+  //     throw customError;
+  //   }
+  // }
+  async getRFIReport(projectName, projectType = '') {
     if (!projectName) {
       throw new Error('نام پروژه الزامی است');
     }
 
     try {
-      console.log('در حال دریافت گزارش RFI برای پروژه:', projectName);
+      console.log('در حال دریافت گزارش RFI برای پروژه:', projectName, 'نوع:', projectType);
+
+      // ساخت URL با پارامترهای اختیاری
+      let url = `/reports/rfi/?project_name=${encodeURIComponent(projectName)}`;
+      
+      if (projectType && projectType.trim() !== '') {
+        url += `&project_type=${encodeURIComponent(projectType)}`;
+      }
 
       const response = await http.get(
-        `/reports/rfi/?project_name=${encodeURIComponent(projectName)}`,
+        url,
         {
           headers: authService.getAuthHeader(),
           timeout: 10000,

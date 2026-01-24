@@ -36,6 +36,7 @@ import { useProjects } from "../../hooks/useProjects";
 import { useRFIReport } from "../../hooks/useRFIReport";
 import DeleteNotificationPopover from "./DeleteNotificationPopover";
 import { useDeleteNotification } from "../../hooks/useNotificationNumber";
+import { useProjectTypes } from "../../hooks/useProjectTypes";
 
 //helper
 import {
@@ -269,13 +270,28 @@ const RFIReportTable = () => {
     isLoading: projectsLoading,
     error: projectsError,
   } = useProjects();
+  const {
+    data: projectTypes,
+    isLoading: projectTypesLoading,
+    error: projectTypesError
+  } = useProjectTypes();
 
+ 
+
+
+
+  const [selectedProjectType, setSelectedProjectType] = useState("");
   // استفاده از هوک گزارش RFI
+  // const {
+  //   data: rfiData,
+  //   isLoading: rfiLoading,
+  //   error: rfiError,
+  // } = useRFIReport(projectName, shouldFetch);
   const {
     data: rfiData,
     isLoading: rfiLoading,
     error: rfiError,
-  } = useRFIReport(projectName, shouldFetch);
+  } = useRFIReport(projectName, selectedProjectType, shouldFetch);
 
   // ========== توابع مدیریت پروژه ==========
 
@@ -305,28 +321,56 @@ const RFIReportTable = () => {
   };
 
   // تابع برای جستجوی پروژه
-  const handleSearch = () => {
-    if (projectName) {
-      setShouldFetch(true);
-      setIsAutoFetch(false);
-      setSearchTerm("");
-      setColumnFilters({
-        RFI_Number: "",
-        Report_No: "",
-        RFI_Numbering: "",
-      });
-      clearAllProjectTypes(); // ریست کردن فیلتر نوع پروژه
-      setCurrentPage(1); // بازگشت به صفحه اول
-      // به‌روزرسانی URL
-      const searchParams = new URLSearchParams(location.search);
-      searchParams.set("project", encodeURIComponent(projectName));
-      window.history.replaceState(
-        {},
-        "",
-        `${location.pathname}?${searchParams.toString()}`
-      );
+  // const handleSearch = () => {
+  //   if (projectName) {
+  //     setShouldFetch(true);
+  //     setIsAutoFetch(false);
+  //     setSearchTerm("");
+  //     setColumnFilters({
+  //       RFI_Number: "",
+  //       Report_No: "",
+  //       RFI_Numbering: "",
+  //     });
+  //     clearAllProjectTypes(); // ریست کردن فیلتر نوع پروژه
+  //     setCurrentPage(1); // بازگشت به صفحه اول
+  //     // به‌روزرسانی URL
+  //     const searchParams = new URLSearchParams(location.search);
+  //     searchParams.set("project", encodeURIComponent(projectName));
+  //     window.history.replaceState(
+  //       {},
+  //       "",
+  //       `${location.pathname}?${searchParams.toString()}`
+  //     );
+  //   }
+  // };
+  // تغییر تابع handleSearch برای اضافه کردن نوع پروژه
+// تابع برای جستجوی پروژه
+const handleSearch = () => {
+  if (projectName && selectedProjectType) { // اضافه کردن شرط selectedProjectType
+    setShouldFetch(true);
+    setIsAutoFetch(false);
+    setSearchTerm("");
+    setColumnFilters({
+      RFI_Number: "",
+      Report_No: "",
+      RFI_Numbering: "",
+    });
+    clearAllProjectTypes();
+    setCurrentPage(1);
+    
+    // به‌روزرسانی URL با پارامتر نوع پروژه
+    const searchParams = new URLSearchParams(location.search);
+    searchParams.set("project", encodeURIComponent(projectName));
+    if (selectedProjectType) {
+      searchParams.set("type", selectedProjectType);
     }
-  };
+    window.history.replaceState(
+      {},
+      "",
+      `${location.pathname}?${searchParams.toString()}`
+    );
+  }
+};
 
   // تابع handleAddReport که در موبایل ویو استفاده شده
   const handleAddReport = (rfiItem) => {
@@ -337,30 +381,58 @@ const RFIReportTable = () => {
   // ========== پایان توابع مدیریت پروژه ==========
 
   // useEffect برای خواندن query parameters
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const projectFromQuery = searchParams.get("project");
+  // useEffect(() => {
+  //   const searchParams = new URLSearchParams(location.search);
+  //   const projectFromQuery = searchParams.get("project");
 
-    if (projectFromQuery) {
-      const decodedProjectName = decodeURIComponent(projectFromQuery);
-      setProjectName(decodedProjectName);
-      setShouldFetch(true);
-      setIsAutoFetch(true);
-      setCurrentPage(1);
+  //   if (projectFromQuery) {
+  //     const decodedProjectName = decodeURIComponent(projectFromQuery);
+  //     setProjectName(decodedProjectName);
+  //     setShouldFetch(true);
+  //     setIsAutoFetch(true);
+  //     setCurrentPage(1);
 
-      const foundProject = projects?.find(
-        (project) => project.name === decodedProjectName
-      );
-      if (foundProject) {
-        setSelectedProject(foundProject.id);
-      }
-    } else {
-      // اگر query parameter وجود نداشته باشد، حالت AutoFetch را غیرفعال کن
-      setIsAutoFetch(false);
-      setShouldFetch(false);
+  //     const foundProject = projects?.find(
+  //       (project) => project.name === decodedProjectName
+  //     );
+  //     if (foundProject) {
+  //       setSelectedProject(foundProject.id);
+  //     }
+  //   } else {
+  //     // اگر query parameter وجود نداشته باشد، حالت AutoFetch را غیرفعال کن
+  //     setIsAutoFetch(false);
+  //     setShouldFetch(false);
+  //   }
+  // }, [location.search, projects]);
+// تغییر useEffect برای خواندن پارامتر نوع پروژه از URL
+useEffect(() => {
+  const searchParams = new URLSearchParams(location.search);
+  const projectFromQuery = searchParams.get("project");
+  const typeFromQuery = searchParams.get("type");
+
+  if (projectFromQuery) {
+    const decodedProjectName = decodeURIComponent(projectFromQuery);
+    setProjectName(decodedProjectName);
+    setShouldFetch(true);
+    setIsAutoFetch(true);
+    setCurrentPage(1);
+
+    // اگر نوع پروژه در URL هست، ست کن
+    if (typeFromQuery) {
+      setSelectedProjectType(typeFromQuery);
     }
-  }, [location.search, projects]);
 
+    const foundProject = projects?.find(
+      (project) => project.name === decodedProjectName
+    );
+    if (foundProject) {
+      setSelectedProject(foundProject.id);
+    }
+  } else {
+    setIsAutoFetch(false);
+    setShouldFetch(false);
+  }
+}, [location.search, projects]);
   // استخراج نوع پروژه از داده‌ها
   useEffect(() => {
     if (rfiData && Object.keys(rfiData).length > 0) {
@@ -921,50 +993,87 @@ const handleOpenNotificationModal = (item) => {
           )}
 
           {/* فرم انتخاب پروژه */}
-          {!isAutoFetch && (
-            <div className="mb-4">
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 items-end">
-                {/* انتخاب پروژه */}
-                <div className="lg:col-span-3">
-                  <SelectField
-                    label="انتخاب پروژه *"
-                    value={selectedProject}
-                    onChange={handleProjectChange}
-                    options={projects || []}
-                    placeholder={
-                      projectsLoading
-                        ? "در حال دریافت لیست پروژه‌ها..."
-                        : projectsError
-                        ? "خطا در دریافت پروژه‌ها"
-                        : "انتخاب پروژه"
-                    }
-                    disabled={projectsLoading || !!projectsError}
-                    className="py-2"
-                  />
-                </div>
+         
+{/* فرم انتخاب پروژه */}
+{!isAutoFetch && (
+  <div className="mb-4">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-end">
+      {/* انتخاب پروژه - 4 قسمت از 12 */}
+      <div className="lg:col-span-4">
+        <SelectField
+          label="انتخاب پروژه *"
+          value={selectedProject}
+          onChange={handleProjectChange}
+          options={projects || []}
+          placeholder={
+            projectsLoading
+              ? "در حال دریافت لیست پروژه‌ها..."
+              : projectsError
+              ? "خطا در دریافت پروژه‌ها"
+              : "انتخاب پروژه"
+          }
+          disabled={projectsLoading || !!projectsError}
+          className="py-2 w-full"
+        />
+      </div>
 
-                {/* دکمه جستجو پروژه */}
-                <div className="lg:col-span-1">
-                  <Button
-                    onClick={handleSearch}
-                    variant="primary"
-                    icon="search"
-                    disabled={!projectName || rfiLoading}
-                    className="w-full py-2 h-[42px]"
-                  >
-                    {rfiLoading ? (
-                      <span className="flex items-center justify-center">
-                        <FaSync className="animate-spin ml-2" />
-                        در حال جستجو...
-                      </span>
-                    ) : (
-                      "جستجو"
-                    )}
-                  </Button>
-                </div>
-              </div>
+      {/* انتخاب نوع پروژه - اجباری - 4 قسمت از 12 */}
+      <div className="lg:col-span-4">
+        <div className="flex flex-col">
+          <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
+            نوع پروژه *
+            {/* <span className="text-red-500 mr-1">*</span> */}
+          </label>
+          <div className="relative">
+            <select
+              value={selectedProjectType}
+              onChange={(e) => setSelectedProjectType(e.target.value)}
+              className="w-full py-2 pl-3 pr-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white appearance-none"
+              disabled={projectTypesLoading}
+              required
+            >
+              <option value="" disabled>
+                {projectTypesLoading ? "در حال دریافت..." : "انتخاب نوع پروژه"}
+              </option>
+              {projectTypes?.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-2 text-gray-700">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+              </svg>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* دکمه جستجو پروژه - 4 قسمت از 12 */}
+      <div className="lg:col-span-4">
+        <Button
+          onClick={handleSearch}
+          variant="primary"
+          icon="search"
+          disabled={!projectName || !selectedProjectType || rfiLoading}
+          className="w-full py-2 h-[40px]"
+        >
+          {rfiLoading ? (
+            <span className="flex items-center justify-center">
+              <FaSync className="animate-spin ml-2" />
+              در حال جستجو...
+            </span>
+          ) : (
+            "جستجو"
           )}
+        </Button>
+      </div>
+    </div>
+    
+
+  </div>
+)}
 
           {/* جستجوی سریع - فقط وقتی نتایج وجود دارد */}
           {showResults && (
