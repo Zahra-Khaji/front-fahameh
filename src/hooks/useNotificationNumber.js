@@ -308,6 +308,76 @@ export const useDeleteNotificationDate = () => {
   });
 };
 
+// src/hooks/useNotificationNumber.js - اضافه کردن هوک جدید
+
+// هوک برای حذف تاریخ بازرسی
+export const useDeleteInspectionDate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ rfiNumbering, inspectionDate }) => {
+      if (!rfiNumbering || !inspectionDate) {
+        throw new Error("شماره RFI و تاریخ بازرسی الزامی است");
+      }
+
+      return await notificationService.deleteInspectionDate(
+        rfiNumbering,
+        inspectionDate
+      );
+    },
+    onSuccess: (data, variables) => {
+      // نمایش toast موفقیت
+      toast.success("تاریخ بازرسی با موفقیت حذف شد", {
+        position: "top-center",
+        duration: 3000,
+        icon: "✅",
+        style: {
+          background: "#10b981",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
+
+      // اینوالیدیت queryهای مرتبط
+      queryClient.invalidateQueries({
+        queryKey: notificationKeys.detail(variables.rfiNumbering),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["rfiReport"],
+      });
+    },
+    onError: (error, variables) => {
+      console.error("❌ Failed to delete inspection date:", error);
+
+      // نمایش toast خطا
+      toast.error(
+        `❌ خطا در حذف تاریخ بازرسی: ${
+          error.response?.data?.message || error.message
+        }`,
+        {
+          position: "top-center",
+          duration: 4000,
+          icon: "❌",
+          style: {
+            background: "#ef4444",
+            color: "white",
+            borderRadius: "10px",
+            padding: "16px",
+            fontSize: "14px",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        }
+      );
+    },
+  });
+};
+
 // هوک ترکیبی برای تمام عملیات نوتیفیکیشن
 export const useNotifications = () => {
   const updateMutation = useUpdateNotification();

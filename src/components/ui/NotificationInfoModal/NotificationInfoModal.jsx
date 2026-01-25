@@ -34,9 +34,10 @@ import {
   useUpdateNotification,
   useNotificationStatuses,
   useUpdateNotificationRow,
-  useUpdateNotificationInfoRow,useDeleteNotificationDate 
+  useUpdateNotificationInfoRow,useDeleteNotificationDate ,useDeleteInspectionDate
 } from "../../../hooks/useNotificationNumber";
 import { toast } from "react-hot-toast";
+
 import {
   getNotificationStatusInPersian,
   transformNotificationStatuses,
@@ -50,6 +51,7 @@ import {
 import RowSaveConfirmationPopover from "./RowSaveConfirmationPopover";
 import NotificationRowSaveConfirmationPopover from "./NotificationRowSaveConfirmationPopover";
 import DeleteConfirmationPopover from "./DeleteConfirmationPopover";
+// import { useDeleteInspectionDate } from "../../hooks/useNotificationNumber";
 
 // پاپ‌آپ تأیید مینیمال
 const ConfirmationPopover = ({
@@ -157,6 +159,8 @@ const { mutate: deleteNotificationDate, isLoading: isDeletingNotificationDate } 
   const [showRowSaveConfirm, setShowRowSaveConfirm] = useState(false);
   const [selectedRowForSave, setSelectedRowForSave] = useState(null);
   const [rowToSaveData, setRowToSaveData] = useState(null);
+    // اضافه کردن stateهای جدید برای حذف
+ 
   // حالت‌های جدید برای ذخیره ردیف نوتیفیکیشن
   const [showNotificationRowSaveConfirm, setShowNotificationRowSaveConfirm] =
     useState(false);
@@ -164,6 +168,89 @@ const { mutate: deleteNotificationDate, isLoading: isDeletingNotificationDate } 
     useState(null);
   const [notificationRowToSaveData, setNotificationRowToSaveData] =
     useState(null);
+
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [selectedRowForDelete, setSelectedRowForDelete] = useState(null);
+    
+    // استفاده از هوک حذف
+    const { mutate: deleteInspectionDate, isLoading: isDeleting } = useDeleteInspectionDate();
+    // تابع handleDeleteRow - اضافه کردن بعد از handleSaveRow
+const handleDeleteRow = (rowId) => {
+  console.log('🗑️ Preparing to delete row ID:', rowId);
+
+  const row = rfiDatesRows.find((r) => r.id === rowId);
+  if (!row) {
+    toast.error("❌ ردیف مورد نظر یافت نشد");
+    return;
+  }
+
+  // دریافت تاریخ بازرسی به فرمت مورد نیاز API
+  const inspectionDate = row.inspectionDate?.format?.() || row.inspectionDate;
+  const rfiNumbering = notificationData?.timeTable?.RFI_Numbering || rfiNumber;
+
+  console.log('📋 Row to delete:', { 
+    rowId, 
+    inspectionDate, 
+    rfiNumbering,
+    row 
+  });
+
+  setSelectedRowForDelete({
+    rowId,
+    inspectionDate,
+    rfiNumbering,
+    rawData: row
+  });
+
+  setShowDeleteConfirm(true);
+};
+// تابع handleConfirmDelete - اضافه کردن بعد از handleConfirmRowSave
+const handleConfirmDelete = () => {
+  if (!selectedRowForDelete) return;
+
+  console.log('🚀 Confirming delete with data:', selectedRowForDelete);
+
+  deleteInspectionDate(
+    {
+      rfiNumbering: selectedRowForDelete.rfiNumbering,
+      inspectionDate: selectedRowForDelete.inspectionDate
+    },
+    {
+      onSuccess: () => {
+        // حذف ردیف از state محلی
+        setRfiDatesRows(prevRows => 
+          prevRows.filter(row => row.id !== selectedRowForDelete.rowId)
+        );
+        
+        // بستن پاپ‌آپ
+        setShowDeleteConfirm(false);
+        setSelectedRowForDelete(null);
+        
+        // به‌روزرسانی initialDataRef
+        if (initialDataRef.current) {
+          initialDataRef.current = {
+            ...initialDataRef.current,
+            rfiDatesRows: rfiDatesRows
+              .filter(row => row.id !== selectedRowForDelete.rowId)
+              .map(row => ({
+                ...row,
+                inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
+              })),
+          };
+        }
+        
+        // بررسی تغییرات
+        setHasChanges(checkForChanges());
+      },
+      onError: (error) => {
+        console.error('❌ Delete failed:', error);
+        // در صورت خطا، پاپ‌آپ را ببند اما ردیف را حذف نکن
+        setShowDeleteConfirm(false);
+        setSelectedRowForDelete(null);
+      }
+    }
+  );
+};
   // تابع handleSaveNotificationRow:
 // src/components/ui/NotificationInfoModal/NotificationInfoModal.jsx
 // تابع handleSaveNotificationRow - خطوط 139-174
@@ -1623,7 +1710,7 @@ onSuccess: (data) => {
                               </>
                             )}
                           </button>
-                          <button
+                          {/* <button
                 type="button"
                 onClick={() => handleDeleteNotificationRow(row.id)}
                 // disabled={notificationRows.length <= 1 || isUpdatingInfoRow || isLoadingAll}
@@ -1633,7 +1720,7 @@ onSuccess: (data) => {
               >
                 <FaTrash className="text-xs" />
                 حذف
-              </button>
+              </button> */}
                         </div>
                       </td>
                     </tr>
@@ -1964,7 +2051,7 @@ onSuccess: (data) => {
               <div className="flex items-center gap-2">
                 <div className="w-3 h-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-r"></div>
                 <h4 className="text-base font-bold text-gray-800">
-                  اطلاعات تاریخ های بازرسی
+                  اطلاعات تاریخ های بازرس
                 </h4>
                 <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
                   {rfiDatesRows.length} مورد
@@ -1973,326 +2060,357 @@ onSuccess: (data) => {
             </div>
 
             {/* Desktop Table - صورت وضعیت بازرس */}
-            <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
-              <table className="w-full text-xs table-fixed">
-                <thead>
-                  <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
-                    <th className="p-3 text-right font-bold text-white text-xs w-1/6">
-                      شروع تاریخ بازرسی
-                    </th>
-                    <th className="p-3 text-right font-bold text-white text-xs w-1/6">
-                      تعداد روز تائید شده
-                    </th>
-                    <th className="p-3 text-right font-bold text-white text-xs w-1/4">
-                      بازرس اول
-                    </th>
-                    <th className="p-3 text-right font-bold text-white text-xs w-1/5">
-                      دستمزد
-                    </th>
-                    <th className="p-3 text-right font-bold text-white text-xs w-1/12">
-                      عملیات
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedRfiDatesRows.map((row, index) => (
-                    <tr
-                      key={row.id}
-                      className={`border-b border-gray-200 transition duration-150 ${
-                        index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                      } hover:bg-blue-50`}
-                    >
-                      {/* تاریخ بازرسی - فقط خواندنی */}
-                      <td className="p-2 text-gray-800">
-                        <DatePicker
-                          value={row.inspectionDate}
-                          onChange={(date) =>
-                            handleRfiDatesRowChange(
-                              row.id,
-                              "inspectionDate",
-                              date
-                            )
-                          }
-                          calendar={persian}
-                          locale={persian_fa}
-                          format="YYYY/MM/DD"
-                          inputClass="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
-                          disabled={true} // غیرفعال شده
-                          readOnly={true} // فقط خواندنی
-                        />
-                      </td>
+        {/* Desktop Table - صورت وضعیت بازرس */}
+<div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
+  <table className="w-full text-xs">
+    <thead>
+      <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
+        <th className="p-3 text-right font-bold text-white text-xs min-w-36">
+          شروع تاریخ بازرسی
+        </th>
+        <th className="p-3 text-right font-bold text-white text-xs min-w-32">
+          تعداد روز تائید شده
+        </th>
+        <th className="p-3 text-right font-bold text-white text-xs min-w-48">
+          بازرس اول
+        </th>
+        <th className="p-3 text-right font-bold text-white text-xs min-w-40">
+          دستمزد
+        </th>
+        <th className="p-3 text-right font-bold text-white text-xs min-w-28">
+          عملیات
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {sortedRfiDatesRows.map((row, index) => (
+        <tr
+          key={row.id}
+          className={`border-b border-gray-200 transition duration-150 ${
+            index % 2 === 0 ? "bg-white" : "bg-gray-50"
+          } hover:bg-blue-50`}
+        >
+          {/* تاریخ بازرسی - فقط خواندنی */}
+          <td className="p-2 text-gray-800 min-w-36">
+            <DatePicker
+              value={row.inspectionDate}
+              onChange={(date) =>
+                handleRfiDatesRowChange(
+                  row.id,
+                  "inspectionDate",
+                  date
+                )
+              }
+              calendar={persian}
+              locale={persian_fa}
+              format="YYYY/MM/DD"
+              inputClass="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
+              disabled={true}
+              readOnly={true}
+            />
+          </td>
 
-                      {/* ستون جدید: تعداد روز تائید شده - قابل ویرایش */}
-                      <td className="p-2 text-gray-800">
-                        <input
-                          type="text"
-                          value={displayApproveManday(row.approveManday)}
-                          onChange={(e) => {
-                            const newValue = e.target.value.trim();
+          {/* ستون جدید: تعداد روز تائید شده - قابل ویرایش */}
+          <td className="p-2 text-gray-800 min-w-32">
+            <input
+              type="text"
+              value={displayApproveManday(row.approveManday)}
+              onChange={(e) => {
+                const newValue = e.target.value.trim();
 
-                            // اگر خالی یا خط تیره باشد
-                            if (newValue === "" || newValue === "-") {
-                              handleRfiDatesRowChange(
-                                row.id,
-                                "approveManday",
-                                "-"
-                              );
-                            }
-                            // اگر عدد باشد
-                            else {
-                              const numValue = parseInt(newValue, 10);
-                              if (!isNaN(numValue)) {
-                                handleRfiDatesRowChange(
-                                  row.id,
-                                  "approveManday",
-                                  numValue
-                                );
-                              } else {
-                                // اگر عدد نبود، مقدار قبلی را نگه دار
-                                handleRfiDatesRowChange(
-                                  row.id,
-                                  "approveManday",
-                                  row.approveManday
-                                );
-                              }
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (e.target.value === "-") {
-                              e.target.value = "";
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const currentValue = e.target.value.trim();
-                            if (currentValue === "") {
-                              e.target.value = "-";
-                              handleRfiDatesRowChange(
-                                row.id,
-                                "approveManday",
-                                "-"
-                              );
-                            }
-                          }}
-                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent text-center"
-                          placeholder="-"
-                          disabled={isLoadingAll || isUpdating}
-                        />
-                      </td>
+                if (newValue === "" || newValue === "-") {
+                  handleRfiDatesRowChange(
+                    row.id,
+                    "approveManday",
+                    "-"
+                  );
+                } else {
+                  const numValue = parseInt(newValue, 10);
+                  if (!isNaN(numValue)) {
+                    handleRfiDatesRowChange(
+                      row.id,
+                      "approveManday",
+                      numValue
+                    );
+                  } else {
+                    handleRfiDatesRowChange(
+                      row.id,
+                      "approveManday",
+                      row.approveManday
+                    );
+                  }
+                }
+              }}
+              onFocus={(e) => {
+                if (e.target.value === "-") {
+                  e.target.value = "";
+                }
+              }}
+              onBlur={(e) => {
+                const currentValue = e.target.value.trim();
+                if (currentValue === "") {
+                  e.target.value = "-";
+                  handleRfiDatesRowChange(
+                    row.id,
+                    "approveManday",
+                    "-"
+                  );
+                }
+              }}
+              className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent text-center"
+              placeholder="-"
+              disabled={isLoadingAll || isUpdating}
+            />
+          </td>
 
-                      {/* بازرس اول - فقط خواندنی */}
-                      <td className="p-2 text-gray-800">
-                        <input
-                          type="text"
-                          value={row.inspectorName}
-                          readOnly={true} // فقط خواندنی
-                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
-                          placeholder="نام بازرس"
-                        />
-                      </td>
+          {/* بازرس اول - فقط خواندنی */}
+          <td className="p-2 text-gray-800 min-w-48">
+            <input
+              type="text"
+              value={row.inspectorName}
+              readOnly={true}
+              className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
+              placeholder="نام بازرس"
+            />
+          </td>
 
-                      {/* دستمزد - قابل ویرایش */}
-                      <td className="p-2 text-gray-800">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={row.fee}
-                            onChange={(e) =>
-                              handleRfiDatesRowChange(
-                                row.id,
-                                "fee",
-                                e.target.value
-                              )
-                            }
-                            className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent pl-6"
-                            placeholder="مبلغ"
-                            disabled={isLoadingAll || isUpdating}
-                          />
-                          <FaMoneyBillWave className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-                        </div>
-                      </td>
-
-                      {/* ستون عملیات */}
-                      <td className="p-2">
-                        <div className="flex justify-center">
-                          <button
-                            type="button"
-                            onClick={() => handleSaveRow(row.id)}
-                            disabled={isUpdatingRow}
-                            className="px-3 py-1.5 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="ذخیره این سطر"
-                          >
-                            <FaSave className="text-xs" />
-                            ذخیره
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* دستمزد - قابل ویرایش */}
+          <td className="p-2 text-gray-800 min-w-40">
+            <div className="relative">
+              <input
+                type="text"
+                value={row.fee}
+                onChange={(e) =>
+                  handleRfiDatesRowChange(
+                    row.id,
+                    "fee",
+                    e.target.value
+                  )
+                }
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent pl-6"
+                placeholder="مبلغ"
+                disabled={isLoadingAll || isUpdating}
+              />
+              <FaMoneyBillWave className="absolute left-1.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
             </div>
+          </td>
+
+          {/* ستون عملیات */}
+          <td className="p-2 min-w-28">
+            <div className="flex justify-center gap-1">
+              {/* دکمه ذخیره */}
+              <button
+                type="button"
+                onClick={() => handleSaveRow(row.id)}
+                disabled={isUpdatingRow}
+                className="px-2 py-1.5 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                title="ذخیره این سطر"
+              >
+                <FaSave className="text-xs" />
+                ذخیره
+              </button>
+              
+              {/* دکمه حذف */}
+              <button
+                type="button"
+                onClick={() => handleDeleteRow(row.id)}
+                disabled={isDeleting}
+                className="px-2 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                title="حذف این سطر"
+              >
+                <FaTrash className="text-xs" />
+                حذف
+              </button>
+            </div>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
 
             {/* Mobile View - صورت وضعیت بازرس */}
-            <div className="md:hidden space-y-4">
-              {rfiDatesRows.map((row, index) => (
-                <div
-                  key={row.id}
-                  className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-2">
-                      <FaCalendarAlt className="text-gray-700" />
-                      <span className="font-semibold">سطر #{index + 1}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyRfiDatesRow(row.id)}
-                        className="text-gray-700 hover:text-gray-900 p-1"
-                        title="کپی"
-                        disabled={isLoadingAll || isUpdating}
-                      >
-                        <FaCopy className="text-sm" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteRfiDatesRow(row.id)}
-                        className="text-gray-700 hover:text-gray-900 p-1"
-                        title="حذف"
-                        disabled={
-                          rfiDatesRows.length === 1 ||
-                          isLoadingAll ||
-                          isUpdating
-                        }
-                      >
-                        <FaTrash className="text-sm" />
-                      </button>
-                    </div>
-                  </div>
+            {/* Mobile View - صورت وضعیت بازرس */}
+<div className="md:hidden space-y-4">
+  {rfiDatesRows.map((row, index) => (
+    <div
+      key={row.id}
+      className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm"
+    >
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-2">
+          <FaCalendarAlt className="text-gray-700" />
+          <span className="font-semibold">سطر #{index + 1}</span>
+        </div>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => handleCopyRfiDatesRow(row.id)}
+            className="text-gray-700 hover:text-gray-900 p-1.5 rounded hover:bg-gray-100 transition duration-200"
+            title="کپی"
+            disabled={isLoadingAll || isUpdating}
+          >
+            <FaCopy className="text-sm" />
+          </button>
+          
+          {/* دکمه حذف در موبایل ویو */}
+          <button
+            type="button"
+            onClick={() => handleDeleteRow(row.id)}
+            className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-50 transition duration-200"
+            title="حذف"
+            disabled={isDeleting || isLoadingAll || isUpdating}
+          >
+            <FaTrash className="text-sm" />
+          </button>
+        </div>
+      </div>
 
-                  <div className="grid grid-cols-1 gap-3 text-xs">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-gray-600 block mb-1">
-                          تاریخ بازرسی
-                        </span>
-                        <DatePicker
-                          value={row.inspectionDate}
-                          onChange={(date) =>
-                            handleRfiDatesRowChange(
-                              row.id,
-                              "inspectionDate",
-                              date
-                            )
-                          }
-                          calendar={persian}
-                          locale={persian_fa}
-                          format="YYYY/MM/DD"
-                          inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoadingAll || isUpdating}
-                        />
-                      </div>
+      <div className="grid grid-cols-1 gap-3 text-xs">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <span className="text-gray-600 block mb-1">
+              تاریخ بازرسی
+            </span>
+            <DatePicker
+              value={row.inspectionDate}
+              onChange={(date) =>
+                handleRfiDatesRowChange(
+                  row.id,
+                  "inspectionDate",
+                  date
+                )
+              }
+              calendar={persian}
+              locale={persian_fa}
+              format="YYYY/MM/DD"
+              inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs bg-gray-50 cursor-not-allowed"
+              disabled={true}
+              readOnly={true}
+            />
+          </div>
 
-                      <div>
-                        <span className="text-gray-600 block mb-1">
-                          تعداد روز تائید شده
-                        </span>
-                        <input
-                          type="text"
-                          value={displayApproveManday(row.approveManday)}
-                          onChange={(e) => {
-                            const newValue = e.target.value.trim();
+          <div>
+            <span className="text-gray-600 block mb-1">
+              تعداد روز تائید شده
+            </span>
+            <input
+              type="text"
+              value={displayApproveManday(row.approveManday)}
+              onChange={(e) => {
+                const newValue = e.target.value.trim();
 
-                            if (newValue === "" || newValue === "-") {
-                              handleRfiDatesRowChange(
-                                row.id,
-                                "approveManday",
-                                "-"
-                              );
-                            } else {
-                              const numValue = parseInt(newValue, 10);
-                              if (!isNaN(numValue)) {
-                                handleRfiDatesRowChange(
-                                  row.id,
-                                  "approveManday",
-                                  numValue
-                                );
-                              } else {
-                                handleRfiDatesRowChange(
-                                  row.id,
-                                  "approveManday",
-                                  row.approveManday
-                                );
-                              }
-                            }
-                          }}
-                          onFocus={(e) => {
-                            if (e.target.value === "-") {
-                              e.target.value = "";
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const currentValue = e.target.value.trim();
-                            if (currentValue === "") {
-                              e.target.value = "-";
-                              handleRfiDatesRowChange(
-                                row.id,
-                                "approveManday",
-                                "-"
-                              );
-                            }
-                          }}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs text-center"
-                          placeholder="-"
-                          disabled={isLoadingAll || isUpdating}
-                        />
-                      </div>
-                    </div>
+                if (newValue === "" || newValue === "-") {
+                  handleRfiDatesRowChange(
+                    row.id,
+                    "approveManday",
+                    "-"
+                  );
+                } else {
+                  const numValue = parseInt(newValue, 10);
+                  if (!isNaN(numValue)) {
+                    handleRfiDatesRowChange(
+                      row.id,
+                      "approveManday",
+                      numValue
+                    );
+                  } else {
+                    handleRfiDatesRowChange(
+                      row.id,
+                      "approveManday",
+                      row.approveManday
+                    );
+                  }
+                }
+              }}
+              onFocus={(e) => {
+                if (e.target.value === "-") {
+                  e.target.value = "";
+                }
+              }}
+              onBlur={(e) => {
+                const currentValue = e.target.value.trim();
+                if (currentValue === "") {
+                  e.target.value = "-";
+                  handleRfiDatesRowChange(
+                    row.id,
+                    "approveManday",
+                    "-"
+                  );
+                }
+              }}
+              className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs text-center"
+              placeholder="-"
+              disabled={isLoadingAll || isUpdating}
+            />
+          </div>
+        </div>
 
-                    <div>
-                      <span className="text-gray-600 block mb-1">
-                        بازرس اول
-                      </span>
-                      <input
-                        type="text"
-                        value={row.inspectorName}
-                        onChange={(e) =>
-                          handleRfiDatesRowChange(
-                            row.id,
-                            "inspectorName",
-                            e.target.value
-                          )
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                        placeholder="نام بازرس"
-                        disabled={isLoadingAll || isUpdating}
-                      />
-                    </div>
+        <div>
+          <span className="text-gray-600 block mb-1">
+            بازرس اول
+          </span>
+          <input
+            type="text"
+            value={row.inspectorName}
+            readOnly={true}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs bg-gray-50 cursor-not-allowed"
+            placeholder="نام بازرس"
+          />
+        </div>
 
-                    <div>
-                      <span className="text-gray-600 block mb-1">دستمزد</span>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={row.fee}
-                          onChange={(e) =>
-                            handleRfiDatesRowChange(
-                              row.id,
-                              "fee",
-                              e.target.value
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs pl-8"
-                          placeholder="مبلغ"
-                          disabled={isLoadingAll || isUpdating}
-                        />
-                        <FaMoneyBillWave className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div>
+          <span className="text-gray-600 block mb-1">دستمزد</span>
+          <div className="relative">
+            <input
+              type="text"
+              value={row.fee}
+              onChange={(e) =>
+                handleRfiDatesRowChange(
+                  row.id,
+                  "fee",
+                  e.target.value
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs pl-8"
+              placeholder="مبلغ"
+              disabled={isLoadingAll || isUpdating}
+            />
+            <FaMoneyBillWave className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs" />
+          </div>
+        </div>
+
+        {/* دکمه‌های عملیات در موبایل */}
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleSaveRow(row.id)}
+              disabled={isUpdatingRow}
+              className="py-2 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="ذخیره این سطر"
+            >
+              <FaSave className="text-xs" />
+              ذخیره
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => handleDeleteRow(row.id)}
+              disabled={isDeleting}
+              className="py-2 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition duration-200 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="حذف این سطر"
+            >
+              <FaTrash className="text-xs" />
+              حذف
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
+          
           </div>
 
           {/* دکمه‌های ثبت و انصراف */}
@@ -2375,32 +2493,20 @@ onSuccess: (data) => {
         isLoading={isUpdatingInfoRow}
       />
 {/* پاپ‌آپ تأیید حذف سطر نوتیفیکیشن */}
+
 <DeleteConfirmationPopover
-  isOpen={showDeleteNotificationConfirm}
+  isOpen={showDeleteConfirm}
   onClose={() => {
-    if (!isDeletingNotificationDate) {
-      setShowDeleteNotificationConfirm(false);
-      setNotificationRowToDelete(null);
-    }
+    setShowDeleteConfirm(false);
+    setSelectedRowForDelete(null);
   }}
-  onConfirm={confirmDeleteNotificationRow}
-  title="تأیید حذف سطر نوتیفیکیشن"
-  // message={
-  //   notificationRows.length === 1 
-  //     ? "این آخرین ردیف نوتیفیکیشن است. با حذف آن، جدول خالی خواهد شد. آیا مطمئن هستید؟" +
-  //       "\n\nمقادیر ارسالی به API:" +
-  //       `\n• RFI Numbering: ${notificationRowToDelete?.rfiNumbering || 'asas-asas-asas'}` +
-  //       `\n• تاریخ: ${notificationRowToDelete?.date_ || '1404/05/09'}`
-  //     : `آیا مطمئن هستید که می‌خواهید سطر "${notificationRowToDelete?.notificationNumber}" را حذف کنید؟` +
-  //       "\n\nمقادیر ارسالی به API:" +
-  //       `\n• RFI Numbering: ${notificationRowToDelete?.rfiNumbering || 'asas-asas-asas'}` +
-  //       `\n• تاریخ: ${notificationRowToDelete?.date_ || '1404/05/09'}`
-  // }
-  message={`آیا از حذف نوتیفیکشن با شماره ${notificationRowToDelete?.rfiNumbering} مطمئن هستید؟`}
-  confirmText={isDeletingNotificationDate ? "در حال حذف..." : "بله، حذف کن"}
+  onConfirm={handleConfirmDelete}
+  title="حذف تاریخ بازرسی"
+  message={`آیا مطمئن هستید که می‌خواهید تاریخ ${selectedRowForDelete?.inspectionDate} را حذف کنید؟ این عمل قابل بازگشت نیست.`}
+  confirmText={isDeleting ? "در حال حذف..." : "بله، حذف شود"}
   cancelText="انصراف"
-  type={notificationRows.length === 1 ? "danger" : "warning"}
-  isLoading={isDeletingNotificationDate} // وضعیت لودینگ از هوک
+  isLoading={isDeleting}
+  type="danger"
 />
     </div>
   );

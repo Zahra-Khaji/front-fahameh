@@ -120,6 +120,48 @@ async deleteNotificationDate(rfiNumbering, date_) {
   }
 }
 
+// src/services/notificationService.js - اضافه کردن متد جدید
+
+// متد برای حذف یک تاریخ بازرسی
+// در deleteInspectionDate - ساده‌ترین راه
+async deleteInspectionDate(rfiNumbering, inspectionDate) {
+  try {
+    console.log("🔍 Original date:", inspectionDate);
+    
+    // تبدیل اعداد فارسی به انگلیسی
+    const formatDateToEnglish = (dateStr) => {
+      return dateStr
+        .toString()
+        .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+        .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+        .replace(/[^0-9\/]/g, ''); // فقط اعداد و / نگه دار
+    };
+    
+    let englishDate;
+    
+    if (typeof inspectionDate === 'string') {
+      englishDate = formatDateToEnglish(inspectionDate);
+    } else if (inspectionDate && inspectionDate.format) {
+      // اگر DateObject است
+      const persianDate = inspectionDate.format("YYYY/MM/DD");
+      englishDate = formatDateToEnglish(persianDate);
+    } else {
+      englishDate = inspectionDate;
+    }
+    
+    console.log("🔢 English date:", englishDate);
+    
+    const response = await http.delete(
+      `/notifications/one_date/?rfi_numbering=${encodeURIComponent(rfiNumbering)}&date_=${encodeURIComponent(englishDate)}`
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error:", error);
+    throw error;
+  }
+}
+
   // src/services/notificationService.js
 
   // اضافه کردن متد جدید برای آپدیت ردیف‌های جدول تاریخ‌های بازرسی
