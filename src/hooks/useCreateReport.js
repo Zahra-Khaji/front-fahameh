@@ -332,3 +332,33 @@ export const useReportStatuses = () => {
     },
   });
 };
+
+
+
+// هوک جدید برای دریافت شماره گزارش پیشنهادی
+
+// در useCreateReport.js - هوک را به این شکل اصلاح کنید:
+export const useSuggestedReportNo = (rfiNumbering, reportNo, revNo, enabled = false) => {
+  return useQuery({
+    queryKey: ['suggested-report-no', rfiNumbering, reportNo, revNo],
+    queryFn: async () => {
+      // console.log('🎯 useSuggestedReportNo - پارامترهای دریافتی:', {
+      //   rfiNumbering,
+      //   reportNo,
+      //   revNo
+      // });
+      
+      if (!rfiNumbering || !reportNo) {
+        throw new Error('پارامترهای ضروری مفقود هستند');
+      }
+      
+      const result = await reportService.getSuggestedReportNo(rfiNumbering, reportNo, revNo);
+      // console.log('✅ useSuggestedReportNo - نتیجه:', result);
+      return result;
+    },
+    enabled: enabled && !!rfiNumbering && !!reportNo,
+    staleTime: 0,
+    cacheTime: 0,
+    retry: false, // غیرفعال کردن retry برای دیباگ
+  });
+};

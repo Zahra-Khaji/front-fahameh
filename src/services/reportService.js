@@ -93,6 +93,60 @@ class ReportService {
       };
     }
   }
+
+
+
+// در reportService.js - متد را با logging کامل اضافه کنید:
+async getSuggestedReportNo(rfiNumbering, reportNo, revNo = 'rev') {
+  // console.log('🔍 ReportService.getSuggestedReportNo - پارامترهای ورودی:', {
+  //   rfiNumbering,
+  //   reportNo,
+  //   revNo,
+  //   typeOf_rfiNumbering: typeof rfiNumbering,
+  //   typeOf_reportNo: typeof reportNo,
+  //   typeOf_revNo: typeof revNo
+  // });
+
+  // اعتبارسنجی
+  if (!rfiNumbering || rfiNumbering.trim() === '') {
+    console.error('❌ rfiNumbering خالی است');
+    throw new Error('rfi_numbering is required');
+  }
+  
+  if (!reportNo || reportNo.trim() === '') {
+    console.error('❌ reportNo خالی است');
+    throw new Error('report_no is required');
+  }
+
+  try {
+    // لاگ کامل URL و پارامترها
+    const params = {
+      rfi_numbering: rfiNumbering,
+      report_no: reportNo,
+      rev_no: revNo || 'rev'
+    };
+    
+    // console.log('📤 ارسال درخواست به API با پارامترها:', params);
+    // console.log('🌐 URL کامل:', '/reports/suggest_report_no/', params);
+
+    const response = await http.get('/reports/suggest_report_no/', {
+      params: params
+    });
+    
+    // console.log('✅ دریافت پاسخ از API:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ ReportService: خطا در دریافت شماره پیشنهادی:', error);
+    console.error('❌ جزئیات خطا:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      config: error.config
+    });
+    throw error;
+  }
+}
+  
   // اصلاح تابع prepareReportUpdateData:
   prepareReportUpdateData(formData) {
     // rfiNumbering حذف شد چون در URL می‌رود

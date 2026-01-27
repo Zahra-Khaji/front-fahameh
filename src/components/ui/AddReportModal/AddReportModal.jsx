@@ -39,10 +39,11 @@ import {
 // ایمپورت هوک جدید برای وضعیت‌ها
 import {
   useReportStatuses,
-  useDeleteReport,
+  useDeleteReport,useSuggestedReportNo
 } from "../../../hooks/useCreateReport";
 // ایمپورت پاپ‌آپ جدید
 import DeleteConfirmationPopover from "./DeleteConfirmationPopover";
+
 
 // پاپ‌آپ تأیید مینیمال
 const ConfirmationPopover = ({
@@ -149,6 +150,204 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   // حالت‌های پاپ‌آپ
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    // متغیرهای جدید
+    const [showNewReportDialog, setShowNewReportDialog] = useState(false);
+    const [newReportAction, setNewReportAction] = useState(null); // 'add' یا 'copy'
+    const [selectedRowToCopy, setSelectedRowToCopy] = useState(null);
+    
+    // هوک برای دریافت شماره گزارش پیشنهادی
+    const [suggestParams, setSuggestParams] = useState({
+      rfiNumbering: '',
+      reportNo: '',
+      revNo: ''
+    });
+    
+    const { data: suggestedReportNo, isLoading: isSuggesting, refetch: fetchSuggestedReport } = useSuggestedReportNo(
+      suggestParams.rfiNumbering,
+      suggestParams.reportNo,
+      suggestParams.revNo,
+      false // ابتدا غیرفعال
+    );
+
+
+  // در AddReportModal.jsx - تابع را اصلاح کنید:
+const fetchNewReportNumber = async (action, rowToCopy = null) => {
+  // console.log('🟢 fetchNewReportNumber شروع شد - action:', action);
+  
+  if (!rfiData?.RFI_Numbering) {
+    console.error('❌ rfiData یا RFI_Numbering موجود نیست');
+    toast.error('❌ شماره RFI نامشخص است');
+    return;
+  }
+  
+  // تعیین پارامترها
+  let reportNo = '';
+  let revNo = 'rev';
+  
+  if (action === 'copy' && rowToCopy) {
+    reportNo = rowToCopy.reportNumber || '';
+    revNo = rowToCopy.revNumber || 'rev';
+    setSelectedRowToCopy(rowToCopy);
+  } else if (action === 'add') {
+    if (reportRows.length > 0) {
+      const lastRow = reportRows[reportRows.length - 1];
+      reportNo = lastRow.reportNumber || '';
+      revNo = lastRow.revNumber || 'rev';
+    } else {
+
+      handleAddNewRowBasic();
+      return;
+    }
+  }
+  
+
+  
+  // اعتبارسنجی نهایی
+  if (!reportNo || reportNo.trim() === '') {
+    console.error('⚠️ reportNo خالی است - نمی‌توان API را فراخوانی کرد');
+    toast.error('❌ ابتدا یک شماره گزارش موجود را پر کنید');
+    return;
+  }
+  
+  // تنظیم پارامترها
+  setSuggestParams({
+    rfiNumbering: rfiData.RFI_Numbering,
+    reportNo: reportNo,
+    revNo: revNo
+  });
+  
+  setNewReportAction(action);
+  setShowNewReportDialog(true);
+  
+ 
+  setTimeout(() => {
+ 
+    fetchSuggestedReport().then(result => {
+     
+    }).catch(error => {
+
+    });
+  }, 100);
+};
+
+// تابع جایگزین برای افزودن سطر بدون API
+const handleAddNewRowBasic = () => {
+  const newId = reportRows.length > 0 ? Math.max(...reportRows.map(r => r.id)) + 1 : 1;
+  
+  setReportRows([
+    ...reportRows,
+    {
+      id: newId,
+      reportNumber: '',
+      revNumber: '',
+      status: "5",
+      statusEnglish: "approved",
+      corrections: "",
+      receivedDate: convertToPersianDate(new Date()),
+      approvedDays: "",
+      unitNumber: "",
+      vendorName: rfiData?.VendorName || "",
+      irn: nextIRN || "",
+      srn: "",
+      firstPrice: "80000000",
+      rfiNumbering: rfiData?.RFI_Numbering || "",
+      issueDate: new Date().toISOString().split("T")[0],
+    },
+  ]);
+  
+  toast.info('📝 یک سطر جدید اضافه شد');
+};
+    
+// تابع کمکی: ایجاد سطر گزارش اولیه
+const createInitialReportRow = () => {
+  const newId = reportRows.length > 0 ? Math.max(...reportRows.map(r => r.id)) + 1 : 1;
+  
+  const newRow = {
+    id: newId,
+    reportNumber: '', // خالی می‌ماند تا کاربر پر کند
+    revNumber: '',
+    status: "5",
+    statusEnglish: "approved",
+    corrections: "",
+    receivedDate: convertToPersianDate(new Date()),
+    approvedDays: "",
+    unitNumber: "",
+    vendorName: rfiData?.VendorName || "",
+    irn: nextIRN || "",
+    srn: "",
+    firstPrice: "80000000",
+    rfiNumbering: rfiData?.RFI_Numbering || "",
+    issueDate: new Date().toISOString().split("T")[0],
+  };
+  
+  setReportRows([...reportRows, newRow]);
+  toast.info('📝 یک سطر خالی اضافه شد. لطفاً شماره گزارش را وارد کنید');
+};
+
+  // وقتی شماره پیشنهادی دریافت شد
+  useEffect(() => {
+    if (suggestedReportNo && showNewReportDialog) {
+      // ایجاد سطر جدید با شماره پیشنهادی
+      createNewRowWithSuggestedNumber();
+    }
+  }, [suggestedReportNo]);
+
+  // تابع ایجاد سطر جدید با شماره پیشنهادی
+  const createNewRowWithSuggestedNumber = () => {
+    const newId = reportRows.length > 0 ? Math.max(...reportRows.map(r => r.id)) + 1 : 1;
+    
+    // داده‌های پایه
+    let newRow = {
+      id: newId,
+      reportNumber: suggestedReportNo || '',
+      revNumber: '',
+      status: "5",
+      statusEnglish: "approved",
+      corrections: "",
+      receivedDate: convertToPersianDate(new Date()),
+      approvedDays: "", // جدید: خالی باشد
+      unitNumber: "",
+      vendorName: rfiData?.VendorName || "",
+      irn: nextIRN || "",
+      srn: "",
+      firstPrice: "80000000",
+      rfiNumbering: rfiData?.RFI_Numbering || "",
+      issueDate: new Date().toISOString().split("T")[0],
+    };
+    
+    // اگر کپی کردن است، داده‌های سطر اصلی را کپی کن (به جز approvedDays)
+    if (newReportAction === 'copy' && selectedRowToCopy) {
+      newRow = {
+        ...newRow,
+        revNumber: selectedRowToCopy.revNumber || '',
+        status: selectedRowToCopy.status || "5",
+        statusEnglish: selectedRowToCopy.statusEnglish || "approved",
+        corrections: selectedRowToCopy.corrections || "",
+        receivedDate: selectedRowToCopy.receivedDate || convertToPersianDate(new Date()),
+        unitNumber: selectedRowToCopy.unitNumber || "",
+        vendorName: selectedRowToCopy.vendorName || rfiData?.VendorName || "",
+        irn: nextIRN || selectedRowToCopy.irn || "",
+        srn: selectedRowToCopy.srn || "",
+        firstPrice: selectedRowToCopy.firstPrice || "80000000",
+        // approvedDays عمداً خالی می‌ماند
+      };
+    }
+    
+    // **مهم: تمام سطرهای قبلی را آپدیت کن - ستون approvedDays را صفر کن**
+    const updatedPreviousRows = reportRows.map(row => ({
+      ...row,
+      approvedDays: "" // یا 0 اگر عددی باشد
+    }));
+    
+    // افزودن سطر جدید
+    setReportRows([...updatedPreviousRows, newRow]);
+    
+    // بستن دیالوگ
+    setShowNewReportDialog(false);
+    setSelectedRowToCopy(null);
+    setNewReportAction(null);
+  };
+
 
   // حالت برای پاپ‌آپ حذف
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -536,30 +735,34 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   }, [reportRows]);
 
   // ========== مدیریت ردیف‌های جدول ==========
-  const handleAddNewRow = () => {
-    const newId =
-      reportRows.length > 0 ? Math.max(...reportRows.map((r) => r.id)) + 1 : 1;
-    setReportRows([
-      ...reportRows,
-      {
-        id: newId,
-        reportNumber: "",
-        revNumber: "",
-        status: "5",
-        statusEnglish: "approved",
-        corrections: "",
-        receivedDate: convertToPersianDate(new Date()),
-        approvedDays: "",
-        unitNumber: "",
-        vendorName: rfiData?.VendorName || "",
-        irn: nextIRN || "",
-        srn: "",
-        firstPrice: "80000000",
-        rfiNumbering: rfiData?.RFI_Numbering || "",
-        issueDate: new Date().toISOString().split("T")[0],
-      },
-    ]);
+  // const handleAddNewRow = () => {
+  //   const newId =
+  //     reportRows.length > 0 ? Math.max(...reportRows.map((r) => r.id)) + 1 : 1;
+  //   setReportRows([
+  //     ...reportRows,
+  //     {
+  //       id: newId,
+  //       reportNumber: "",
+  //       revNumber: "",
+  //       status: "5",
+  //       statusEnglish: "approved",
+  //       corrections: "",
+  //       receivedDate: convertToPersianDate(new Date()),
+  //       approvedDays: "",
+  //       unitNumber: "",
+  //       vendorName: rfiData?.VendorName || "",
+  //       irn: nextIRN || "",
+  //       srn: "",
+  //       firstPrice: "80000000",
+  //       rfiNumbering: rfiData?.RFI_Numbering || "",
+  //       issueDate: new Date().toISOString().split("T")[0],
+  //     },
+  //   ]);
+  // };
+   const handleAddNewRow = () => {
+    fetchNewReportNumber('add');
   };
+
   const handleDeleteRow = (id) => {
     const rowToDelete = reportRows.find((row) => row.id === id);
 
@@ -627,19 +830,9 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   };
 
   const handleCopyRow = (id) => {
-    const rowToCopy = reportRows.find((row) => row.id === id);
+    const rowToCopy = reportRows.find(row => row.id === id);
     if (rowToCopy) {
-      const newId = Math.max(...reportRows.map((r) => r.id)) + 1;
-      setReportRows([
-        ...reportRows,
-        {
-          ...rowToCopy,
-          id: newId,
-          reportNumber: "",
-          revNumber: rowToCopy.revNumber || "",
-          irn: nextIRN || "",
-        },
-      ]);
+      fetchNewReportNumber('copy', rowToCopy);
     }
   };
 
@@ -1008,17 +1201,20 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                   {reportRows.length} مورد
                 </span>
               </div>
-
-              {/* دکمه افزودن سطر جدید */}
-              {/* <button
-                type="button"
-                onClick={handleAddNewRow}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading}
-              >
-                <FaPlusCircle className="text-base" />
-                افزودن سطر جدید
-              </button> */}
+              <button
+      type="button"
+      onClick={handleAddNewRow}
+      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+      disabled={isLoading || isSuggesting}
+    >
+      {isSuggesting && newReportAction === 'add' ? (
+        <FaSync className="animate-spin text-base" />
+      ) : (
+        <FaPlusCircle className="text-base" />
+      )}
+      {isSuggesting && newReportAction === 'add' ? 'دریافت شماره جدید...' : 'افزودن گزارش'}
+    </button>
+           
             </div>
 
             {/* Desktop Table */}
@@ -1289,20 +1485,32 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                         </td>
                        {/* ستون عملیات - فقط وقتی گزارش موجود است */}
     {reportInfo && reportInfo.Report_No && reportInfo.Report_No !== '************' && (
-      <td className="p-3" style={{ width: '6%' }}>
-        <div className="flex items-center gap-1">
- 
-          <button
-            type="button"
-            onClick={() => handleDeleteRow(row.id)}
-            className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200"
-            title="حذف سطر"
-            disabled={isLoading || isDeleting}
-          >
-            <FaTrash className="text-xs" />
-          </button>
-        </div>
-      </td>
+     <td className="p-3" style={{ width: '6%' }}>
+     <div className="flex items-center gap-1">
+       <button
+         type="button"
+         onClick={() => handleCopyRow(row.id)}
+         className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200"
+         title="کپی سطر"
+         disabled={isLoading || isSuggesting}
+       >
+         {isSuggesting && newReportAction === 'copy' && selectedRowToCopy?.id === row.id ? (
+           <FaSync className="animate-spin text-xs" />
+         ) : (
+           <FaCopy className="text-xs" />
+         )}
+       </button>
+       <button
+         type="button"
+         onClick={() => handleDeleteRow(row.id)}
+         className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200"
+         title="حذف سطر"
+         disabled={isLoading || isDeleting}
+       >
+         <FaTrash className="text-xs" />
+       </button>
+     </div>
+   </td>
     )}
 
                         {/* <td className="p-3" style={{ width: '6%' }}>
@@ -1346,26 +1554,31 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                       <FaFileAlt className="text-blue-500" />
                       <span className="font-semibold">سطر #{index + 1}</span>
                     </div>
-                    <div className="flex gap-2">
-                      {/* <button
-                        type="button"
-                        onClick={() => handleCopyRow(row.id)}
-                        className="text-blue-600 hover:text-blue-800 p-1"
-                        title="کپی"
-                        disabled={isLoading}
-                      >
-                        <FaCopy className="text-sm" />
-                      </button> */}
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteRow(row.id)}
-                        className="text-red-600 hover:text-red-800 p-1"
-                        title="حذف"
-                        disabled={reportRows.length === 1 || isLoading}
-                      >
-                        <FaTrash className="text-sm" />
-                      </button>
-                    </div>
+                    // در بخش Mobile View:
+<div className="flex gap-2">
+  <button
+    type="button"
+    onClick={() => handleCopyRow(row.id)}
+    className="text-blue-600 hover:text-blue-800 p-1"
+    title="کپی"
+    disabled={isLoading || isSuggesting}
+  >
+    {isSuggesting && newReportAction === 'copy' && selectedRowToCopy?.id === row.id ? (
+      <FaSync className="animate-spin text-sm" />
+    ) : (
+      <FaCopy className="text-sm" />
+    )}
+  </button>
+  <button
+    type="button"
+    onClick={() => handleDeleteRow(row.id)}
+    className="text-red-600 hover:text-red-800 p-1"
+    title="حذف"
+    disabled={isLoading || isDeleting}
+  >
+    <FaTrash className="text-sm" />
+  </button>
+</div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 text-xs">
@@ -1625,6 +1838,48 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
           </form>
         )}
       </div>
+      {showNewReportDialog && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-4">
+        <div className="flex flex-col items-center text-center">
+          {isSuggesting ? (
+            <>
+              <FaSync className="animate-spin text-blue-500 text-2xl mb-3" />
+              <h3 className="text-sm font-semibold text-gray-800 mb-1">
+                در حال دریافت شماره گزارش جدید
+              </h3>
+              <p className="text-xs text-gray-600">
+                لطفاً منتظر بمانید...
+              </p>
+            </>
+          ) : suggestedReportNo ? (
+            <>
+              <FaCheckCircle className="text-green-500 text-2xl mb-3" />
+              <h3 className="text-sm font-semibold text-gray-800 mb-1">
+                شماره جدید دریافت شد
+              </h3>
+              <p className="text-xs text-gray-800 font-mono bg-gray-100 p-2 rounded mb-3">
+                {suggestedReportNo}
+              </p>
+              <p className="text-xs text-gray-600 mb-3">
+                سطر جدید با این شماره اضافه خواهد شد.
+                <br />
+                <span className="text-yellow-600 font-medium">
+                  توجه: ستون "تعداد روز تائید شده" برای تمام سطرهای قبلی صفر شد.
+                </span>
+              </p>
+              <button
+                onClick={() => setShowNewReportDialog(false)}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded transition duration-200"
+              >
+                ادامه
+              </button>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )}
 
       {/* پاپ‌آپ تأیید ذخیره */}
       <ConfirmationPopover
