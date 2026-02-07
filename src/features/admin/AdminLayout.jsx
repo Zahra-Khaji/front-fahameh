@@ -21,6 +21,10 @@ function AdminLayout() {
         <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>پروژه ها</span>
       </CustomNavLink>
+      <CustomNavLink to="advanced-report">
+        <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
+        <span>گزارشات پیشرفته</span>
+      </CustomNavLink>
       <CustomNavLink to="users">
         <HiUser className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>کاربران</span>

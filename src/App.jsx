@@ -21,6 +21,7 @@ import Auth from "./pages/Auth";
 import Login from "./pages/Login";
 import RegisterReport from "./pages/RegisterReport";
 import ProjectsInfo from "./pages/ProjectsInfo";
+import AdvancedReportInfo from "./pages/AdvancedReportInfo";
 
 
 
@@ -108,6 +109,8 @@ function App() {
             <Route path="registerReport" element={<RegisterReport />} />
             {/* <Route path="projectsInfo" element={<ProjectsInfo />} /> */}
       <Route path="rfi-report" element={<ProjectsInfo />} />
+      <Route path="advanced-report" element={<AdvancedReportInfo />} />
+
 
 
 

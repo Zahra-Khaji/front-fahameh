@@ -333,7 +333,118 @@ export const useReportStatuses = () => {
   });
 };
 
+// در src/hooks/useCreateReport.js - بعد از هوکهای موجود اضافه کنید
 
+// هوک جدید برای دریافت گزارش روزانه PDF
+export const useDailyReportPDF = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ year, month, overDomestic }) => {
+      // اعتبارسنجی اولیه
+      if (!year || !month || !overDomestic) {
+        throw new Error('لطفاً تمام فیلدها را پر کنید');
+      }
+
+      // تبدیل month به نام فارسی ماه اگر عدد باشد
+      let monthName = month;
+      if (typeof month === 'number' || /^\d+$/.test(month)) {
+        const monthNames = [
+          'فروردین', 'اردیبهشت', 'خرداد',
+          'تیر', 'مرداد', 'شهریور',
+          'مهر', 'آبان', 'آذر',
+          'دی', 'بهمن', 'اسفند'
+        ];
+        const monthNum = parseInt(month);
+        if (monthNum >= 1 && monthNum <= 12) {
+          monthName = monthNames[monthNum - 1];
+        }
+      }
+
+      const pdfBlob = await reportService.getDailyReportPDF(
+        year.toString(),
+        monthName,
+        overDomestic
+      );
+
+      return {
+        blob: pdfBlob,
+        fileName: `گزارش_روزانه_${year}_${monthName}_${overDomestic}.pdf`
+      };
+    },
+    onSuccess: (data, variables) => {
+      // ایجاد لینک دانلود و دانلود خودکار
+      const url = window.URL.createObjectURL(data.blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = data.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      // نمایش toast موفقیت
+      toast.success('گزارش با موفقیت دانلود شد', {
+        position: 'top-center',
+        duration: 3000,
+        icon: '✅',
+        style: {
+          background: '#10b981',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+      });
+    },
+    onError: (error) => {
+      console.error('❌ useDailyReportPDF: خطا در دریافت گزارش:', error);
+      
+      let errorMessage = 'خطا در دریافت گزارش';
+      if (error.response?.status === 404) {
+        errorMessage = 'گزارشی برای تاریخ و نوع پروژه انتخابی یافت نشد';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'پارامترهای ورودی نامعتبر هستند';
+      } else if (error.message.includes('تمام پارامترها')) {
+        errorMessage = 'لطفاً تمام فیلدها را پر کنید';
+      }
+
+      toast.error(errorMessage, {
+        position: 'top-center',
+        duration: 4000,
+        icon: '❌',
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+      });
+    },
+    onMutate: () => {
+      // نمایش loading state
+      toast.loading('در حال دریافت گزارش...', {
+        position: 'top-center',
+        duration: 1000,
+        icon: '⏳',
+        style: {
+          background: '#3b82f6',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '16px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+      });
+    }
+  });
+};
 
 // هوک جدید برای دریافت شماره گزارش پیشنهادی
 

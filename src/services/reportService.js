@@ -146,6 +146,60 @@ async getSuggestedReportNo(rfiNumbering, reportNo, revNo = 'rev') {
     throw error;
   }
 }
+
+async getDailyReportPDF(year, month, overDomestic) {
+  try {
+    // console.log('📊 ReportService.getDailyReportPDF - پارامترهای ورودی:', {
+    //   year,
+    //   month,
+    //   overDomestic,
+    //   typeOf_year: typeof year,
+    //   typeOf_month: typeof month,
+    //   typeOf_overDomestic: typeof overDomestic,
+    //   download:true,
+    // });
+
+    // اعتبارسنجی
+    if (!year || !month || !overDomestic) {
+      console.error('❌ پارامترهای ضروری خالی هستند:', {
+        year: !!year,
+        month: !!month,
+        overDomestic: !!overDomestic,
+      });
+      throw new Error('تمام پارامترها (سال، ماه و نوع پروژه) الزامی هستند');
+    }
+
+    const params = {
+      year: year,
+      month: month,
+      over_domestic: overDomestic,
+      download:true
+
+    };
+
+    // console.log('📤 ارسال درخواست به API با پارامترها:', params);
+    // console.log('🌐 URL کامل: /pdf_reports/daily-report/', params);
+
+    const response = await http.get('/pdf_reports/daily-report/', {
+      params: params,
+      responseType: 'blob' // مهم: برای دریافت فایل PDF
+    });
+    
+    // console.log('✅ دریافت پاسخ از API - نوع پاسخ:', response.headers['content-type']);
+    // console.log('✅ اندازه پاسخ:', response.data.size, 'bytes');
+    
+    return response.data;
+  } catch (error) {
+    console.error('❌ ReportService: خطا در دریافت گزارش روزانه:', error);
+    console.error('❌ جزئیات خطا:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers
+    });
+    throw error;
+  }
+}
   
   // اصلاح تابع prepareReportUpdateData:
   prepareReportUpdateData(formData) {
