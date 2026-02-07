@@ -5,8 +5,8 @@ import DatePicker from "react-multi-date-picker";
 
 import persian from 'react-date-object/calendars/persian';
 import persian_fa from 'react-date-object/locales/persian_fa';
-import { FaSearch, FaCalendarAlt, FaChartBar } from 'react-icons/fa';
-import { useDailyReportPDF } from '../../hooks/useCreateReport';
+import { FaSearch, FaCalendarAlt, FaChartBar, FaFileExcel } from 'react-icons/fa';
+import { useDailyReport } from '../../hooks/useCreateReport';
 import { useProjectTypes } from '../../hooks/useProjectTypes';
 import Button from '../ui/Button';
 import FormSection from '../common/FormSection';
@@ -17,9 +17,10 @@ const AdvancedReport = () => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedProjectType, setSelectedProjectType] = useState('');
+  const [fileType, setFileType] = useState('excel'); // excel یا pdf
   
   const { data: projectTypes, isLoading: projectTypesLoading } = useProjectTypes();
-  const { mutate: fetchDailyReport, isLoading: isFetching } = useDailyReportPDF();
+  const { mutate: fetchDailyReport, isLoading: isFetching } = useDailyReport(fileType);
   
   // تبدیل به نام فارسی ماه - اصلاح شده
   const getPersianMonthName = (dateObject) => {
@@ -43,14 +44,6 @@ const AdvancedReport = () => {
     return monthNames[monthIndex] || '';
   };
   
-  // گرفتن عدد ماه برای ارسال به API - اصلاح شده
-  const getMonthNumber = (dateObject) => {
-    if (!dateObject) return 0;
-    
-    // month.index از 0 شروع می‌شود، پس +1 می‌کنیم
-    return (dateObject.month?.index || 0) + 1;
-  };
-  
   // بررسی اینکه آیا فرم کامل پر شده است
   const isFormValid = () => {
     return selectedYear && selectedMonth && selectedProjectType;
@@ -59,7 +52,6 @@ const AdvancedReport = () => {
   // هندلر جستجو
   const handleSearch = () => {
     if (!isFormValid()) {
-      // نمایش پیام خطا
       toast.error('لطفاً تمام فیلدها را پر کنید', {
         position: 'top-center',
         duration: 3000,
@@ -77,7 +69,7 @@ const AdvancedReport = () => {
       return;
     }
     
-    // گرفتن نام فارسی ماه - اصلاح شده
+    // گرفتن نام فارسی ماه
     const monthName = getPersianMonthName(selectedMonth.date);
     
     // پیدا کردن نام نوع پروژه
@@ -90,8 +82,8 @@ const AdvancedReport = () => {
     console.log('🔍 پارامترهای جستجو:', {
       year: selectedYear.year,
       month: monthName,
-      monthNumber: getMonthNumber(selectedMonth.date),
-      projectType: projectTypeName
+      projectType: projectTypeName,
+      fileType: fileType
     });
     
     // فراخوانی API
@@ -109,7 +101,6 @@ const AdvancedReport = () => {
         year: date.year,
         date: date
       });
-      console.log('📅 سال انتخاب شد:', date.year);
     } else {
       setSelectedYear(null);
     }
@@ -123,11 +114,6 @@ const AdvancedReport = () => {
         year: date.year,
         date: date
       });
-      console.log('📅 ماه انتخاب شد:', {
-        name: getPersianMonthName(date),
-        index: date.month?.index,
-        number: getMonthNumber(date)
-      });
     } else {
       setSelectedMonth(null);
     }
@@ -139,7 +125,7 @@ const AdvancedReport = () => {
         
         <StepHeader
           title="گزارشات پیشرفته"
-          description="دریافت گزارش روزانه PDF بر اساس فیلترهای پیشرفته"
+          description="دریافت گزارش روزانه Excel بر اساس فیلترهای پیشرفته"
           icon={FaChartBar}
         />
 
@@ -244,6 +230,43 @@ const AdvancedReport = () => {
                 </div>
               </div>
               
+              {/* انتخاب نوع فایل */}
+              {/* <div className="mb-3">
+                <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
+                  <FaFileExcel className="ml-1 text-green-500 text-xs" />
+                  نوع فایل خروجی
+                </label>
+                <div className="flex gap-3">
+                  <label className="flex items-center gap-1 text-xs cursor-pointer">
+                    <input
+                      type="radio"
+                      name="fileType"
+                      value="excel"
+                      checked={fileType === 'excel'}
+                      onChange={(e) => setFileType(e.target.value)}
+                      className="text-blue-500"
+                    />
+                    <span className="text-green-600 font-medium">Excel (.xlsx)</span>
+                  </label>
+                  <label className="flex items-center gap-1 text-xs cursor-pointer">
+                    <input
+                      type="radio"
+                      name="fileType"
+                      value="pdf"
+                      checked={fileType === 'pdf'}
+                      onChange={(e) => setFileType(e.target.value)}
+                      className="text-blue-500"
+                    />
+                    <span className="text-red-600 font-medium">PDF (.pdf)</span>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {fileType === 'excel' 
+                    ? 'خروجی Excel با فرمت xlsx - مناسب برای تحلیل داده‌ها' 
+                    : 'خروجی PDF - مناسب برای چاپ و اشتراک'}
+                </p>
+              </div> */}
+              
               {/* وضعیت انتخاب‌ها */}
               <div className="mb-3">
                 <div className={`p-2 rounded-lg ${isFormValid() ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'}`}>
@@ -269,32 +292,14 @@ const AdvancedReport = () => {
                 disabled={!isFormValid() || isFetching || projectTypesLoading}
                 isLoading={isFetching}
               >
-                {isFetching ? "در حال دریافت گزارش..." : "جستجو و دانلود گزارش"}
+                {isFetching 
+                  ? fileType === 'excel' 
+                    ? "در حال دریافت فایل Excel..." 
+                    : "در حال دریافت فایل PDF..."
+                  : ` دانلود  ${fileType === 'excel' ? 'اکسل' : 'PDF'}`
+                }
               </Button>
             </div>
-            
-            {/* نمایش اطلاعات انتخاب شده - برای دیباگ */}
-            {isFormValid() && (
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="text-xs font-semibold text-gray-800 mb-1">خلاصه فیلترهای انتخاب شده:</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-700">
-                  <div>
-                    <span className="font-semibold">سال:</span> {selectedYear?.year}
-                  </div>
-                  <div>
-                    <span className="font-semibold">ماه:</span> {getPersianMonthName(selectedMonth?.date)} (ماه {getMonthNumber(selectedMonth?.date)})
-                  </div>
-                  <div>
-                    <span className="font-semibold">نوع پروژه:</span> {
-                      projectTypes?.find(type => 
-                        type.id === selectedProjectType || 
-                        type.id?.toString() === selectedProjectType?.toString()
-                      )?.name || selectedProjectType
-                    }
-                  </div>
-                </div>
-              </div>
-            )}
             
             {/* راهنما */}
             {/* <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -302,7 +307,7 @@ const AdvancedReport = () => {
               <ul className="text-xs text-blue-700 space-y-1 mr-3">
                 <li className="flex items-start gap-1">
                   <span className="text-blue-500">•</span>
-                  <span>گزارش PDF روزانه بر اساس سال، ماه و نوع پروژه فیلتر می‌شود</span>
+                  <span>گزارش روزانه بر اساس سال، ماه و نوع پروژه فیلتر می‌شود</span>
                 </li>
                 <li className="flex items-start gap-1">
                   <span className="text-blue-500">•</span>
@@ -310,7 +315,11 @@ const AdvancedReport = () => {
                 </li>
                 <li className="flex items-start gap-1">
                   <span className="text-blue-500">•</span>
-                  <span>گزارش به صورت خودکار دانلود خواهد شد</span>
+                  <span>فایل به صورت خودکار دانلود خواهد شد</span>
+                </li>
+                <li className="flex items-start gap-1">
+                  <span className="text-blue-500">•</span>
+                  <span>هدر Accept برای سرور ارسال می‌شود: <code className="bg-blue-100 px-1 rounded">application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code></span>
                 </li>
               </ul>
             </div> */}

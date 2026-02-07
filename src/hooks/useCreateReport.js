@@ -336,24 +336,35 @@ export const useReportStatuses = () => {
 // در src/hooks/useCreateReport.js - بعد از هوکهای موجود اضافه کنید
 
 // هوک جدید برای دریافت گزارش روزانه PDF
-export const useDailyReportPDF = () => {
+// در src/hooks/useCreateReport.js - هوک useDailyReportPDF را اصلاح کنید:
+
+// هوک جدید برای دریافت گزارش روزانه (Excel/PDF)
+export const useDailyReport = (fileType = "excel") => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ year, month, overDomestic }) => {
       // اعتبارسنجی اولیه
       if (!year || !month || !overDomestic) {
-        throw new Error('لطفاً تمام فیلدها را پر کنید');
+        throw new Error("لطفاً تمام فیلدها را پر کنید");
       }
 
       // تبدیل month به نام فارسی ماه اگر عدد باشد
       let monthName = month;
-      if (typeof month === 'number' || /^\d+$/.test(month)) {
+      if (typeof month === "number" || /^\d+$/.test(month)) {
         const monthNames = [
-          'فروردین', 'اردیبهشت', 'خرداد',
-          'تیر', 'مرداد', 'شهریور',
-          'مهر', 'آبان', 'آذر',
-          'دی', 'بهمن', 'اسفند'
+          "فروردین",
+          "اردیبهشت",
+          "خرداد",
+          "تیر",
+          "مرداد",
+          "شهریور",
+          "مهر",
+          "آبان",
+          "آذر",
+          "دی",
+          "بهمن",
+          "اسفند",
         ];
         const monthNum = parseInt(month);
         if (monthNum >= 1 && monthNum <= 12) {
@@ -361,109 +372,141 @@ export const useDailyReportPDF = () => {
         }
       }
 
-      const pdfBlob = await reportService.getDailyReportPDF(
+      const result = await reportService.getDailyReport(
         year.toString(),
         monthName,
-        overDomestic
+        overDomestic,
+        fileType
       );
 
-      return {
-        blob: pdfBlob,
-        fileName: `گزارش_روزانه_${year}_${monthName}_${overDomestic}.pdf`
-      };
+      return result;
     },
     onSuccess: (data, variables) => {
-      // ایجاد لینک دانلود و دانلود خودکار
+      // شناسایی نوع فایل بر اساس Content-Type
+      const contentType = data.contentType;
+      let fileExtension = "xlsx";
+
+      if (contentType.includes("spreadsheetml.sheet")) {
+        fileExtension = "xlsx";
+      } else if (contentType.includes("pdf")) {
+        fileExtension = "pdf";
+      }
+
+      // ایجاد فایل با extension صحیح
       const url = window.URL.createObjectURL(data.blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = data.fileName;
+
+      // اضافه کردن extension به نام فایل اگر وجود ندارد
+      let fileName = data.fileName;
+      if (!fileName.toLowerCase().endsWith(`.${fileExtension}`)) {
+        const baseName = fileName.split(".")[0];
+        fileName = `${baseName}.${fileExtension}`;
+      }
+
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
       // نمایش toast موفقیت
-      toast.success('گزارش با موفقیت دانلود شد', {
-        position: 'top-center',
+      toast.success("گزارش با موفقیت دانلود شد", {
+        position: "top-center",
         duration: 3000,
-        icon: '✅',
+        icon: "✅",
         style: {
-          background: '#10b981',
-          color: 'white',
-          borderRadius: '10px',
-          padding: '16px',
-          fontSize: '14px',
-          direction: 'rtl',
-          textAlign: 'right',
+          background: "#10b981",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
         },
       });
     },
     onError: (error) => {
-      console.error('❌ useDailyReportPDF: خطا در دریافت گزارش:', error);
-      
-      let errorMessage = 'خطا در دریافت گزارش';
+      console.error("❌ useDailyReport: خطا در دریافت گزارش:", error);
+
+      let errorMessage = "خطا در دریافت گزارش";
       if (error.response?.status === 404) {
-        errorMessage = 'گزارشی برای تاریخ و نوع پروژه انتخابی یافت نشد';
+        errorMessage = "گزارشی برای تاریخ و نوع پروژه انتخابی یافت نشد";
       } else if (error.response?.status === 400) {
-        errorMessage = 'پارامترهای ورودی نامعتبر هستند';
-      } else if (error.message.includes('تمام پارامترها')) {
-        errorMessage = 'لطفاً تمام فیلدها را پر کنید';
+        errorMessage = "پارامترهای ورودی نامعتبر هستند";
+      } else if (error.response?.status === 415) {
+        errorMessage = "نوع فایل درخواستی پشتیبانی نمی‌شود";
+      } else if (error.message.includes("تمام پارامترها")) {
+        errorMessage = "لطفاً تمام فیلدها را پر کنید";
       }
 
       toast.error(errorMessage, {
-        position: 'top-center',
+        position: "top-center",
         duration: 4000,
-        icon: '❌',
+        icon: "❌",
         style: {
-          background: '#ef4444',
-          color: 'white',
-          borderRadius: '10px',
-          padding: '16px',
-          fontSize: '14px',
-          direction: 'rtl',
-          textAlign: 'right',
+          background: "#ef4444",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
         },
       });
     },
     onMutate: () => {
       // نمایش loading state
-      toast.loading('در حال دریافت گزارش...', {
-        position: 'top-center',
+      toast.loading("در حال دریافت گزارش...", {
+        position: "top-center",
         duration: 1000,
-        icon: '⏳',
+        icon: "⏳",
         style: {
-          background: '#3b82f6',
-          color: 'white',
-          borderRadius: '10px',
-          padding: '16px',
-          fontSize: '14px',
-          direction: 'rtl',
-          textAlign: 'right',
+          background: "#3b82f6",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
         },
       });
-    }
+    },
   });
+};
+
+// هوک backward compatibility با نام قدیمی
+export const useDailyReportPDF = () => {
+  return useDailyReport("excel");
 };
 
 // هوک جدید برای دریافت شماره گزارش پیشنهادی
 
 // در useCreateReport.js - هوک را به این شکل اصلاح کنید:
-export const useSuggestedReportNo = (rfiNumbering, reportNo, revNo, enabled = false) => {
+export const useSuggestedReportNo = (
+  rfiNumbering,
+  reportNo,
+  revNo,
+  enabled = false
+) => {
   return useQuery({
-    queryKey: ['suggested-report-no', rfiNumbering, reportNo, revNo],
+    queryKey: ["suggested-report-no", rfiNumbering, reportNo, revNo],
     queryFn: async () => {
       // console.log('🎯 useSuggestedReportNo - پارامترهای دریافتی:', {
       //   rfiNumbering,
       //   reportNo,
       //   revNo
       // });
-      
+
       if (!rfiNumbering || !reportNo) {
-        throw new Error('پارامترهای ضروری مفقود هستند');
+        throw new Error("پارامترهای ضروری مفقود هستند");
       }
-      
-      const result = await reportService.getSuggestedReportNo(rfiNumbering, reportNo, revNo);
+
+      const result = await reportService.getSuggestedReportNo(
+        rfiNumbering,
+        reportNo,
+        revNo
+      );
       // console.log('✅ useSuggestedReportNo - نتیجه:', result);
       return result;
     },

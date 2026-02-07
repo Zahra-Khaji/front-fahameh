@@ -40,8 +40,6 @@ class ReportService {
     }
   }
 
-  
-
   async updateReport(rfiNumbering, reportData) {
     // تغییر: دو پارامتر
     try {
@@ -64,7 +62,9 @@ class ReportService {
 
   async deleteReport(reportNumber) {
     try {
-      const response = await http.delete(`/reports/report/?report_no=${encodeURIComponent(reportNumber)}`);
+      const response = await http.delete(
+        `/reports/report/?report_no=${encodeURIComponent(reportNumber)}`
+      );
       return response.data;
     } catch (error) {
       console.error("❌ ReportService: Error deleting report:", error);
@@ -94,113 +94,150 @@ class ReportService {
     }
   }
 
-
-
-// در reportService.js - متد را با logging کامل اضافه کنید:
-async getSuggestedReportNo(rfiNumbering, reportNo, revNo = 'rev') {
-  // console.log('🔍 ReportService.getSuggestedReportNo - پارامترهای ورودی:', {
-  //   rfiNumbering,
-  //   reportNo,
-  //   revNo,
-  //   typeOf_rfiNumbering: typeof rfiNumbering,
-  //   typeOf_reportNo: typeof reportNo,
-  //   typeOf_revNo: typeof revNo
-  // });
-
-  // اعتبارسنجی
-  if (!rfiNumbering || rfiNumbering.trim() === '') {
-    console.error('❌ rfiNumbering خالی است');
-    throw new Error('rfi_numbering is required');
-  }
-  
-  if (!reportNo || reportNo.trim() === '') {
-    console.error('❌ reportNo خالی است');
-    throw new Error('report_no is required');
-  }
-
-  try {
-    // لاگ کامل URL و پارامترها
-    const params = {
-      rfi_numbering: rfiNumbering,
-      report_no: reportNo,
-      rev_no: revNo || 'rev'
-    };
-    
-    // console.log('📤 ارسال درخواست به API با پارامترها:', params);
-    // console.log('🌐 URL کامل:', '/reports/suggest_report_no/', params);
-
-    const response = await http.get('/reports/suggest_report_no/', {
-      params: params
-    });
-    
-    // console.log('✅ دریافت پاسخ از API:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ ReportService: خطا در دریافت شماره پیشنهادی:', error);
-    console.error('❌ جزئیات خطا:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      config: error.config
-    });
-    throw error;
-  }
-}
-
-async getDailyReportPDF(year, month, overDomestic) {
-  try {
-    // console.log('📊 ReportService.getDailyReportPDF - پارامترهای ورودی:', {
-    //   year,
-    //   month,
-    //   overDomestic,
-    //   typeOf_year: typeof year,
-    //   typeOf_month: typeof month,
-    //   typeOf_overDomestic: typeof overDomestic,
-    //   download:true,
+  // در reportService.js - متد را با logging کامل اضافه کنید:
+  async getSuggestedReportNo(rfiNumbering, reportNo, revNo = "rev") {
+    // console.log('🔍 ReportService.getSuggestedReportNo - پارامترهای ورودی:', {
+    //   rfiNumbering,
+    //   reportNo,
+    //   revNo,
+    //   typeOf_rfiNumbering: typeof rfiNumbering,
+    //   typeOf_reportNo: typeof reportNo,
+    //   typeOf_revNo: typeof revNo
     // });
 
     // اعتبارسنجی
-    if (!year || !month || !overDomestic) {
-      console.error('❌ پارامترهای ضروری خالی هستند:', {
-        year: !!year,
-        month: !!month,
-        overDomestic: !!overDomestic,
-      });
-      throw new Error('تمام پارامترها (سال، ماه و نوع پروژه) الزامی هستند');
+    if (!rfiNumbering || rfiNumbering.trim() === "") {
+      console.error("❌ rfiNumbering خالی است");
+      throw new Error("rfi_numbering is required");
     }
 
-    const params = {
-      year: year,
-      month: month,
-      over_domestic: overDomestic,
-      download:true
+    if (!reportNo || reportNo.trim() === "") {
+      console.error("❌ reportNo خالی است");
+      throw new Error("report_no is required");
+    }
 
-    };
+    try {
+      // لاگ کامل URL و پارامترها
+      const params = {
+        rfi_numbering: rfiNumbering,
+        report_no: reportNo,
+        rev_no: revNo || "rev",
+      };
 
-    // console.log('📤 ارسال درخواست به API با پارامترها:', params);
-    // console.log('🌐 URL کامل: /pdf_reports/daily-report/', params);
+      // console.log('📤 ارسال درخواست به API با پارامترها:', params);
+      // console.log('🌐 URL کامل:', '/reports/suggest_report_no/', params);
 
-    const response = await http.get('/pdf_reports/daily-report/', {
-      params: params,
-      responseType: 'blob' // مهم: برای دریافت فایل PDF
-    });
-    
-    // console.log('✅ دریافت پاسخ از API - نوع پاسخ:', response.headers['content-type']);
-    // console.log('✅ اندازه پاسخ:', response.data.size, 'bytes');
-    
-    return response.data;
-  } catch (error) {
-    console.error('❌ ReportService: خطا در دریافت گزارش روزانه:', error);
-    console.error('❌ جزئیات خطا:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      headers: error.response?.headers
-    });
-    throw error;
+      const response = await http.get("/reports/suggest_report_no/", {
+        params: params,
+      });
+
+      // console.log('✅ دریافت پاسخ از API:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ ReportService: خطا در دریافت شماره پیشنهادی:", error);
+      console.error("❌ جزئیات خطا:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config,
+      });
+      throw error;
+    }
   }
-}
-  
+
+  // در src/services/reportService.js - متد getDailyReportPDF را اصلاح کنید:
+
+  async getDailyReport(year, month, overDomestic, fileType = "excel") {
+    try {
+      // console.log('📊 ReportService.getDailyReport - پارامترهای ورودی:', {
+      //   year,
+      //   month,
+      //   overDomestic,
+      //   fileType,
+      //   typeOf_year: typeof year,
+      //   typeOf_month: typeof month,
+      //   typeOf_overDomestic: typeof overDomestic,
+      // });
+
+      // اعتبارسنجی
+      if (!year || !month || !overDomestic) {
+        console.error("❌ پارامترهای ضروری خالی هستند:", {
+          year: !!year,
+          month: !!month,
+          overDomestic: !!overDomestic,
+        });
+        throw new Error("تمام پارامترها (سال، ماه و نوع پروژه) الزامی هستند");
+      }
+
+      const params = {
+        year: year,
+        month: month,
+        over_domestic: overDomestic,
+      };
+
+      // console.log('📤 ارسال درخواست به API با پارامترها:', params);
+      // console.log('🌐 URL کامل: /pdf_reports/daily-report/', params);
+
+      // تعیین هدر Accept بر اساس نوع فایل درخواستی
+      let acceptHeader;
+      if (fileType === "excel") {
+        acceptHeader =
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      } else if (fileType === "pdf") {
+        acceptHeader = "application/pdf";
+      } else {
+        acceptHeader = "*/*"; // هر نوعی
+      }
+
+      // console.log('📋 هدر Accept ارسالی:', acceptHeader);
+
+      const response = await http.get("/pdf_reports/daily-report/", {
+        params: params,
+        responseType: "blob",
+        headers: {
+          Accept: acceptHeader,
+        },
+      });
+
+      // console.log('✅ دریافت پاسخ از API - نوع پاسخ:', response.headers['content-type']);
+      // console.log('✅ اندازه پاسخ:', response.data.size, 'bytes');
+      // console.log('✅ هدرهای پاسخ:', response.headers);
+
+      return {
+        blob: response.data,
+        contentType:
+          response.headers["content-type"] || response.headers["Content-Type"],
+        fileName: this.generateFileName(year, month, overDomestic, fileType),
+      };
+    } catch (error) {
+      console.error("❌ ReportService: خطا در دریافت گزارش روزانه:", error);
+      console.error("❌ جزئیات خطا:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers,
+      });
+      throw error;
+    }
+  }
+
+  // متد جدید برای تولید نام فایل
+  generateFileName(year, month, overDomestic, fileType) {
+    const cleanProjectType = overDomestic.replace(/\s+/g, "_");
+    const cleanMonth = month.replace(/\s+/g, "_");
+
+    let extension;
+    if (fileType === "excel") {
+      extension = "xlsx";
+    } else if (fileType === "pdf") {
+      extension = "pdf";
+    } else {
+      extension = "file";
+    }
+
+    return `گزارش_روزانه_${year}_${cleanMonth}_${cleanProjectType}.${extension}`;
+  }
+
   // اصلاح تابع prepareReportUpdateData:
   prepareReportUpdateData(formData) {
     // rfiNumbering حذف شد چون در URL می‌رود
