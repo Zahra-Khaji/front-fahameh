@@ -34,7 +34,7 @@ import {
   useUpdateNotification,
   useNotificationStatuses,
   useUpdateNotificationRow,
-  useUpdateNotificationInfoRow,useDeleteNotificationDate ,useDeleteInspectionDate
+  useUpdateNotificationInfoRow,useDeleteNotificationDate ,useDeleteInspectionDate,useAddInspectionDate
 } from "../../../hooks/useNotificationNumber";
 import { toast } from "react-hot-toast";
 
@@ -174,9 +174,100 @@ const { mutate: deleteNotificationDate, isLoading: isDeletingNotificationDate } 
     
     // استفاده از هوک حذف
     const { mutate: deleteInspectionDate, isLoading: isDeleting } = useDeleteInspectionDate();
+    const { mutate: addInspectionDate, isLoading: isAddingInspectionDate } = useAddInspectionDate();
+
+// دو تابع جدید اضافه کن (بعد از handleDeleteRow):
+
+
+
+
+// تابع برای افزودن تاریخ بازرسی جدید (با مقادیر آخرین سطر)
+const handleAddNewRow = () => {
+  // console.log('➕ Adding new inspection date row with same values as last row');
+
+  // آخرین سطر رو پیدا کن (بر اساس id یا ایندکس)
+  const lastRow = rfiDatesRows.length > 0 
+    ? rfiDatesRows[rfiDatesRows.length - 1] 
+    : null;
+  
+  const newId = Math.max(...rfiDatesRows.map(r => r.id), 0) + 1;
+  
+  // تاریخ جدید: اگر آخرین سطر وجود داشت، از تاریخ اون استفاده کن وگرنه تاریخ امروز
+  let newDate;
+  if (lastRow && lastRow.inspectionDate) {
+    // کپی کردن تاریخ (ایجاد یک شیء جدید)
+    if (lastRow.inspectionDate instanceof DateObject) {
+      newDate = new DateObject(lastRow.inspectionDate);
+    } else {
+      newDate = convertToPersianDate(lastRow.inspectionDate);
+    }
+  } else {
+    newDate = new DateObject({
+      date: new Date(),
+      calendar: persian,
+      locale: persian_fa,
+    });
+  }
+  
+  setRfiDatesRows(prevRows => [
+    ...prevRows,
+    {
+      id: newId,
+      inspectionDate: newDate,
+      approveManday: lastRow?.approveManday || "-", // مقدار آخرین سطر
+      inspectorName: lastRow?.inspectorName || "", // مقدار آخرین سطر
+      fee: lastRow?.fee || "", // مقدار آخرین سطر
+      isNew: true,
+      isPersisted: false
+    }
+  ]);
+  
+  setHasChanges(true);
+};
+
+// تابع برای کپی سطر (با مقادیر سطر انتخاب شده)
+const handleCopyRow = (rowId) => {
+  // console.log('📋 Preparing to copy row ID:', rowId);
+
+  const rowToCopy = rfiDatesRows.find((r) => r.id === rowId);
+  if (!rowToCopy) {
+    toast.error("❌ ردیف مورد نظر یافت نشد");
+    return;
+  }
+
+  const newId = Math.max(...rfiDatesRows.map(r => r.id), 0) + 1;
+  
+  // کپی کردن تاریخ (ایجاد یک شیء جدید)
+  let newDate;
+  if (rowToCopy.inspectionDate instanceof DateObject) {
+    newDate = new DateObject(rowToCopy.inspectionDate);
+  } else {
+    newDate = convertToPersianDate(rowToCopy.inspectionDate);
+  }
+  
+  setRfiDatesRows(prevRows => [
+    ...prevRows,
+    {
+      id: newId,
+      inspectionDate: newDate, // تاریخ از سطر مبدا
+      approveManday: rowToCopy.approveManday, // مقدار از سطر مبدا
+      inspectorName: rowToCopy.inspectorName, // مقدار از سطر مبدا
+      fee: rowToCopy.fee, // مقدار از سطر مبدا
+      isNew: true,
+      isPersisted: false
+    }
+  ]);
+  
+  setHasChanges(true);
+};
+
+
+
+
+
     // تابع handleDeleteRow - اضافه کردن بعد از handleSaveRow
 const handleDeleteRow = (rowId) => {
-  console.log('🗑️ Preparing to delete row ID:', rowId);
+  // console.log('🗑️ Preparing to delete row ID:', rowId);
 
   const row = rfiDatesRows.find((r) => r.id === rowId);
   if (!row) {
@@ -208,7 +299,7 @@ const handleDeleteRow = (rowId) => {
 const handleConfirmDelete = () => {
   if (!selectedRowForDelete) return;
 
-  console.log('🚀 Confirming delete with data:', selectedRowForDelete);
+  // console.log('🚀 Confirming delete with data:', selectedRowForDelete);
 
   deleteInspectionDate(
     {
@@ -256,7 +347,7 @@ const handleConfirmDelete = () => {
 // تابع handleSaveNotificationRow - خطوط 139-174
 
 const handleSaveNotificationRow = (rowId) => {
-  console.log('💾 Preparing to save notification row ID:', rowId);
+  // console.log('💾 Preparing to save notification row ID:', rowId);
 
   const row = notificationRows.find((r) => r.id === rowId);
   if (!row) {
@@ -264,7 +355,7 @@ const handleSaveNotificationRow = (rowId) => {
     return;
   }
 
-  console.log('📦 Found notification row:', row);
+  // console.log('📦 Found notification row:', row);
 
   // **تغییر مهم: دریافت RFI_Numbering به جای rfiNumber ساده**
   const rfiNumbering = notificationData?.timeTable?.RFI_Numbering || rfiNumber;
@@ -298,7 +389,7 @@ const handleConfirmNotificationRowSave = () => {
 
   // **تغییر مهم: استفاده از RFI_Numbering به جای rfiNumber ساده**
   const rfiNumbering = notificationData?.timeTable?.RFI_Numbering || rfiNumber;
-  console.log('🚀 Confirming save with RFI_Numbering:', rfiNumbering);
+  // console.log('🚀 Confirming save with RFI_Numbering:', rfiNumbering);
 
   const rowPayload = {
     rfiNumber: rfiNumbering, // اینجا RFI_Numbering ارسال می‌شود
@@ -1117,23 +1208,97 @@ const confirmDeleteNotificationRow = () => {
 
  
   // تابع handleSaveRow:
-  const handleSaveRow = (rowId) => {
-    // console.log('💾 Preparing to save row ID:', rowId);
+// تابع handleSaveRow - با منطق جدید
+const handleSaveRow = (rowId) => {
+  // console.log('💾 Preparing to save row ID:', rowId);
 
-    const row = rfiDatesRows.find((r) => r.id === rowId);
-    if (!row) {
-      toast.error("❌ ردیف مورد نظر یافت نشد");
-      return;
-    }
+  const row = rfiDatesRows.find((r) => r.id === rowId);
+  if (!row) {
+    toast.error("❌ ردیف مورد نظر یافت نشد");
+    return;
+  }
 
-    // console.log('📦 Found row:', row);
-    const rfiNumbering = notificationData?.timeTable?.RFI_Numbering || rfiNumber;
-    const approveManday = parseApproveManday(row.approveManday);
-    const fee = extractNumber(row.fee);
+  const rfiNumbering = notificationData?.timeTable?.RFI_Numbering || rfiNumber;
+  const approveManday = parseApproveManday(row.approveManday);
+  const fee = extractNumber(row.fee);
+  
+  // اگر سطر جدید است (isNew = true) و هنوز ذخیره نشده
+  if (row.isNew && !row.isPersisted) {
+    // برای سطر جدید، API افزودن رو کال کن
+    const inspectionDateData = {
+      RFI_Numbering: rfiNumbering,
+      RFI_Date: row.inspectionDate, // تاریخ از سطر جاری
+      ApproveManday: approveManday === 0 ? "0" : approveManday.toString(),
+      Inspector_Name: row.inspectorName || "",
+      InspectorPrice: fee || "0"
+    };
+    
+    // console.log('📦 New row - calling ADD API:', inspectionDateData);
+    
+    addInspectionDate(inspectionDateData, {
+      onSuccess: (data) => {
+        // بعد از موفقیت، سطر رو به persisted تبدیل کن
+        setRfiDatesRows(prevRows => 
+          prevRows.map(r => {
+            if (r.id === rowId) {
+              return {
+                ...r,
+                isNew: false,
+                isPersisted: true,
+                _saved: true,
+                _savedAt: new Date().toISOString()
+              };
+            }
+            return r;
+          })
+        );
+        
+        // آپدیت initialDataRef
+        if (initialDataRef.current) {
+          initialDataRef.current = {
+            ...initialDataRef.current,
+            rfiDatesRows: [
+              ...initialDataRef.current.rfiDatesRows,
+              {
+                ...row,
+                isNew: false,
+                isPersisted: true,
+                inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
+                approveManday: row.approveManday,
+                inspectorName: row.inspectorName || "",
+                fee: row.fee || "",
+              }
+            ]
+          };
+        }
+        
+        // toast.success("تاریخ بازرسی جدید با موفقیت اضافه شد", {
+        //   position: "top-center",
+        //   duration: 2000,
+        //   icon: "✅",
+        // });
+        
+        setHasChanges(checkForChanges());
+        
+        // پس از 3 ثانیه highlight را بردار
+        setTimeout(() => {
+          setRfiDatesRows(prevRows =>
+            prevRows.map(r => ({
+              ...r,
+              _saved: false
+            }))
+          );
+        }, 3000);
+      },
+      onError: (error) => {
+        console.error('❌ Add new row failed:', error);
+        toast.error(`❌ خطا در افزودن: ${error.response?.data?.message || "لطفا مجدد تلاش کنید"}`);
+      }
+    });
+  } else {
+    // برای سطرهای موجود، API آپدیت رو کال کن (مثل قبل)
     const idrd = toNumber(row.idrd, 0);
-
-    // console.log('🔢 Processed values:', { approveManday, fee, idrd });
-
+    
     setSelectedRowForSave(rowId);
     setRowToSaveData({
       approveManday,
@@ -1142,14 +1307,16 @@ const confirmDeleteNotificationRow = () => {
       rawData: row,
       rfiNumbering: rfiNumbering,
     });
-
+    
     setShowRowSaveConfirm(true);
-  };
+  }
+};
 
   // تابع handleConfirmRowSave:
 
 // تابع handleConfirmRowSave را اینگونه اصلاح کنید:
 
+// تابع handleConfirmRowSave را اینگونه اصلاح کنید:
 const handleConfirmRowSave = () => {
   if (!selectedRowForSave || !rowToSaveData) return;
 
@@ -1163,95 +1330,82 @@ const handleConfirmRowSave = () => {
   };
 
   updateNotificationRow(rowPayload, {
-   // در تابع handleConfirmRowSave - بعد از ذخیره موفق:
-onSuccess: (data) => {
-  // 1. بستن پاپ‌آپ
-  setShowRowSaveConfirm(false);
+    onSuccess: (data) => {
+      // 1. بستن پاپ‌آپ
+      setShowRowSaveConfirm(false);
 
-  // 2. ذخیره rowId برای فیدبک UI
-  const savedRowId = selectedRowForSave;
-  setSelectedRowForSave(null);
-  setRowToSaveData(null);
+      // 2. ذخیره rowId برای فیدبک UI
+      const savedRowId = selectedRowForSave;
+      
+      // 3. آپدیت سطر - اگر isNew بوده، حالا isPersisted میشه
+      setRfiDatesRows((prevRows) =>
+        prevRows.map((row) => {
+          if (row.id === savedRowId) {
+            return {
+              ...row,
+              _saved: true,
+              _savedAt: new Date().toISOString(),
+              isNew: false, // دیگه جدید نیست
+              isPersisted: true // الان تو دیتابیس هست
+            };
+          }
+          return row;
+        })
+      );
+      
+      setSelectedRowForSave(null);
+      setRowToSaveData(null);
 
-  // 3. **مهم: کل initialDataRef.current را با stateهای فعلی همگام کن**
-  if (initialDataRef.current) {
-    initialDataRef.current = {
-      notificationRows: notificationRows.map((row) => ({
-        ...row,
-        receivedDate: row.receivedDate?.format?.() || row.receivedDate,
-        inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
-      })),
-      rfiDatesRows: rfiDatesRows.map((row) => ({
-        ...row,
-        inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
-        // برای fee مقدار بدون فرمت ذخیره کن
-        fee: row.fee ? extractNumber(row.fee) : row.fee,
-      })),
-    };
-  }
-
-  // 4. فیدبک فوری UI - سطر را highlight کن
-  setRfiDatesRows((prevRows) =>
-    prevRows.map((row) => {
-      if (row.id === savedRowId) {
-        return {
-          ...row,
-          _saved: true,
-          _savedAt: new Date().toISOString(),
+      // 4. آپدیت initialDataRef
+      if (initialDataRef.current) {
+        initialDataRef.current = {
+          notificationRows: notificationRows.map((row) => ({
+            ...row,
+            receivedDate: row.receivedDate?.format?.() || row.receivedDate,
+            inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
+          })),
+          rfiDatesRows: rfiDatesRows.map((row) => {
+            if (row.id === savedRowId) {
+              return {
+                ...row,
+                isNew: false,
+                isPersisted: true,
+                inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
+                fee: row.fee ? extractNumber(row.fee) : row.fee,
+              };
+            }
+            return {
+              ...row,
+              inspectionDate: row.inspectionDate?.format?.() || row.inspectionDate,
+              fee: row.fee ? extractNumber(row.fee) : row.fee,
+            };
+          }),
         };
       }
-      return row;
-    })
-  );
 
-  // 5. **فوراً وضعیت hasChanges را به false تنظیم کن**
-  setHasChanges(false);
+      // 5. **فوراً وضعیت hasChanges را به false تنظیم کن**
+      setHasChanges(false);
 
-  // 6. نمایش toast موفقیت
-  toast.success("تغییرات با موفقیت ذخیره شد", {
-    position: "top-center",
-    duration: 2000,
-    icon: "✅",
-    style: {
-      background: "#10b981",
-      color: "white",
-      borderRadius: "8px",
-      padding: "12px",
-      fontSize: "14px",
+      // 6. نمایش toast موفقیت
+      toast.success("تغییرات با موفقیت ذخیره شد", {
+        position: "top-center",
+        duration: 2000,
+        icon: "✅",
+      });
+
+      // 7. پس از 3 ثانیه highlight را بردار
+      setTimeout(() => {
+        setRfiDatesRows((prevRows) =>
+          prevRows.map((row) => ({
+            ...row,
+            _saved: false,
+          }))
+        );
+      }, 3000);
     },
-  });
-
-  // 7. پس از 3 ثانیه highlight را بردار
-  setTimeout(() => {
-    setRfiDatesRows((prevRows) =>
-      prevRows.map((row) => ({
-        ...row,
-        _saved: false,
-      }))
-    );
-  }, 3000);
-},
     onError: (error) => {
       console.error("❌ Row save failed:", error);
-
-      toast.error(
-        `❌ خطا در ذخیره: ${
-          error.response?.data?.message || "لطفا مجدد تلاش کنید"
-        }`,
-        {
-          position: "top-center",
-          duration: 3000,
-          icon: "❌",
-          style: {
-            background: "#ef4444",
-            color: "white",
-            borderRadius: "8px",
-            padding: "12px",
-            fontSize: "14px",
-          },
-        }
-      );
-
+      toast.error(`❌ خطا در ذخیره: ${error.response?.data?.message || "لطفا مجدد تلاش کنید"}`);
       setShowRowSaveConfirm(false);
     },
   });
@@ -2047,17 +2201,30 @@ onSuccess: (data) => {
 
           {/* بخش دوم: اطلاعات صورت وضعیت بازرس */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-r"></div>
-                <h4 className="text-base font-bold text-gray-800">
-                  اطلاعات تاریخ های بازرس
-                </h4>
-                <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
-                  {rfiDatesRows.length} مورد
-                </span>
-              </div>
-            </div>
+          <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center gap-2">
+      <div className="w-3 h-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-r"></div>
+      <h4 className="text-base font-bold text-gray-800">
+        اطلاعات تاریخ‌های بازرس
+      </h4>
+      <span className="text-xs text-gray-500 bg-blue-100 px-2 py-1 rounded">
+        {rfiDatesRows.length} مورد
+      </span>
+    </div>
+    <button
+      type="button"
+      onClick={handleAddNewRow}
+      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+      disabled={isAddingInspectionDate || isLoadingAll}
+    >
+      {isAddingInspectionDate ? (
+        <FaSync className="animate-spin text-base" />
+      ) : (
+        <FaPlusCircle className="text-base" />
+      )}
+      {isAddingInspectionDate ? 'در حال افزودن...' : 'افزودن تاریخ جدید'}
+    </button>
+  </div>
 
             {/* Desktop Table - صورت وضعیت بازرس */}
         {/* Desktop Table - صورت وضعیت بازرس */}
@@ -2198,6 +2365,19 @@ onSuccess: (data) => {
           {/* ستون عملیات */}
           <td className="p-2 min-w-28">
             <div className="flex justify-center gap-1">
+            <button
+                  type="button"
+                  onClick={() => handleCopyRow(row.id)}
+                  className="text-purple-600 hover:text-purple-800 p-1.5 rounded hover:bg-purple-100 transition duration-200"
+                  title="کپی سطر"
+                  disabled={isAddingInspectionDate || isLoadingAll}
+                >
+                  {isAddingInspectionDate ? (
+                    <FaSync className="animate-spin text-xs" />
+                  ) : (
+                    <FaCopy className="text-xs" />
+                  )}
+                </button>
               {/* دکمه ذخیره */}
               <button
                 type="button"
@@ -2232,6 +2412,21 @@ onSuccess: (data) => {
             {/* Mobile View - صورت وضعیت بازرس */}
             {/* Mobile View - صورت وضعیت بازرس */}
 <div className="md:hidden space-y-4">
+<div className="flex justify-end">
+      <button
+        type="button"
+        onClick={handleAddNewRow}
+        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={isAddingInspectionDate || isLoadingAll}
+      >
+        {isAddingInspectionDate ? (
+          <FaSync className="animate-spin text-base" />
+        ) : (
+          <FaPlusCircle className="text-base" />
+        )}
+        {isAddingInspectionDate ? 'در حال افزودن...' : 'افزودن تاریخ جدید'}
+      </button>
+    </div>
   {rfiDatesRows.map((row, index) => (
     <div
       key={row.id}
@@ -2243,15 +2438,15 @@ onSuccess: (data) => {
           <span className="font-semibold">سطر #{index + 1}</span>
         </div>
         <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={() => handleCopyRfiDatesRow(row.id)}
-            className="text-gray-700 hover:text-gray-900 p-1.5 rounded hover:bg-gray-100 transition duration-200"
-            title="کپی"
-            disabled={isLoadingAll || isUpdating}
-          >
-            <FaCopy className="text-sm" />
-          </button>
+        <button
+              type="button"
+              onClick={() => handleCopyRow(row.id)}
+              className="text-purple-600 hover:text-purple-800 p-1.5 rounded hover:bg-purple-50 transition duration-200"
+              title="کپی"
+              disabled={isAddingInspectionDate || isLoadingAll}
+            >
+              <FaCopy className="text-sm" />
+            </button>
           
           {/* دکمه حذف در موبایل ویو */}
           <button

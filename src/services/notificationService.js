@@ -98,69 +98,73 @@ class NotificationService {
   }
 
   // src/services/notificationService.js
-// متد جدید برای حذف یک تاریخ خاص از نوتیفیکیشن
-async deleteNotificationDate(rfiNumbering, date_) {
-  try {
-    console.log("🗑️ Deleting notification date for RFI:", rfiNumbering, "Date:", date_);
-    
-    // ساخت URL مطابق API مورد نظر
-    const response = await http.delete(
-      `/notifications/one_date/?rfi_numbering=${encodeURIComponent(rfiNumbering)}&date_=${encodeURIComponent(date_)}`
-    );
-    
-    console.log("✅ Notification date deleted successfully:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("❌ Error deleting notification date:", error);
-    if (error.response) {
-      console.error("❌ Response status:", error.response.status);
-      console.error("❌ Response data:", error.response.data);
-    }
-    throw error;
-  }
-}
+  // متد جدید برای حذف یک تاریخ خاص از نوتیفیکیشن
+  async deleteNotificationDate(rfiNumbering, date_) {
+    try {
+      // console.log("🗑️ Deleting notification date for RFI:", rfiNumbering, "Date:", date_);
 
-// src/services/notificationService.js - اضافه کردن متد جدید
+      // ساخت URL مطابق API مورد نظر
+      const response = await http.delete(
+        `/notifications/one_date/?rfi_numbering=${encodeURIComponent(
+          rfiNumbering
+        )}&date_=${encodeURIComponent(date_)}`
+      );
 
-// متد برای حذف یک تاریخ بازرسی
-// در deleteInspectionDate - ساده‌ترین راه
-async deleteInspectionDate(rfiNumbering, inspectionDate) {
-  try {
-    console.log("🔍 Original date:", inspectionDate);
-    
-    // تبدیل اعداد فارسی به انگلیسی
-    const formatDateToEnglish = (dateStr) => {
-      return dateStr
-        .toString()
-        .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
-        .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
-        .replace(/[^0-9\/]/g, ''); // فقط اعداد و / نگه دار
-    };
-    
-    let englishDate;
-    
-    if (typeof inspectionDate === 'string') {
-      englishDate = formatDateToEnglish(inspectionDate);
-    } else if (inspectionDate && inspectionDate.format) {
-      // اگر DateObject است
-      const persianDate = inspectionDate.format("YYYY/MM/DD");
-      englishDate = formatDateToEnglish(persianDate);
-    } else {
-      englishDate = inspectionDate;
+      // console.log("✅ Notification date deleted successfully:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error deleting notification date:", error);
+      if (error.response) {
+        console.error("❌ Response status:", error.response.status);
+        console.error("❌ Response data:", error.response.data);
+      }
+      throw error;
     }
-    
-    console.log("🔢 English date:", englishDate);
-    
-    const response = await http.delete(
-      `/notifications/one_date/?rfi_numbering=${encodeURIComponent(rfiNumbering)}&date_=${encodeURIComponent(englishDate)}`
-    );
-    
-    return response.data;
-  } catch (error) {
-    console.error("❌ Error:", error);
-    throw error;
   }
-}
+
+  // src/services/notificationService.js - اضافه کردن متد جدید
+
+  // متد برای حذف یک تاریخ بازرسی
+  // در deleteInspectionDate - ساده‌ترین راه
+  async deleteInspectionDate(rfiNumbering, inspectionDate) {
+    try {
+      // console.log("🔍 Original date:", inspectionDate);
+
+      // تبدیل اعداد فارسی به انگلیسی
+      const formatDateToEnglish = (dateStr) => {
+        return dateStr
+          .toString()
+          .replace(/[۰-۹]/g, (d) => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+          .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+          .replace(/[^0-9\/]/g, ""); // فقط اعداد و / نگه دار
+      };
+
+      let englishDate;
+
+      if (typeof inspectionDate === "string") {
+        englishDate = formatDateToEnglish(inspectionDate);
+      } else if (inspectionDate && inspectionDate.format) {
+        // اگر DateObject است
+        const persianDate = inspectionDate.format("YYYY/MM/DD");
+        englishDate = formatDateToEnglish(persianDate);
+      } else {
+        englishDate = inspectionDate;
+      }
+
+      // console.log("🔢 English date:", englishDate);
+
+      const response = await http.delete(
+        `/notifications/one_date/?rfi_numbering=${encodeURIComponent(
+          rfiNumbering
+        )}&date_=${encodeURIComponent(englishDate)}`
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error:", error);
+      throw error;
+    }
+  }
 
   // src/services/notificationService.js
 
@@ -195,24 +199,26 @@ async deleteInspectionDate(rfiNumbering, inspectionDate) {
     }
   }
 
-    // متد جدید: حذف نوتیفیکیشن
-    async deleteNotification(rfiNumbering) {
-      try {
-        // console.log("🗑️ Deleting notification:", rfiNumbering);
-        const response = await http.delete(
-          `/notifications/notification/?rfi_numbering=${encodeURIComponent(rfiNumbering)}`
-        );
-        // console.log("✅ Notification deleted successfully:", response.data);
-        return response.data;
-      } catch (error) {
-        console.error("❌ Error deleting notification:", error);
-        if (error.response) {
-          console.error("❌ Response status:", error.response.status);
-          console.error("❌ Response data:", error.response.data);
-        }
-        throw error;
+  // متد جدید: حذف نوتیفیکیشن
+  async deleteNotification(rfiNumbering) {
+    try {
+      // console.log("🗑️ Deleting notification:", rfiNumbering);
+      const response = await http.delete(
+        `/notifications/notification/?rfi_numbering=${encodeURIComponent(
+          rfiNumbering
+        )}`
+      );
+      // console.log("✅ Notification deleted successfully:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error deleting notification:", error);
+      if (error.response) {
+        console.error("❌ Response status:", error.response.status);
+        console.error("❌ Response data:", error.response.data);
       }
+      throw error;
     }
+  }
 
   // آپدیت اطلاعات نوتیفیکیشن
   async updateNotificationInfo(notificationData) {
@@ -241,6 +247,37 @@ async deleteInspectionDate(rfiNumbering, inspectionDate) {
       timeTable: firstItem.TimeTable || null,
       rfiDates: firstItem.RFI_Dates || [],
     };
+  }
+
+  async addInspectionDate(data) {
+    try {
+      // console.log("➕ Adding new inspection date:", data);
+
+      const payload = {
+        RFI_Numbering: data.RFI_Numbering,
+        RFI_Date: this.formatDateForAPI(data.RFI_Date),
+        ApproveManday: data.ApproveManday?.toString() || "0",
+        Inspector_Name: data.Inspector_Name || "",
+        InspectorPrice: data.InspectorPrice?.toString() || "0",
+      };
+
+      // console.log("📤 Payload for add-inspection-dates:", payload);
+
+      const response = await http.post(
+        "/notifications/add-inspection-dates",
+        payload
+      );
+
+      // console.log("✅ Add inspection date successful:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error adding inspection date:", error);
+      if (error.response) {
+        console.error("❌ Response status:", error.response.status);
+        console.error("❌ Response data:", error.response.data);
+      }
+      throw error;
+    }
   }
 
   // ساخت داده‌های قابل ارسال برای آپدیت

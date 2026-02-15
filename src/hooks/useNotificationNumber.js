@@ -163,14 +163,14 @@ export const useUpdateNotificationRow = () => {
       );
     },
     onSuccess: (data, variables) => {
-      console.log(
-        "✅ useUpdateNotificationRow: Row update successful. RFI:",
-        variables.rfiNumber
-      );
+      // console.log(
+      //   "✅ useUpdateNotificationRow: Row update successful. RFI:",
+      //   variables.rfiNumber
+      // );
 
       // **مهم: باید با همان NotificationNo که query اصلی cache شده invalidate کنیم**
       // اما متأسفانه ما RFI_Numbering داریم
-      
+
       // راه‌حل: invalidate همه queryهای مرتبط
       queryClient.invalidateQueries({
         queryKey: ["notifications"],
@@ -235,7 +235,6 @@ export const useUpdateNotificationInfoRow = () => {
   });
 };
 
-
 export const useDeleteNotificationDate = () => {
   const queryClient = useQueryClient();
 
@@ -244,12 +243,15 @@ export const useDeleteNotificationDate = () => {
       if (!rfiNumbering || rfiNumbering.trim() === "") {
         throw new Error("شماره RFI برای حذف الزامی است");
       }
-      
+
       if (!date_ || date_.trim() === "") {
         throw new Error("تاریخ برای حذف الزامی است");
       }
 
-      return await notificationService.deleteNotificationDate(rfiNumbering, date_);
+      return await notificationService.deleteNotificationDate(
+        rfiNumbering,
+        date_
+      );
     },
     onSuccess: (data, variables) => {
       // نمایش toast موفقیت
@@ -377,12 +379,72 @@ export const useDeleteInspectionDate = () => {
     },
   });
 };
+export const useAddInspectionDate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (inspectionDateData) => {
+      return await notificationService.addInspectionDate(inspectionDateData);
+    },
+    onSuccess: (data, variables) => {
+      // نمایش toast موفقیت
+      toast.success("تاریخ بازرسی جدید با موفقیت اضافه شد", {
+        position: "top-center",
+        duration: 3000,
+        icon: "✅",
+        style: {
+          background: "#10b981",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
+
+      // اینوالیدیت queryهای مرتبط برای به‌روزرسانی داده‌ها
+      queryClient.invalidateQueries({
+        queryKey: notificationKeys.detail(variables.RFI_Numbering),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["rfiReport"],
+      });
+    },
+    onError: (error, variables) => {
+      console.error("❌ Failed to add inspection date:", error);
+
+      // نمایش toast خطا
+      toast.error(
+        `❌ خطا در افزودن تاریخ بازرسی: ${
+          error.response?.data?.message || error.message
+        }`,
+        {
+          position: "top-center",
+          duration: 4000,
+          icon: "❌",
+          style: {
+            background: "#ef4444",
+            color: "white",
+            borderRadius: "10px",
+            padding: "16px",
+            fontSize: "14px",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        }
+      );
+    },
+  });
+};
 
 // هوک ترکیبی برای تمام عملیات نوتیفیکیشن
 export const useNotifications = () => {
   const updateMutation = useUpdateNotification();
   const updateRowMutation = useUpdateNotificationRow();
-  const deleteDateMutation = useDeleteNotificationDate(); // اضافه شد
+  const deleteDateMutation = useDeleteNotificationDate();
+  const addInspectionDateMutation = useAddInspectionDate();
   const statusesQuery = useNotificationStatuses();
 
   return {
@@ -392,7 +454,8 @@ export const useNotifications = () => {
     useUpdateNotification: () => updateMutation,
     useUpdateNotificationRow: () => updateRowMutation,
     useUpdateNotificationInfoRow,
-    useDeleteNotificationDate: () => deleteDateMutation, // اضافه شد
+    useDeleteNotificationDate: () => deleteDateMutation,
+    useAddInspectionDate: () => addInspectionDateMutation,
 
     // helper functions
     formatDateForAPI:
