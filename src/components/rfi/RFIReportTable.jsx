@@ -1491,8 +1491,8 @@ const handleOpenNotificationModal = (item) => {
                             className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             title={
                               !item.RFI_Numbering || item.RFI_Numbering === "************"
-                                ? "نوتیفیکیشن معتبر نیست"
-                                : "حذف نوتیفیکیشن"
+                                ? " "
+                                : "حذف سطر"
                             }
                           >
                             <FaTrash className="text-xs" />

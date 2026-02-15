@@ -122,6 +122,9 @@ export const useDeleteNotification = () => {
       queryClient.invalidateQueries({
         queryKey: ["notifications", "detail", rfiNumbering],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["lastIRN"],
+      });
     },
     onError: (error, rfiNumbering) => {
       console.error(`❌ Failed to delete notification ${rfiNumbering}:`, error);
