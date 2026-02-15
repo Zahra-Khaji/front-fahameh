@@ -2227,7 +2227,7 @@ const handleConfirmRowSave = () => {
   </div>
 
             {/* Desktop Table - صورت وضعیت بازرس */}
-        {/* Desktop Table - صورت وضعیت بازرس */}
+            {/* Desktop Table - صورت وضعیت بازرس */}
 <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-300 shadow-sm">
   <table className="w-full text-xs">
     <thead>
@@ -2257,7 +2257,7 @@ const handleConfirmRowSave = () => {
             index % 2 === 0 ? "bg-white" : "bg-gray-50"
           } hover:bg-blue-50`}
         >
-          {/* تاریخ بازرسی - فقط خواندنی */}
+          {/* تاریخ بازرسی - اگر سطر جدید است قابل ویرایش، وگرنه فقط خواندنی */}
           <td className="p-2 text-gray-800 min-w-36">
             <DatePicker
               value={row.inspectionDate}
@@ -2271,13 +2271,17 @@ const handleConfirmRowSave = () => {
               calendar={persian}
               locale={persian_fa}
               format="YYYY/MM/DD"
-              inputClass="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
-              disabled={true}
-              readOnly={true}
+              inputClass={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md ${
+                row.isNew 
+                  ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                  : "bg-gray-50 cursor-not-allowed"
+              }`}
+              disabled={!row.isNew}
+              readOnly={!row.isNew}
             />
           </td>
 
-          {/* ستون جدید: تعداد روز تائید شده - قابل ویرایش */}
+          {/* تعداد روز تائید شده - همیشه قابل ویرایش */}
           <td className="p-2 text-gray-800 min-w-32">
             <input
               type="text"
@@ -2330,14 +2334,26 @@ const handleConfirmRowSave = () => {
             />
           </td>
 
-          {/* بازرس اول - فقط خواندنی */}
+          {/* بازرس اول - اگر سطر جدید است قابل ویرایش، وگرنه فقط خواندنی */}
           <td className="p-2 text-gray-800 min-w-48">
             <input
               type="text"
               value={row.inspectorName}
-              readOnly={true}
-              className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
+              onChange={(e) =>
+                handleRfiDatesRowChange(
+                  row.id,
+                  "inspectorName",
+                  e.target.value
+                )
+              }
+              className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md ${
+                row.isNew 
+                  ? "focus:ring-1 focus:ring-blue-200 focus:border-transparent" 
+                  : "bg-gray-50 cursor-not-allowed"
+              }`}
               placeholder="نام بازرس"
+              disabled={!row.isNew}
+              readOnly={!row.isNew}
             />
           </td>
 
@@ -2365,29 +2381,33 @@ const handleConfirmRowSave = () => {
           {/* ستون عملیات */}
           <td className="p-2 min-w-28">
             <div className="flex justify-center gap-1">
-            <button
-                  type="button"
-                  onClick={() => handleCopyRow(row.id)}
-                  className="text-purple-600 hover:text-purple-800 p-1.5 rounded hover:bg-purple-100 transition duration-200"
-                  title="کپی سطر"
-                  disabled={isAddingInspectionDate || isLoadingAll}
-                >
-                  {isAddingInspectionDate ? (
-                    <FaSync className="animate-spin text-xs" />
-                  ) : (
-                    <FaCopy className="text-xs" />
-                  )}
-                </button>
+              <button
+                type="button"
+                onClick={() => handleCopyRow(row.id)}
+                className="text-purple-600 hover:text-purple-800 p-1.5 rounded hover:bg-purple-100 transition duration-200"
+                title="کپی سطر"
+                disabled={isAddingInspectionDate || isLoadingAll}
+              >
+                {isAddingInspectionDate ? (
+                  <FaSync className="animate-spin text-xs" />
+                ) : (
+                  <FaCopy className="text-xs" />
+                )}
+              </button>
               {/* دکمه ذخیره */}
               <button
                 type="button"
                 onClick={() => handleSaveRow(row.id)}
                 disabled={isUpdatingRow}
-                className="px-2 py-1.5 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                title="ذخیره این سطر"
+                className={`px-2 py-1.5 text-xs rounded-md transition duration-200 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ${
+                  row.isNew && !row.isPersisted
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-green-500 hover:bg-green-600 text-white"
+                }`}
+                title={row.isNew && !row.isPersisted ? "ذخیره سطر جدید" : "ذخیره تغییرات"}
               >
                 <FaSave className="text-xs" />
-                ذخیره
+                {row.isNew && !row.isPersisted ? "ثبت" : "ذخیره"}
               </button>
               
               {/* دکمه حذف */}
@@ -2408,25 +2428,29 @@ const handleConfirmRowSave = () => {
     </tbody>
   </table>
 </div>
+    
+
 
             {/* Mobile View - صورت وضعیت بازرس */}
-            {/* Mobile View - صورت وضعیت بازرس */}
+        
+{/* Mobile View - صورت وضعیت بازرس */}
 <div className="md:hidden space-y-4">
-<div className="flex justify-end">
-      <button
-        type="button"
-        onClick={handleAddNewRow}
-        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={isAddingInspectionDate || isLoadingAll}
-      >
-        {isAddingInspectionDate ? (
-          <FaSync className="animate-spin text-base" />
-        ) : (
-          <FaPlusCircle className="text-base" />
-        )}
-        {isAddingInspectionDate ? 'در حال افزودن...' : 'افزودن تاریخ جدید'}
-      </button>
-    </div>
+  <div className="flex justify-end">
+    <button
+      type="button"
+      onClick={handleAddNewRow}
+      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+      disabled={isAddingInspectionDate || isLoadingAll}
+    >
+      {isAddingInspectionDate ? (
+        <FaSync className="animate-spin text-base" />
+      ) : (
+        <FaPlusCircle className="text-base" />
+      )}
+      {isAddingInspectionDate ? 'در حال افزودن...' : 'افزودن تاریخ جدید'}
+    </button>
+  </div>
+  
   {rfiDatesRows.map((row, index) => (
     <div
       key={row.id}
@@ -2435,18 +2459,25 @@ const handleConfirmRowSave = () => {
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-2">
           <FaCalendarAlt className="text-gray-700" />
-          <span className="font-semibold">سطر #{index + 1}</span>
+          <span className="font-semibold">
+            سطر #{index + 1}
+            {row.isNew && !row.isPersisted && (
+              <span className="mr-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                جدید
+              </span>
+            )}
+          </span>
         </div>
         <div className="flex gap-1">
-        <button
-              type="button"
-              onClick={() => handleCopyRow(row.id)}
-              className="text-purple-600 hover:text-purple-800 p-1.5 rounded hover:bg-purple-50 transition duration-200"
-              title="کپی"
-              disabled={isAddingInspectionDate || isLoadingAll}
-            >
-              <FaCopy className="text-sm" />
-            </button>
+          <button
+            type="button"
+            onClick={() => handleCopyRow(row.id)}
+            className="text-purple-600 hover:text-purple-800 p-1.5 rounded hover:bg-purple-50 transition duration-200"
+            title="کپی"
+            disabled={isAddingInspectionDate || isLoadingAll}
+          >
+            <FaCopy className="text-sm" />
+          </button>
           
           {/* دکمه حذف در موبایل ویو */}
           <button
@@ -2462,98 +2493,116 @@ const handleConfirmRowSave = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-3 text-xs">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <span className="text-gray-600 block mb-1">
-              تاریخ بازرسی
-            </span>
-            <DatePicker
-              value={row.inspectionDate}
-              onChange={(date) =>
-                handleRfiDatesRowChange(
-                  row.id,
-                  "inspectionDate",
-                  date
-                )
-              }
-              calendar={persian}
-              locale={persian_fa}
-              format="YYYY/MM/DD"
-              inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs bg-gray-50 cursor-not-allowed"
-              disabled={true}
-              readOnly={true}
-            />
-          </div>
-
-          <div>
-            <span className="text-gray-600 block mb-1">
-              تعداد روز تائید شده
-            </span>
-            <input
-              type="text"
-              value={displayApproveManday(row.approveManday)}
-              onChange={(e) => {
-                const newValue = e.target.value.trim();
-
-                if (newValue === "" || newValue === "-") {
-                  handleRfiDatesRowChange(
-                    row.id,
-                    "approveManday",
-                    "-"
-                  );
-                } else {
-                  const numValue = parseInt(newValue, 10);
-                  if (!isNaN(numValue)) {
-                    handleRfiDatesRowChange(
-                      row.id,
-                      "approveManday",
-                      numValue
-                    );
-                  } else {
-                    handleRfiDatesRowChange(
-                      row.id,
-                      "approveManday",
-                      row.approveManday
-                    );
-                  }
-                }
-              }}
-              onFocus={(e) => {
-                if (e.target.value === "-") {
-                  e.target.value = "";
-                }
-              }}
-              onBlur={(e) => {
-                const currentValue = e.target.value.trim();
-                if (currentValue === "") {
-                  e.target.value = "-";
-                  handleRfiDatesRowChange(
-                    row.id,
-                    "approveManday",
-                    "-"
-                  );
-                }
-              }}
-              className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs text-center"
-              placeholder="-"
-              disabled={isLoadingAll || isUpdating}
-            />
-          </div>
-        </div>
-
+        {/* تاریخ بازرسی - اگر سطر جدید است قابل ویرایش */}
         <div>
           <span className="text-gray-600 block mb-1">
-            بازرس اول
+            شروع تاریخ بازرسی {row.isNew && <span className="text-green-600">*</span>}
+          </span>
+          <DatePicker
+            value={row.inspectionDate}
+            onChange={(date) =>
+              handleRfiDatesRowChange(
+                row.id,
+                "inspectionDate",
+                date
+              )
+            }
+            calendar={persian}
+            locale={persian_fa}
+            format="YYYY/MM/DD"
+            inputClass={`w-full px-3 py-2 border border-gray-300 rounded-md text-xs ${
+              row.isNew 
+                ? "focus:ring-2 focus:ring-blue-500" 
+                : "bg-gray-50 cursor-not-allowed"
+            }`}
+            disabled={!row.isNew}
+            readOnly={!row.isNew}
+          />
+        </div>
+
+        {/* تعداد روز تائید شده - همیشه قابل ویرایش */}
+        <div>
+          <span className="text-gray-600 block mb-1">
+            تعداد روز تائید شده
+          </span>
+          <input
+            type="text"
+            value={displayApproveManday(row.approveManday)}
+            onChange={(e) => {
+              const newValue = e.target.value.trim();
+
+              if (newValue === "" || newValue === "-") {
+                handleRfiDatesRowChange(
+                  row.id,
+                  "approveManday",
+                  "-"
+                );
+              } else {
+                const numValue = parseInt(newValue, 10);
+                if (!isNaN(numValue)) {
+                  handleRfiDatesRowChange(
+                    row.id,
+                    "approveManday",
+                    numValue
+                  );
+                } else {
+                  handleRfiDatesRowChange(
+                    row.id,
+                    "approveManday",
+                    row.approveManday
+                  );
+                }
+              }
+            }}
+            onFocus={(e) => {
+              if (e.target.value === "-") {
+                e.target.value = "";
+              }
+            }}
+            onBlur={(e) => {
+              const currentValue = e.target.value.trim();
+              if (currentValue === "") {
+                e.target.value = "-";
+                handleRfiDatesRowChange(
+                  row.id,
+                  "approveManday",
+                  "-"
+                );
+              }
+            }}
+            className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs text-center"
+            placeholder="-"
+            disabled={isLoadingAll || isUpdating}
+          />
+        </div>
+
+        {/* بازرس اول - اگر سطر جدید است قابل ویرایش */}
+        <div>
+          <span className="text-gray-600 block mb-1">
+            بازرس اول {row.isNew && <span className="text-green-600">*</span>}
           </span>
           <input
             type="text"
             value={row.inspectorName}
-            readOnly={true}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs bg-gray-50 cursor-not-allowed"
+            onChange={(e) =>
+              handleRfiDatesRowChange(
+                row.id,
+                "inspectorName",
+                e.target.value
+              )
+            }
+            className={`w-full px-3 py-2 border border-gray-300 rounded-md text-xs ${
+              row.isNew 
+                ? "focus:ring-2 focus:ring-blue-500" 
+                : "bg-gray-50 cursor-not-allowed"
+            }`}
             placeholder="نام بازرس"
+            disabled={!row.isNew}
+            readOnly={!row.isNew}
           />
         </div>
 
+        {/* دستمزد - همیشه قابل ویرایش */}
         <div>
           <span className="text-gray-600 block mb-1">دستمزد</span>
           <div className="relative">
@@ -2582,11 +2631,15 @@ const handleConfirmRowSave = () => {
               type="button"
               onClick={() => handleSaveRow(row.id)}
               disabled={isUpdatingRow}
-              className="py-2 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md transition duration-200 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="ذخیره این سطر"
+              className={`py-2 text-xs rounded-md transition duration-200 flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+                row.isNew && !row.isPersisted
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : "bg-green-500 hover:bg-green-600 text-white"
+              }`}
+              title={row.isNew && !row.isPersisted ? "ثبت سطر جدید" : "ذخیره تغییرات"}
             >
               <FaSave className="text-xs" />
-              ذخیره
+              {row.isNew && !row.isPersisted ? "ثبت" : "ذخیره"}
             </button>
             
             <button
