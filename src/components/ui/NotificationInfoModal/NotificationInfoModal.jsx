@@ -714,7 +714,10 @@ const areValuesEqual = (val1, val2) => {
           initialNotificationRows = [
             {
               id: 1,
-              notificationNumber: timeTable.NotificationNo  || "",
+              // notificationNumber: timeTable.NotificationNo  || ""temp0,
+              notificationNumber: timeTable?.NotificationNo 
+  ? `\u200E${timeTable.NotificationNo}` 
+  : "",
               status: persianStatus,
               statusCode: statusCode,
               statusEnglish: englishStatus,
@@ -1502,9 +1505,18 @@ const handleConfirmRowSave = () => {
             <div className="flex items-center gap-2">
               <FaHashtag className="text-gray-700 text-xl" />
               <div>
-                <h3 className="text-lg font-bold text-gray-800">
+                {/* <h3 className="text-lg font-bold text-gray-800temp0">
                   اطلاعات نوتیفیکیشن شماره {notificationData?.timeTable?.NotificationNo}
-                </h3>
+                </h3> */}
+                <h3 className="text-lg font-bold text-gray-800">
+  اطلاعات نوتیفیکیشن شماره{' '}
+  <span>
+    {notificationData?.timeTable?.NotificationNo 
+      ? `\u200E${notificationData.timeTable.NotificationNo}`
+      : ''
+    }
+  </span>
+</h3>
                 {isLoadingAll && (
                   <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                     <FaSync className="animate-spin" />

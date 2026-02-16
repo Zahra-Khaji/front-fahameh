@@ -1465,7 +1465,11 @@ const handleOpenNotificationModal = (item) => {
       : "مشاهده اطلاعات نوتیفیکیشن"
   }
 >
-  {item.NotificationNo} 
+  {/* {item.NotificationNo} temp0 */}
+  {item.NotificationNo && item.NotificationNo !== "************" 
+        ? `\u200E${item.NotificationNo}`  // اضافه کردن نشانگر چپ‌چین
+        : item.NotificationNo
+      }
 </button>
                           </div>
                         </td>
