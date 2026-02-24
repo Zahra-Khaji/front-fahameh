@@ -160,13 +160,17 @@ class ReportService {
       // });
 
       // اعتبارسنجی
-      if (!year || !month || !overDomestic) {
+      if (
+        !year ||
+        !month
+        // || !overDomestic
+      ) {
         console.error("❌ پارامترهای ضروری خالی هستند:", {
           year: !!year,
           month: !!month,
           overDomestic: !!overDomestic,
         });
-        throw new Error("تمام پارامترها (سال، ماه و نوع پروژه) الزامی هستند");
+        throw new Error("تمام پارامترها (سال، ماه) الزامی هستند");
       }
 
       const params = {
@@ -284,6 +288,53 @@ class ReportService {
       firstPrice: apiData.FirstPrice || "",
       idre: apiData.IDRE || "",
     };
+  }
+
+  async getFinancialSummary(year, month) {
+    try {
+      console.log("📊 ReportService.getFinancialSummary - پارامترهای ورودی:", {
+        year,
+        month,
+        typeOf_year: typeof year,
+        typeOf_month: typeof month,
+      });
+
+      // اعتبارسنجی
+      if (!year || !month) {
+        console.error("❌ پارامترهای ضروری خالی هستند:", {
+          year: !!year,
+          month: !!month,
+        });
+        throw new Error("سال و ماه الزامی هستند");
+      }
+
+      const params = {
+        year: year.toString(),
+        month: month,
+      };
+
+      // console.log('📤 ارسال درخواست به API با پارامترها:', params);
+      // console.log('🌐 URL کامل: /manager/financial-summary/');
+
+      const response = await http.get("/manager/financial-summary/", {
+        params: params,
+        headers: {
+          accept: "application/json",
+        },
+      });
+
+      // console.log('✅ دریافت پاسخ از API:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ ReportService: خطا در دریافت خلاصه مالی:", error);
+      console.error("❌ جزئیات خطا:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers,
+      });
+      throw error;
+    }
   }
 
   // جدید: آماده‌سازی داده برای آپدیت

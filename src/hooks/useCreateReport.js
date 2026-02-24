@@ -345,7 +345,11 @@ export const useDailyReport = (fileType = "excel") => {
   return useMutation({
     mutationFn: async ({ year, month, overDomestic }) => {
       // اعتبارسنجی اولیه
-      if (!year || !month || !overDomestic) {
+      if (
+        !year ||
+        !month
+        // || !overDomestic
+      ) {
         throw new Error("لطفاً تمام فیلدها را پر کنید");
       }
 
@@ -463,6 +467,59 @@ export const useDailyReport = (fileType = "excel") => {
         icon: "⏳",
         style: {
           background: "#3b82f6",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
+    },
+  });
+};
+
+// هوک برای دریافت خلاصه مالی (Financial Summary)
+export const useFinancialSummary = (
+  year,
+  month,
+  overDomestic,
+  enabled = false
+) => {
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: ["financial-summary", year, month, overDomestic],
+    queryFn: async () => {
+      if (!year || !month || !overDomestic) {
+        throw new Error("لطفاً تمام فیلدها را پر کنید");
+      }
+
+      try {
+        const result = await reportService.getFinancialSummary(year, month);
+        return result;
+      } catch (error) {
+        console.error("❌ useFinancialSummary: خطا در دریافت اطلاعات:", error);
+
+        if (error.response?.status === 404) {
+          throw new Error("اطلاعاتی برای تاریخ انتخاب شده یافت نشد");
+        } else if (error.response?.status === 400) {
+          throw new Error("پارامترهای ورودی نامعتبر هستند");
+        }
+
+        throw error;
+      }
+    },
+    enabled: enabled && !!year && !!month && !!overDomestic,
+    staleTime: 5 * 60 * 1000, // 5 دقیقه
+    retry: 1,
+    onError: (error) => {
+      toast.error(error.message || "خطا در دریافت اطلاعات", {
+        position: "top-center",
+        duration: 4000,
+        icon: "❌",
+        style: {
+          background: "#ef4444",
           color: "white",
           borderRadius: "10px",
           padding: "16px",

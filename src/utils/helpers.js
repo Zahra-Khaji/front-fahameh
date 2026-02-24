@@ -484,3 +484,19 @@ export const formatWithCommas = (number) => {
   const num = toNumber(number);
   return num.toLocaleString("fa-IR");
 };
+
+// src/utils/helpers.js
+export const formatCurrency = (amount, unit = "تومان") => {
+  if (!amount && amount !== 0) return "";
+
+  const numStr = amount.toString().replace(/\D/g, "");
+  if (!numStr) return "";
+
+  const formattedNumber = new Intl.NumberFormat("fa-IR").format(numStr);
+
+  if (unit === "ریال") {
+    return `${formattedNumber} ریال`;
+  }
+
+  return `${formattedNumber} تومان`;
+};
