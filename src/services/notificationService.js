@@ -75,6 +75,7 @@ class NotificationService {
         Inspector_Name: rowData.inspectorName || "",
         Remark: rowData.remark || "",
         FolderNo: String(rowData.folderNumber || ""),
+        Inspection_Duration: rowData.duration || "0",
       };
 
       // console.log("📤 Final payload for API:", payload);

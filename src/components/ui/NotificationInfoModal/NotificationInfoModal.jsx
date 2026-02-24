@@ -279,12 +279,12 @@ const handleDeleteRow = (rowId) => {
   const inspectionDate = row.inspectionDate?.format?.() || row.inspectionDate;
   const rfiNumbering = notificationData?.timeTable?.RFI_Numbering || rfiNumber;
 
-  console.log('📋 Row to delete:', { 
-    rowId, 
-    inspectionDate, 
-    rfiNumbering,
-    row 
-  });
+  // console.log('📋 Row to delete:', { 
+  //   rowId, 
+  //   inspectionDate, 
+  //   rfiNumbering,
+  //   row 
+  // });
 
   setSelectedRowForDelete({
     rowId,
@@ -346,28 +346,27 @@ const handleConfirmDelete = () => {
 // src/components/ui/NotificationInfoModal/NotificationInfoModal.jsx
 // تابع handleSaveNotificationRow - خطوط 139-174
 
+// در تابع handleSaveNotificationRow، بعد از تعریف rowData
 const handleSaveNotificationRow = (rowId) => {
-  // console.log('💾 Preparing to save notification row ID:', rowId);
-
   const row = notificationRows.find((r) => r.id === rowId);
   if (!row) {
     toast.error("❌ ردیف مورد نظر یافت نشد");
     return;
   }
 
-  // console.log('📦 Found notification row:', row);
+  // console.log('🔍 Row data from state:', {
+  //   duration: row.duration,
+  //   type: typeof row.duration,
+  //   value: row.duration
+  // });
 
-  // **تغییر مهم: دریافت RFI_Numbering به جای rfiNumber ساده**
   const rfiNumbering = notificationData?.timeTable?.RFI_Numbering || rfiNumber;
-  console.log('🔤 Using RFI_Numbering for API call:', rfiNumbering);
 
-  // آماده‌سازی داده‌ها
   const rowData = {
     notificationNumber: row.notificationNumber,
     rfiStatus: row.rfiStatus || row.statusEnglish || "Ongoing",
     inspectorType: row.inspectorType || "فریلنسر",
     goodsDescription: row.goodsDescription || row.description || "",
-
     receivedDate: row.receivedDate,
     location: row.location || "",
     inspectionDate: row.inspectionDate,
@@ -376,7 +375,10 @@ const handleSaveNotificationRow = (rowId) => {
     inspectorName: row.inspectorName || "",
     remark: row.remark || "",
     folderNumber: row.folderNumber || "",
+    duration: row.duration || "0", // اینجا مطمئن بشیم که همیشه مقداری داره
   };
+
+  // console.log('📦 Row data prepared for API:', rowData);
 
   setSelectedNotificationRowForSave(rowId);
   setNotificationRowToSaveData(rowData);
