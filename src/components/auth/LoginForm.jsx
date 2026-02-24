@@ -45,17 +45,20 @@ const LoginForm = () => {
   // تابع برای navigation بر اساس نقش
   const navigateByRole = (role) => {
     console.log('نقش کاربر:', role, 'در حال انتقال...');
-    
-    if (role === "admin") {
+    // temp***
+    // if (role === "admin") {
+    //   navigate("/admin");
+    // } else if (role === "inspector") {
+    //   navigate("/inspector");
+    // } else if (role === "operator") {
+    //   navigate("/operator");
+    // } else {
+    //   // نقش پیش‌فرض
+    //   navigate("/dashboard");
+    // }
+      if (role === "admin" || role !== "admin") {
       navigate("/admin");
-    } else if (role === "inspector") {
-      navigate("/inspector");
-    } else if (role === "operator") {
-      navigate("/operator");
-    } else {
-      // نقش پیش‌فرض
-      navigate("/dashboard");
-    }
+    } 
   };
 
   const onSubmit = async (data) => {
