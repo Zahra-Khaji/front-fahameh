@@ -18,7 +18,7 @@ import {
   FaFilter,
   FaTimes,
   FaArrowLeft,
-  FaUserTie, // اضافه کردن آیکون بازرس
+  FaUserTie,
 } from "react-icons/fa";
 
 // Components
@@ -46,7 +46,7 @@ import {
   getPersianStatus,
 } from "./../../utils/helpers";
 
-// ========== کامپوننت ProjectTypeFilterDropdown با Portal ==========
+// ========== کامپوننت ProjectTypeFilterDropdown ==========
 const ProjectTypeFilterDropdown = ({
   isOpen,
   onClose,
@@ -60,7 +60,6 @@ const ProjectTypeFilterDropdown = ({
   buttonRef,
 }) => {
   const [position, setPosition] = useState({ top: 0, right: 0 });
-
 
   useEffect(() => {
     if (isOpen && buttonRef.current) {
@@ -297,6 +296,123 @@ const StatusFilterDropdown = ({
   );
 };
 
+// ========== کامپوننت جدید InspectorFilterDropdown ==========
+const InspectorFilterDropdown = ({
+  isOpen,
+  onClose,
+  uniqueInspectors,
+  selectedInspectors,
+  onInspectorChange,
+  onSelectAll,
+  onClearAll,
+  areAllSelected,
+  activeCount,
+  buttonRef,
+}) => {
+  const [position, setPosition] = useState({ top: 0, right: 0 });
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const dropdownWidth = 220;
+
+      let rightPosition = viewportWidth - buttonRect.right;
+
+      if (rightPosition < dropdownWidth) {
+        rightPosition = Math.max(10, rightPosition);
+      }
+
+      setPosition({
+        top: buttonRect.bottom + window.scrollY + 5,
+        right: rightPosition,
+      });
+    }
+  }, [isOpen, buttonRef]);
+
+  if (!isOpen || !buttonRef.current) return null;
+
+  return ReactDOM.createPortal(
+    <>
+      <div className="fixed inset-0 z-[9998]" onClick={onClose} />
+      <div
+        className="fixed z-[9999] bg-white rounded-lg shadow-lg border border-gray-300 min-w-[180px] max-w-[250px]"
+        style={{
+          top: `${position.top}px`,
+          right: `${position.right}px`,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-2 border-b bg-gray-50">
+          <div className="text-sm font-semibold text-gray-700">
+            فیلتر بازرس
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <FaTimes className="text-sm" />
+          </button>
+        </div>
+
+        <div className="flex justify-between items-center p-2 border-b">
+          <button
+            onClick={onSelectAll}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+          >
+            {areAllSelected ? "لغو همه" : "انتخاب همه"}
+          </button>
+          <span className="text-xs text-gray-500">
+            {activeCount} از {uniqueInspectors.length}
+          </span>
+        </div>
+
+        <div className="max-h-[250px] overflow-y-auto p-1">
+          {uniqueInspectors.length > 0 ? (
+            uniqueInspectors.map((inspector) => (
+              <label
+                key={inspector}
+                className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer transition duration-150"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedInspectors[inspector] || false}
+                  onChange={() => onInspectorChange(inspector)}
+                  className="h-3 w-3 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <div className="flex-1 flex items-center gap-1">
+                  <FaUserTie className="text-gray-400 text-xs" />
+                  <span className="text-sm text-gray-800 font-sm">
+                    {inspector === "-" ? "بدون بازرس" : inspector}
+                  </span>
+                </div>
+              </label>
+            ))
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              داده‌ای برای فیلتر موجود نیست
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-1 p-0.5 border-t bg-gray-50">
+          <button
+            onClick={onClose}
+            className="flex-1 p-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-medium transition duration-200 shadow-sm"
+          >
+            اعمال فیلتر
+          </button>
+          <button
+            onClick={onClearAll}
+            className="flex-1 p-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs rounded-md font-medium transition duration-200"
+            disabled={activeCount === 0}
+          >
+            حذف همه
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+};
+
 // ========== کامپوننت اصلی RFIReportTable ==========
 const RFIReportTable = () => {
   const location = useLocation();
@@ -374,6 +490,11 @@ const RFIReportTable = () => {
   const statusFilterButtonRef = useRef(null);
   const projectTypeFilterButtonRef = useRef(null);
 
+  // ========== حالت‌های جدید برای فیلتر بازرس ==========
+  const [showInspectorFilter, setShowInspectorFilter] = useState(false);
+  const [inspectorFilters, setInspectorFilters] = useState({});
+  const inspectorFilterButtonRef = useRef(null);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -414,6 +535,7 @@ const RFIReportTable = () => {
     });
     clearAllProjectTypes();
     clearAllStatuses();
+    clearAllInspectors(); // ریست فیلتر بازرس
     setCurrentPage(1);
 
     const selectedProjectObj = projects?.find(
@@ -438,6 +560,7 @@ const RFIReportTable = () => {
       });
       clearAllProjectTypes();
       clearAllStatuses();
+      clearAllInspectors(); // ریست فیلتر بازرس
       setCurrentPage(1);
       
       const searchParams = new URLSearchParams(location.search);
@@ -551,7 +674,6 @@ const RFIReportTable = () => {
         "fa-IR"
       ),
       rfiNumberNum: parseInt(item.RFI_Number) || 0,
-      // مقدار پیش‌فرض برای بازرس اگر خالی بود
       inspectorName: item.Inspector_Name || "-",
     }));
 
@@ -598,6 +720,53 @@ const RFIReportTable = () => {
       return (order[a] || 99) - (order[b] || 99);
     });
   }, [tableData]);
+
+  // ========== استخراج مقادیر منحصر به فرد برای بازرس ==========
+  const uniqueInspectors = useMemo(() => {
+    if (!tableData.length) return [];
+
+    const inspectors = new Set();
+    tableData.forEach((item) => {
+      const inspector = item.Inspector_Name || "-";
+      inspectors.add(inspector);
+    });
+
+    // مرتب‌سازی الفبایی
+    return Array.from(inspectors).sort((a, b) => {
+      if (a === "-") return 1;
+      if (b === "-") return -1;
+      return a.localeCompare(b, 'fa');
+    });
+  }, [tableData]);
+
+  // ========== توابع مدیریت فیلتر بازرس ==========
+  const handleInspectorFilterChange = (inspector) => {
+    setInspectorFilters((prev) => ({
+      ...prev,
+      [inspector]: !prev[inspector],
+    }));
+  };
+
+  const selectAllInspectors = () => {
+    const allSelected = {};
+    uniqueInspectors.forEach((inspector) => {
+      allSelected[inspector] = true;
+    });
+    setInspectorFilters(allSelected);
+  };
+
+  const clearAllInspectors = () => {
+    setInspectorFilters({});
+  };
+
+  const areAllInspectorsSelected = useMemo(() => {
+    if (uniqueInspectors.length === 0) return false;
+    return uniqueInspectors.every((inspector) => inspectorFilters[inspector]);
+  }, [uniqueInspectors, inspectorFilters]);
+
+  const activeInspectorCount = useMemo(() => {
+    return uniqueInspectors.filter((inspector) => inspectorFilters[inspector]).length;
+  }, [uniqueInspectors, inspectorFilters]);
 
   const handleProjectTypeFilterChange = (type) => {
     setProjectTypeFilters((prev) => ({
@@ -702,7 +871,7 @@ const RFIReportTable = () => {
           checkMatch(item.Report_No, searchTerm) ||
           checkMatch(item.RFI_Numbering, searchTerm) ||
           checkMatch(item.ProjectTitle, searchTerm) ||
-          checkMatch(item.Inspector_Name, searchTerm) // اضافه کردن جستجو در نام بازرس
+          checkMatch(item.Inspector_Name, searchTerm)
         );
       });
     }
@@ -738,6 +907,18 @@ const RFIReportTable = () => {
       });
     }
 
+    // ========== فیلتر بازرس ==========
+    const activeInspectorFilters = Object.keys(inspectorFilters).filter(
+      (inspector) => inspectorFilters[inspector]
+    );
+
+    if (activeInspectorFilters.length > 0) {
+      filteredData = filteredData.filter((item) => {
+        const inspector = item.Inspector_Name || "-";
+        return activeInspectorFilters.includes(inspector);
+      });
+    }
+
     if (!sortConfig.key) return filteredData;
 
     return [...filteredData].sort((a, b) => {
@@ -767,7 +948,6 @@ const RFIReportTable = () => {
           bValue = new Date(b.InspectionDate).getTime();
           break;
 
-        // ========== اضافه کردن سورت برای ستون بازرس ==========
         case "Inspector_Name":
           aValue = a.Inspector_Name || "";
           bValue = b.Inspector_Name || "";
@@ -837,7 +1017,7 @@ const RFIReportTable = () => {
 
       return sortConfig.direction === "asc" ? comparison : -comparison;
     });
-  }, [tableData, searchTerm, columnFilters, projectTypeFilters, statusFilters, sortConfig]);
+  }, [tableData, searchTerm, columnFilters, projectTypeFilters, statusFilters, inspectorFilters, sortConfig]);
 
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -888,6 +1068,13 @@ const RFIReportTable = () => {
       setCurrentPage(1);
     }
   }, [activeStatusCount]);
+
+  // ========== اضافه کردن useEffect برای فیلتر بازرس ==========
+  useEffect(() => {
+    if (activeInspectorCount > 0) {
+      setCurrentPage(1);
+    }
+  }, [activeInspectorCount]);
 
   const handleOpenNotificationModal = (item) => {
     if (item.RFI_Numbering && item.RFI_Numbering !== "************") {
@@ -943,6 +1130,7 @@ const RFIReportTable = () => {
     });
     clearAllProjectTypes();
     clearAllStatuses();
+    clearAllInspectors(); // اضافه کردن ریست فیلتر بازرس
   };
 
   const activeFiltersCount = useMemo(() => {
@@ -953,8 +1141,9 @@ const RFIReportTable = () => {
     if (columnFilters.RFI_Numbering.trim()) count++;
     if (activeProjectTypeCount > 0) count++;
     if (activeStatusCount > 0) count++;
+    if (activeInspectorCount > 0) count++; // اضافه کردن فیلتر بازرس
     return count;
-  }, [searchTerm, columnFilters, activeProjectTypeCount, activeStatusCount]);
+  }, [searchTerm, columnFilters, activeProjectTypeCount, activeStatusCount, activeInspectorCount]);
 
   const showEmptyState =
     shouldFetch && !rfiLoading && !rfiError && tableData.length === 0;
@@ -994,6 +1183,7 @@ const RFIReportTable = () => {
                       });
                       clearAllProjectTypes();
                       clearAllStatuses();
+                      clearAllInspectors();
                       setCurrentPage(1);
                     }}
                     className="hover:bg-blue-700 p-1.5 rounded-full transition duration-200"
@@ -1208,7 +1398,7 @@ const RFIReportTable = () => {
           {showResults && (
             <>
               <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-200 mb-4">
-                <table className="w-full text-sm" style={{ minWidth: "1200px" }}>
+                <table className="w-full text-sm" style={{ minWidth: "1300px" }}>
                   <thead>
                     <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
                       <FilterableSortHeader
@@ -1286,13 +1476,59 @@ const RFIReportTable = () => {
                         onSort={handleSort}
                       />
 
-                      {/* ========== ستون جدید بازرس ========== */}
-                      <SortHeader
-                        title="بازرس"
-                        sortKey="Inspector_Name"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
+                      {/* ستون بازرس با فیلتر چک‌باکس */}
+                      <th className="p-3 font-semibold text-white text-xs min-w-20 relative">
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <span className="truncate text-center">بازرس</span>
+                            <div className="flex items-center gap-0.5 flex-shrink-0">
+                              <button
+                                ref={inspectorFilterButtonRef}
+                                onClick={() => setShowInspectorFilter(!showInspectorFilter)}
+                                className={`p-1 rounded transition-colors duration-200 flex items-center ${
+                                  activeInspectorCount > 0 ? "bg-blue-700" : "hover:bg-blue-700"
+                                }`}
+                                title={
+                                  activeInspectorCount > 0
+                                    ? "فیلتر بازرس فعال - کلیک برای تغییر"
+                                    : "افزودن فیلتر بازرس"
+                                }
+                              >
+                                <FaFilter
+                                  className={`text-xs ${
+                                    activeInspectorCount > 0 ? "text-yellow-300" : "text-white"
+                                  }`}
+                                />
+                              </button>
+
+                              <button
+                                onClick={() => handleSort("Inspector_Name")}
+                                className={`p-1 rounded transition-colors duration-200 flex items-center ${
+                                  sortConfig.key === "Inspector_Name" ? "bg-blue-700" : "hover:bg-blue-700"
+                                }`}
+                                title="مرتب‌سازی بازرس"
+                              >
+                                <SortIcon columnKey="Inspector_Name" sortConfig={sortConfig} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {activeInspectorCount > 0 && !showInspectorFilter && (
+                            <div className="w-full flex justify-center">
+                              <div className="bg-yellow-500 text-white text-[10px] px-2 py-0.5 rounded-full truncate max-w-full text-center">
+                                {activeInspectorCount} انتخاب
+                                <button
+                                  onClick={clearAllInspectors}
+                                  className="mr-1 text-yellow-200 hover:text-white"
+                                  title="حذف همه انتخاب‌ها"
+                                >
+                                  <FaTimes className="text-[8px]" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </th>
 
                       <SortHeader
                         title="IRN"
@@ -1427,7 +1663,6 @@ const RFIReportTable = () => {
                           {item.formattedInspectionDate}
                         </td>
 
-                        {/* ========== سلول جدید بازرس ========== */}
                         <td className="p-3 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <FaUserTie className="text-gray-400 text-xs flex-shrink-0" />
@@ -1570,6 +1805,11 @@ const RFIReportTable = () => {
                             وضعیت: {activeStatusCount} مورد
                           </span>
                         )}
+                        {activeInspectorCount > 0 && (
+                          <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs">
+                            بازرس: {activeInspectorCount} مورد
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={clearAllFilters}
@@ -1631,7 +1871,6 @@ const RFIReportTable = () => {
                         </p>
                       </div>
 
-                      {/* ========== بازرس در موبایل ========== */}
                       <div>
                         <span className="text-gray-600 font-medium">
                           بازرس:
@@ -1872,6 +2111,22 @@ const RFIReportTable = () => {
         areAllSelected={areAllStatusesSelected}
         activeCount={activeStatusCount}
         buttonRef={statusFilterButtonRef}
+      />
+
+      {/* Dropdown فیلتر بازرس */}
+      <InspectorFilterDropdown
+        isOpen={showInspectorFilter}
+        onClose={() => setShowInspectorFilter(false)}
+        uniqueInspectors={uniqueInspectors}
+        selectedInspectors={inspectorFilters}
+        onInspectorChange={handleInspectorFilterChange}
+        onSelectAll={
+          areAllInspectorsSelected ? clearAllInspectors : selectAllInspectors
+        }
+        onClearAll={clearAllInspectors}
+        areAllSelected={areAllInspectorsSelected}
+        activeCount={activeInspectorCount}
+        buttonRef={inspectorFilterButtonRef}
       />
     </div>
   );
