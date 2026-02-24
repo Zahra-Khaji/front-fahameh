@@ -174,6 +174,138 @@ const ProjectTypeFilterDropdown = ({
   );
 };
 
+// ========== کامپوننت جدید StatusFilterDropdown ==========
+const StatusFilterDropdown = ({
+  isOpen,
+  onClose,
+  uniqueStatuses,
+  selectedStatuses,
+  onStatusChange,
+  onSelectAll,
+  onClearAll,
+  areAllSelected,
+  activeCount,
+  buttonRef,
+}) => {
+  const [position, setPosition] = useState({ top: 0, right: 0 });
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const dropdownWidth = 200;
+
+      let rightPosition = viewportWidth - buttonRect.right;
+
+      if (rightPosition < dropdownWidth) {
+        rightPosition = Math.max(10, rightPosition);
+      }
+
+      setPosition({
+        top: buttonRect.bottom + window.scrollY + 5,
+        right: rightPosition,
+      });
+    }
+  }, [isOpen, buttonRef]);
+
+  if (!isOpen || !buttonRef.current) return null;
+
+  // تابع برای دریافت رنگ هر وضعیت
+  const getStatusColorForFilter = (status) => {
+    const statusStr = String(status).toLowerCase().trim();
+    switch(statusStr) {
+      case 'done':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'ongoing':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'cancel':
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  return ReactDOM.createPortal(
+    <>
+      <div className="fixed inset-0 z-[9998]" onClick={onClose} />
+      <div
+        className="fixed z-[9999] bg-white rounded-lg shadow-lg border border-gray-300 min-w-[160px] max-w-[220px]"
+        style={{
+          top: `${position.top}px`,
+          right: `${position.right}px`,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-2 border-b bg-gray-50">
+          <div className="text-sm font-semibold text-gray-700">
+            فیلتر وضعیت
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <FaTimes className="text-sm" />
+          </button>
+        </div>
+
+        <div className="flex justify-between items-center p-2 border-b">
+          <button
+            onClick={onSelectAll}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+          >
+            {areAllSelected ? "لغو همه" : "انتخاب همه"}
+          </button>
+          <span className="text-xs text-gray-500">
+            {activeCount} از {uniqueStatuses.length}
+          </span>
+        </div>
+
+        <div className="max-h-[200px] overflow-y-auto p-1">
+          {uniqueStatuses.length > 0 ? (
+            uniqueStatuses.map((status) => (
+              <label
+                key={status}
+                className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer transition duration-150"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedStatuses[status] || false}
+                  onChange={() => onStatusChange(status)}
+                  className="h-3 w-3 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <div className="flex-1">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColorForFilter(status)}`}>
+                    {getPersianStatus(status)}
+                  </span>
+                </div>
+              </label>
+            ))
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              داده‌ای برای فیلتر موجود نیست
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-1 p-0.5 border-t bg-gray-50">
+          <button
+            onClick={onClose}
+            className="flex-1 p-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-medium transition duration-200 shadow-sm"
+          >
+            اعمال فیلتر
+          </button>
+          <button
+            onClick={onClearAll}
+            className="flex-1 p-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs rounded-md font-medium transition duration-200"
+            disabled={activeCount === 0}
+          >
+            حذف همه
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+};
+
 // ========== کامپوننت اصلی RFIReportTable ==========
 const RFIReportTable = () => {
   const location = useLocation();
@@ -190,43 +322,38 @@ const RFIReportTable = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedReportRFI, setSelectedReportRFI] = useState(null);
   const [projectType, setProjectType] = useState("");
-      // اضافه کردن state برای حذف
-      const [showDeleteNotification, setShowDeleteNotification] = useState(false);
-      const [selectedNotificationToDelete, setSelectedNotificationToDelete] = useState(null);
-      const { mutate: deleteNotification, isLoading: isDeletingNotification } = useDeleteNotification();
-      
-      // استفاده از هوک حذف
-        // تابع handleDeleteNotification
-    const handleDeleteNotification = (item) => {
-      // console.log("item.RFI_Numbering",item.RFI_Numbering)
+  // اضافه کردن state برای حذف
+  const [showDeleteNotification, setShowDeleteNotification] = useState(false);
+  const [selectedNotificationToDelete, setSelectedNotificationToDelete] = useState(null);
+  const { mutate: deleteNotification, isLoading: isDeletingNotification } = useDeleteNotification();
+  
+  // استفاده از هوک حذف
+  // تابع handleDeleteNotification
+  const handleDeleteNotification = (item) => {
+    if (!item.RFI_Numbering || item.RFI_Numbering === "************") {
+      console.error("شماره نوتیفیکیشن معتبر نیست");
+      return;
+    }
 
-      if (!item.RFI_Numbering || item.RFI_Numbering === "************") {
-      // console.log("in ifff")
+    setSelectedNotificationToDelete({
+      rfiNumbering: item.RFI_Numbering,
+      rfiNumber: item.RFI_Number,
+      vendorName: item.VendorName
+    });
+    setShowDeleteNotification(true);
+  };
 
-        console.error("شماره نوتیفیکیشن معتبر نیست");
-        return;
+  // تابع confirmDeleteNotification
+  const confirmDeleteNotification = () => {
+    if (!selectedNotificationToDelete) return;
+    
+    deleteNotification(selectedNotificationToDelete.rfiNumbering, {
+      onSuccess: () => {
+        setSelectedNotificationToDelete(null);
+        setShowDeleteNotification(false);
       }
-      // console.log("in 55555")
-  
-      setSelectedNotificationToDelete({
-        rfiNumbering: item.RFI_Numbering,
-        rfiNumber: item.RFI_Number,
-        vendorName: item.VendorName
-      });
-      setShowDeleteNotification(true);
-    };
-  
-    // تابع confirmDeleteNotification
-    const confirmDeleteNotification = () => {
-      if (!selectedNotificationToDelete) return;
-      
-      deleteNotification(selectedNotificationToDelete.rfiNumbering, {
-        onSuccess: () => {
-          setSelectedNotificationToDelete(null);
-          setShowDeleteNotification(false);
-        }
-      });
-    };
+    });
+  };
 
   // حالت‌های جدید برای فیلترها
   const [searchTerm, setSearchTerm] = useState("");
@@ -252,6 +379,16 @@ const RFIReportTable = () => {
     "Domestic Ship": false,
   });
 
+  // ========== حالت‌های جدید برای فیلتر وضعیت ==========
+  const [showStatusFilter, setShowStatusFilter] = useState(false);
+  const [statusFilters, setStatusFilters] = useState({
+    Done: false,
+    Ongoing: false,
+    Cancel: false,
+    Cancelled: false,
+  });
+  const statusFilterButtonRef = useRef(null);
+
   // ref برای دکمه فیلتر نوع پروژه
   const projectTypeFilterButtonRef = useRef(null);
 
@@ -276,17 +413,9 @@ const RFIReportTable = () => {
     error: projectTypesError
   } = useProjectTypes();
 
- 
-
-
-
   const [selectedProjectType, setSelectedProjectType] = useState("");
+  
   // استفاده از هوک گزارش RFI
-  // const {
-  //   data: rfiData,
-  //   isLoading: rfiLoading,
-  //   error: rfiError,
-  // } = useRFIReport(projectName, shouldFetch);
   const {
     data: rfiData,
     isLoading: rfiLoading,
@@ -308,6 +437,7 @@ const RFIReportTable = () => {
       RFI_Numbering: "",
     });
     clearAllProjectTypes(); // ریست کردن فیلتر نوع پروژه
+    clearAllStatuses(); // ریست کردن فیلتر وضعیت
     setCurrentPage(1); // بازگشت به صفحه اول
 
     const selectedProjectObj = projects?.find(
@@ -321,56 +451,33 @@ const RFIReportTable = () => {
   };
 
   // تابع برای جستجوی پروژه
-  // const handleSearch = () => {
-  //   if (projectName) {
-  //     setShouldFetch(true);
-  //     setIsAutoFetch(false);
-  //     setSearchTerm("");
-  //     setColumnFilters({
-  //       RFI_Number: "",
-  //       Report_No: "",
-  //       RFI_Numbering: "",
-  //     });
-  //     clearAllProjectTypes(); // ریست کردن فیلتر نوع پروژه
-  //     setCurrentPage(1); // بازگشت به صفحه اول
-  //     // به‌روزرسانی URL
-  //     const searchParams = new URLSearchParams(location.search);
-  //     searchParams.set("project", encodeURIComponent(projectName));
-  //     window.history.replaceState(
-  //       {},
-  //       "",
-  //       `${location.pathname}?${searchParams.toString()}`
-  //     );
-  //   }
-  // };
-  // تغییر تابع handleSearch برای اضافه کردن نوع پروژه
-// تابع برای جستجوی پروژه
-const handleSearch = () => {
-  if (projectName && selectedProjectType) { // اضافه کردن شرط selectedProjectType
-    setShouldFetch(true);
-    setIsAutoFetch(false);
-    setSearchTerm("");
-    setColumnFilters({
-      RFI_Number: "",
-      Report_No: "",
-      RFI_Numbering: "",
-    });
-    clearAllProjectTypes();
-    setCurrentPage(1);
-    
-    // به‌روزرسانی URL با پارامتر نوع پروژه
-    const searchParams = new URLSearchParams(location.search);
-    searchParams.set("project", encodeURIComponent(projectName));
-    if (selectedProjectType) {
-      searchParams.set("type", selectedProjectType);
+  const handleSearch = () => {
+    if (projectName && selectedProjectType) {
+      setShouldFetch(true);
+      setIsAutoFetch(false);
+      setSearchTerm("");
+      setColumnFilters({
+        RFI_Number: "",
+        Report_No: "",
+        RFI_Numbering: "",
+      });
+      clearAllProjectTypes();
+      clearAllStatuses(); // ریست کردن فیلتر وضعیت
+      setCurrentPage(1);
+      
+      // به‌روزرسانی URL با پارامتر نوع پروژه
+      const searchParams = new URLSearchParams(location.search);
+      searchParams.set("project", encodeURIComponent(projectName));
+      if (selectedProjectType) {
+        searchParams.set("type", selectedProjectType);
+      }
+      window.history.replaceState(
+        {},
+        "",
+        `${location.pathname}?${searchParams.toString()}`
+      );
     }
-    window.history.replaceState(
-      {},
-      "",
-      `${location.pathname}?${searchParams.toString()}`
-    );
-  }
-};
+  };
 
   // تابع handleAddReport که در موبایل ویو استفاده شده
   const handleAddReport = (rfiItem) => {
@@ -381,58 +488,34 @@ const handleSearch = () => {
   // ========== پایان توابع مدیریت پروژه ==========
 
   // useEffect برای خواندن query parameters
-  // useEffect(() => {
-  //   const searchParams = new URLSearchParams(location.search);
-  //   const projectFromQuery = searchParams.get("project");
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const projectFromQuery = searchParams.get("project");
+    const typeFromQuery = searchParams.get("type");
 
-  //   if (projectFromQuery) {
-  //     const decodedProjectName = decodeURIComponent(projectFromQuery);
-  //     setProjectName(decodedProjectName);
-  //     setShouldFetch(true);
-  //     setIsAutoFetch(true);
-  //     setCurrentPage(1);
+    if (projectFromQuery) {
+      const decodedProjectName = decodeURIComponent(projectFromQuery);
+      setProjectName(decodedProjectName);
+      setShouldFetch(true);
+      setIsAutoFetch(true);
+      setCurrentPage(1);
 
-  //     const foundProject = projects?.find(
-  //       (project) => project.name === decodedProjectName
-  //     );
-  //     if (foundProject) {
-  //       setSelectedProject(foundProject.id);
-  //     }
-  //   } else {
-  //     // اگر query parameter وجود نداشته باشد، حالت AutoFetch را غیرفعال کن
-  //     setIsAutoFetch(false);
-  //     setShouldFetch(false);
-  //   }
-  // }, [location.search, projects]);
-// تغییر useEffect برای خواندن پارامتر نوع پروژه از URL
-useEffect(() => {
-  const searchParams = new URLSearchParams(location.search);
-  const projectFromQuery = searchParams.get("project");
-  const typeFromQuery = searchParams.get("type");
+      if (typeFromQuery) {
+        setSelectedProjectType(typeFromQuery);
+      }
 
-  if (projectFromQuery) {
-    const decodedProjectName = decodeURIComponent(projectFromQuery);
-    setProjectName(decodedProjectName);
-    setShouldFetch(true);
-    setIsAutoFetch(true);
-    setCurrentPage(1);
-
-    // اگر نوع پروژه در URL هست، ست کن
-    if (typeFromQuery) {
-      setSelectedProjectType(typeFromQuery);
+      const foundProject = projects?.find(
+        (project) => project.name === decodedProjectName
+      );
+      if (foundProject) {
+        setSelectedProject(foundProject.id);
+      }
+    } else {
+      setIsAutoFetch(false);
+      setShouldFetch(false);
     }
+  }, [location.search, projects]);
 
-    const foundProject = projects?.find(
-      (project) => project.name === decodedProjectName
-    );
-    if (foundProject) {
-      setSelectedProject(foundProject.id);
-    }
-  } else {
-    setIsAutoFetch(false);
-    setShouldFetch(false);
-  }
-}, [location.search, projects]);
   // استخراج نوع پروژه از داده‌ها
   useEffect(() => {
     if (rfiData && Object.keys(rfiData).length > 0) {
@@ -497,7 +580,6 @@ useEffect(() => {
   const tableData = useMemo(() => {
     if (!rfiData || !shouldFetch) return [];
 
-    // تبدیل به آرایه
     const dataArray = Object.values(rfiData).map((item) => ({
       ...item,
       formattedInspectionDate: new Date(item.InspectionDate).toLocaleDateString(
@@ -506,7 +588,6 @@ useEffect(() => {
       rfiNumberNum: parseInt(item.RFI_Number) || 0,
     }));
 
-    // مرتب‌سازی نزولی بر اساس RFI_Number
     return dataArray.sort((a, b) => {
       const numA = a.rfiNumberNum;
       const numB = b.rfiNumberNum;
@@ -533,12 +614,28 @@ useEffect(() => {
       }
     });
 
-    // تبدیل Set به آرایه و مرتب‌سازی
     return Array.from(types).sort();
   }, [tableData]);
 
+  // ========== استخراج مقادیر منحصر به فرد برای وضعیت ==========
+  const uniqueStatuses = useMemo(() => {
+    if (!tableData.length) return [];
+
+    const statuses = new Set();
+    tableData.forEach((item) => {
+      if (item.RFI_Status && item.RFI_Status.trim() !== "") {
+        statuses.add(item.RFI_Status.trim());
+      }
+    });
+
+    // مرتب‌سازی: Done اول، بعد Ongoing، بعد بقیه
+    return Array.from(statuses).sort((a, b) => {
+      const order = { 'Done': 1, 'Ongoing': 2, 'Cancel': 3, 'Cancelled': 4 };
+      return (order[a] || 99) - (order[b] || 99);
+    });
+  }, [tableData]);
+
   // توابع مدیریت فیلتر نوع پروژه
-  // تابع برای تغییر فیلتر نوع پروژه
   const handleProjectTypeFilterChange = (type) => {
     setProjectTypeFilters((prev) => ({
       ...prev,
@@ -546,7 +643,6 @@ useEffect(() => {
     }));
   };
 
-  // تابع برای انتخاب همه
   const selectAllProjectTypes = () => {
     const allSelected = {};
     uniqueProjectTypes.forEach((type) => {
@@ -558,7 +654,6 @@ useEffect(() => {
     }));
   };
 
-  // تابع برای لغو انتخاب همه
   const clearAllProjectTypes = () => {
     const allCleared = {};
     Object.keys(projectTypeFilters).forEach((type) => {
@@ -567,37 +662,68 @@ useEffect(() => {
     setProjectTypeFilters(allCleared);
   };
 
-  // تابع برای بررسی آیا همه تیک خورده‌اند
-  const areAllSelected = useMemo(() => {
+  const areAllProjectTypesSelected = useMemo(() => {
     if (uniqueProjectTypes.length === 0) return false;
     return uniqueProjectTypes.every((type) => projectTypeFilters[type]);
   }, [uniqueProjectTypes, projectTypeFilters]);
 
-  // تابع برای تعداد انتخاب‌های فعال
   const activeProjectTypeCount = useMemo(() => {
     return uniqueProjectTypes.filter((type) => projectTypeFilters[type]).length;
   }, [uniqueProjectTypes, projectTypeFilters]);
 
-  // تابع normalizeText برای جستجو (حذف فاصله و کاراکترهای خاص)
+  // ========== توابع مدیریت فیلتر وضعیت ==========
+  const handleStatusFilterChange = (status) => {
+    setStatusFilters((prev) => ({
+      ...prev,
+      [status]: !prev[status],
+    }));
+  };
+
+  const selectAllStatuses = () => {
+    const allSelected = {};
+    uniqueStatuses.forEach((status) => {
+      allSelected[status] = true;
+    });
+    setStatusFilters((prev) => ({
+      ...prev,
+      ...allSelected,
+    }));
+  };
+
+  const clearAllStatuses = () => {
+    const allCleared = {};
+    Object.keys(statusFilters).forEach((status) => {
+      allCleared[status] = false;
+    });
+    setStatusFilters(allCleared);
+  };
+
+  const areAllStatusesSelected = useMemo(() => {
+    if (uniqueStatuses.length === 0) return false;
+    return uniqueStatuses.every((status) => statusFilters[status]);
+  }, [uniqueStatuses, statusFilters]);
+
+  const activeStatusCount = useMemo(() => {
+    return uniqueStatuses.filter((status) => statusFilters[status]).length;
+  }, [uniqueStatuses, statusFilters]);
+
+  // تابع normalizeText برای جستجو
   const normalizeText = (text) => {
     if (!text) return "";
     return text
       .toString()
-      .replace(/[\u200C\u200B\s-]/g, "") // حذف فاصله و خط‌تیره
+      .replace(/[\u200C\u200B\s-]/g, "")
       .toLowerCase();
   };
 
-  // تابع checkMatch برای بررسی تطابق با الگوهای مختلف
   const checkMatch = (value, searchTerm) => {
     if (!searchTerm || searchTerm.trim() === "") return true;
 
     const normalizedValue = normalizeText(value);
     const normalizedSearch = normalizeText(searchTerm);
 
-    // جستجو در کل رشته
     if (normalizedValue.includes(normalizedSearch)) return true;
 
-    // جستجو در بخش‌های عددی
     const numbersInValue = normalizedValue.match(/\d+/g) || [];
     return numbersInValue.some((num) => num.includes(normalizedSearch));
   };
@@ -606,7 +732,6 @@ useEffect(() => {
   const filteredAndSortedData = useMemo(() => {
     if (!tableData.length) return [];
 
-    // اول فیلتر سرچ عمومی
     let filteredData = tableData;
 
     // فیلتر سرچ عمومی
@@ -643,10 +768,20 @@ useEffect(() => {
       });
     }
 
-    // اگر سورتی انتخاب نشده، برگردان
+    // ========== فیلتر وضعیت (چک‌باکس) ==========
+    const activeStatusFilters = Object.keys(statusFilters).filter(
+      (status) => statusFilters[status]
+    );
+
+    if (activeStatusFilters.length > 0) {
+      filteredData = filteredData.filter((item) => {
+        if (!item.RFI_Status) return false;
+        return activeStatusFilters.includes(item.RFI_Status.trim());
+      });
+    }
+
     if (!sortConfig.key) return filteredData;
 
-    // سورتینگ بر اساس ستون انتخاب شده
     return [...filteredData].sort((a, b) => {
       let aValue, bValue;
 
@@ -654,6 +789,34 @@ useEffect(() => {
         case "RFI_Number":
           aValue = parseInt(a.RFI_Number) || 0;
           bValue = parseInt(b.RFI_Number) || 0;
+          break;
+
+        case "RFI_Status":
+          const getStatusPriority = (status) => {
+            if (!status) return 99;
+            const statusStr = String(status).toLowerCase().trim();
+            if (statusStr === "done") return 1;
+            if (statusStr === "ongoing") return 2;
+            if (statusStr === "cancel" || statusStr === "cancelled") return 3;
+            return 99;
+          };
+          aValue = getStatusPriority(a.RFI_Status);
+          bValue = getStatusPriority(b.RFI_Status);
+          break;
+
+        case "InspectionDate":
+          aValue = new Date(a.InspectionDate).getTime();
+          bValue = new Date(b.InspectionDate).getTime();
+          break;
+
+        case "IRNNO":
+          aValue = parseInt(a.IRNNO) || 0;
+          bValue = parseInt(b.IRNNO) || 0;
+          break;
+
+        case "Duration":
+          aValue = parseInt(a.Duration) || 0;
+          bValue = parseInt(b.Duration) || 0;
           break;
 
         case "Report_No":
@@ -674,40 +837,12 @@ useEffect(() => {
           }
           break;
 
-        case "RFI_Status":
-          // تابع برای تشخیص وضعیت
-          const getStatusPriority = (status) => {
-            if (!status) return 99;
-
-            const statusStr = String(status).toLowerCase().trim();
-
-            // انجام شده
-            if (statusStr === "done") return 1;
-            // در حال انجام
-            if (statusStr === "ongoing") return 2;
-            // لغو شده
-            if (statusStr === "cancel" || statusStr === "cancelled") return 3;
-
-            return 99; // سایر
-          };
-
-          aValue = getStatusPriority(a.RFI_Status);
-          bValue = getStatusPriority(b.RFI_Status);
-          break;
-
-        case "InspectionDate":
-          // مرتب‌سازی تاریخ
-          aValue = new Date(a.InspectionDate).getTime();
-          bValue = new Date(b.InspectionDate).getTime();
-          break;
-
         case "ProjectTitle":
           aValue = a.ProjectTitle || "";
           bValue = b.ProjectTitle || "";
           break;
 
         case "Over_Domestic":
-          // ترتیب سفارشی برای نوع پروژه
           const projectTypeOrder = {
             "داخلی کالا": 1,
             "داخلی کشتی": 2,
@@ -716,32 +851,13 @@ useEffect(() => {
             "Domestic Ship": 2,
             Foreign: 3,
           };
-
           const typeA = a.Over_Domestic || "";
           const typeB = b.Over_Domestic || "";
-
-          aValue =
-            projectTypeOrder[typeA] ||
-            projectTypeOrder[typeA.toLowerCase()] ||
-            99;
-          bValue =
-            projectTypeOrder[typeB] ||
-            projectTypeOrder[typeB.toLowerCase()] ||
-            99;
+          aValue = projectTypeOrder[typeA] || projectTypeOrder[typeA.toLowerCase()] || 99;
+          bValue = projectTypeOrder[typeB] || projectTypeOrder[typeB.toLowerCase()] || 99;
           break;
 
-        // در switch statement خط 280:
-        case "IRNNO":
-          aValue = parseInt(a.IRNNO) || 0;
-          bValue = parseInt(b.IRNNO) || 0;
-          break;
-
-        case "Duration":
-          aValue = parseInt(a.Duration) || 0;
-          bValue = parseInt(b.Duration) || 0;
-          break;
         default:
-          // برای ستون‌های دیگر، مقایسه رشته‌ای
           aValue = a[sortConfig.key] || "";
           bValue = b[sortConfig.key] || "";
           break;
@@ -749,33 +865,28 @@ useEffect(() => {
 
       let comparison = 0;
 
-      // مقایسه عددی
       if (typeof aValue === "number" && typeof bValue === "number") {
         comparison = aValue - bValue;
       } else {
-        // مقایسه رشته‌ای
         comparison = String(aValue).localeCompare(String(bValue), "fa-IR");
       }
 
       return sortConfig.direction === "asc" ? comparison : -comparison;
     });
-  }, [tableData, searchTerm, columnFilters, projectTypeFilters, sortConfig]);
+  }, [tableData, searchTerm, columnFilters, projectTypeFilters, statusFilters, sortConfig]);
 
   // ========== منطق صفحه‌بندی ==========
 
-  // محاسبه داده‌های صفحه فعلی
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredAndSortedData.slice(startIndex, endIndex);
   }, [filteredAndSortedData, currentPage, itemsPerPage]);
 
-  // تعداد کل صفحات
   const totalPages = useMemo(() => {
     return Math.ceil(filteredAndSortedData.length / itemsPerPage);
   }, [filteredAndSortedData.length, itemsPerPage]);
 
-  // تغییر صفحه
   const handlePageChange = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
       setCurrentPage(pageNumber);
@@ -783,51 +894,19 @@ useEffect(() => {
     }
   };
 
-  // تغییر تعداد آیتم در هر صفحه
   const handleItemsPerPageChange = (e) => {
     const newItemsPerPage = parseInt(e.target.value);
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // بازگشت به صفحه اول
+    setCurrentPage(1);
   };
 
-  // تغییر صفحه هنگام تغییر داده‌ها
-  // useEffect(() => {
-  //   setCurrentPage(1);
-  // }, [filteredAndSortedData]);
-
-  // این useEffect را جایگزین کنید:
-  // تغییر صفحه هنگام تغییر داده‌ها
   useEffect(() => {
-    // فقط زمانی به صفحه اول برگرد که:
-    // 1. داده‌ها تغییر کرده باشند
-    // 2. و ما از فیلتر جدیدی استفاده کرده باشیم
-    const hasActiveFilters =
-      searchTerm.trim() !== "" ||
-      columnFilters.RFI_Number.trim() !== "" ||
-      columnFilters.Report_No.trim() !== "" ||
-      columnFilters.RFI_Numbering.trim() !== "" ||
-      activeProjectTypeCount > 0;
-
-    if (hasActiveFilters && filteredAndSortedData.length > 0) {
-      // اگر فیلتر فعال داریم، بگذار روی صفحه اول بماند یا به صفحه اول برود
-      // این منطق را می‌توانید بر اساس نیاز تغییر دهید
-    } else {
-      // در غیر این صورت، صفحه را تغییر نده
-      // یا منطق دیگری را اعمال کنید
-    }
-  }, [filteredAndSortedData]);
-
-  // در عوض، این useEffect اضافه کنید:
-  // ریست صفحه فقط هنگام تغییر فیلترها
-  useEffect(() => {
-    // وقتی جستجو تغییر کرد
     if (searchTerm.trim() !== "") {
       setCurrentPage(1);
     }
   }, [searchTerm]);
 
   useEffect(() => {
-    // وقتی فیلتر ستونی تغییر کرد
     const hasColumnFilter = Object.values(columnFilters).some(
       (filter) => filter.trim() !== ""
     );
@@ -837,57 +916,43 @@ useEffect(() => {
   }, [columnFilters]);
 
   useEffect(() => {
-    // وقتی فیلتر نوع پروژه تغییر کرد
     if (activeProjectTypeCount > 0) {
       setCurrentPage(1);
     }
   }, [activeProjectTypeCount]);
 
-  // ========== پایان منطق صفحه‌بندی ==========
+  // ========== اضافه کردن useEffect برای فیلتر وضعیت ==========
+  useEffect(() => {
+    if (activeStatusCount > 0) {
+      setCurrentPage(1);
+    }
+  }, [activeStatusCount]);
 
   // تابع باز کردن مدال نوتیفیکیشن
-// خط 264 - تابع handleOpenNotificationModal را اینطور تغییر بده:
-const handleOpenNotificationModal = (item) => {
-  if (item.RFI_Numbering && item.RFI_Numbering !== "************") {
-    setSelectedRFINumbering(item.RFI_Numbering); // تغییر از RFINumber به RFINumbering
-    setShowNotificationModal(true);
-  } else {
-    console.error("شماره RFI_Numbering معتبر نیست");
-  }
-};
+  const handleOpenNotificationModal = (item) => {
+    if (item.RFI_Numbering && item.RFI_Numbering !== "************") {
+      setSelectedRFINumbering(item.RFI_Numbering);
+      setShowNotificationModal(true);
+    } else {
+      console.error("شماره RFI_Numbering معتبر نیست");
+    }
+  };
 
-  // src/components/rfi/RFIReportTable.jsx
-  // در تابع handleOpenReportModal:
-  // در RFIReportTable.jsx - اصلاح تابع handleOpenReportModal:
   const handleOpenReportModal = (item) => {
-    // بررسی اینکه آیا گزارش موجود است یا نه
     const hasExistingReport =
       item.Report_No &&
       item.Report_No.trim() !== "" &&
       item.Report_No !== "************";
 
-    // console.log('Opening report modal:', {
-    //   hasExistingReport,
-    //   reportNo: item.Report_No,
-    //   rfiNumbering: item.RFI_Numbering
-    // });
-
     setSelectedReportRFI(item);
 
-    // بررسی وضعیت گزارش
     if (!hasExistingReport) {
-      // اگر گزارش وجود ندارد، لاگ کن و مدال رو باز کن
-      // console.log('📭 No existing report found, opening empty form');
-
-      // نمایش تاییدیه قبل از باز کردن مدال
       setShowReportModal(true);
     } else {
-      // اگر گزارش وجود دارد، مدال رو مستقیم باز کن
       setShowReportModal(true);
     }
   };
 
-  // توابع جدید برای مدیریت فیلترها
   const handleColumnFilterChange = (columnKey, value) => {
     setColumnFilters((prev) => ({
       ...prev,
@@ -916,19 +981,20 @@ const handleOpenNotificationModal = (item) => {
       Report_No: "",
       RFI_Numbering: "",
     });
-    clearAllProjectTypes(); // اضافه کردن این خط
+    clearAllProjectTypes();
+    clearAllStatuses(); // اضافه کردن ریست فیلتر وضعیت
   };
 
-  // محاسبه تعداد فیلترهای فعال
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (searchTerm.trim()) count++;
     if (columnFilters.RFI_Number.trim()) count++;
     if (columnFilters.Report_No.trim()) count++;
     if (columnFilters.RFI_Numbering.trim()) count++;
-    if (activeProjectTypeCount > 0) count++; // اضافه کردن فیلتر نوع پروژه
+    if (activeProjectTypeCount > 0) count++;
+    if (activeStatusCount > 0) count++; // اضافه کردن فیلتر وضعیت
     return count;
-  }, [searchTerm, columnFilters, activeProjectTypeCount]);
+  }, [searchTerm, columnFilters, activeProjectTypeCount, activeStatusCount]);
 
   // حالات مختلف نمایش
   const showEmptyState =
@@ -969,6 +1035,7 @@ const handleOpenNotificationModal = (item) => {
                         RFI_Numbering: "",
                       });
                       clearAllProjectTypes();
+                      clearAllStatuses();
                       setCurrentPage(1);
                     }}
                     className="hover:bg-blue-700 p-1.5 rounded-full transition duration-200"
@@ -980,9 +1047,6 @@ const handleOpenNotificationModal = (item) => {
                     <h3 className="text-lg font-semibold mb-1">
                       پروژه: {projectName}
                     </h3>
-                    {/* <p className="text-blue-100 text-sm">
-            برای انتخاب پروژه دیگر، روی آیکون ← کلیک کنید
-          </p> */}
                   </div>
                 </div>
                 {rfiLoading && (
@@ -993,87 +1057,82 @@ const handleOpenNotificationModal = (item) => {
           )}
 
           {/* فرم انتخاب پروژه */}
-         
-{/* فرم انتخاب پروژه */}
-{!isAutoFetch && (
-  <div className="mb-4">
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-end">
-      {/* انتخاب پروژه - 4 قسمت از 12 */}
-      <div className="lg:col-span-4">
-        <SelectField
-          label="انتخاب پروژه *"
-          value={selectedProject}
-          onChange={handleProjectChange}
-          options={projects || []}
-          placeholder={
-            projectsLoading
-              ? "در حال دریافت لیست پروژه‌ها..."
-              : projectsError
-              ? "خطا در دریافت پروژه‌ها"
-              : "انتخاب پروژه"
-          }
-          disabled={projectsLoading || !!projectsError}
-          className="py-2 w-full"
-        />
-      </div>
+          {!isAutoFetch && (
+            <div className="mb-4">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-end">
+                {/* انتخاب پروژه - 4 قسمت از 12 */}
+                <div className="lg:col-span-4">
+                  <SelectField
+                    label="انتخاب پروژه *"
+                    value={selectedProject}
+                    onChange={handleProjectChange}
+                    options={projects || []}
+                    placeholder={
+                      projectsLoading
+                        ? "در حال دریافت لیست پروژه‌ها..."
+                        : projectsError
+                        ? "خطا در دریافت پروژه‌ها"
+                        : "انتخاب پروژه"
+                    }
+                    disabled={projectsLoading || !!projectsError}
+                    className="py-2 w-full"
+                  />
+                </div>
 
-      {/* انتخاب نوع پروژه - اجباری - 4 قسمت از 12 */}
-      <div className="lg:col-span-4">
-        <div className="flex flex-col">
-          <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
-            نوع پروژه *
-            {/* <span className="text-red-500 mr-1">*</span> */}
-          </label>
-          <div className="relative">
-            <select
-              value={selectedProjectType}
-              onChange={(e) => setSelectedProjectType(e.target.value)}
-              className="w-full py-2 pl-3 pr-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white appearance-none"
-              disabled={projectTypesLoading}
-              required
-            >
-              <option value="" disabled>
-                {projectTypesLoading ? "در حال دریافت..." : "انتخاب نوع پروژه"}
-              </option>
-              {projectTypes?.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-2 text-gray-700">
-              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-              </svg>
+                {/* انتخاب نوع پروژه - اجباری - 4 قسمت از 12 */}
+                <div className="lg:col-span-4">
+                  <div className="flex flex-col">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
+                      نوع پروژه *
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={selectedProjectType}
+                        onChange={(e) => setSelectedProjectType(e.target.value)}
+                        className="w-full py-2 pl-3 pr-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white appearance-none"
+                        disabled={projectTypesLoading}
+                        required
+                      >
+                        <option value="" disabled>
+                          {projectTypesLoading ? "در حال دریافت..." : "انتخاب نوع پروژه"}
+                        </option>
+                        {projectTypes?.map((type) => (
+                          <option key={type.id} value={type.id}>
+                            {type.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-2 text-gray-700">
+                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                          <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* دکمه جستجو پروژه - 4 قسمت از 12 */}
+                <div className="lg:col-span-4">
+                  <Button
+                    onClick={handleSearch}
+                    variant="primary"
+                    icon="search"
+                    disabled={!projectName || !selectedProjectType || rfiLoading}
+                    className="w-full py-2 h-[40px]"
+                  >
+                    {rfiLoading ? (
+                      <span className="flex items-center justify-center">
+                        <FaSync className="animate-spin ml-2" />
+                        در حال جستجو...
+                      </span>
+                    ) : (
+                      "جستجو"
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* دکمه جستجو پروژه - 4 قسمت از 12 */}
-      <div className="lg:col-span-4">
-        <Button
-          onClick={handleSearch}
-          variant="primary"
-          icon="search"
-          disabled={!projectName || !selectedProjectType || rfiLoading}
-          className="w-full py-2 h-[40px]"
-        >
-          {rfiLoading ? (
-            <span className="flex items-center justify-center">
-              <FaSync className="animate-spin ml-2" />
-              در حال جستجو...
-            </span>
-          ) : (
-            "جستجو"
           )}
-        </Button>
-      </div>
-    </div>
-    
-
-  </div>
-)}
 
           {/* جستجوی سریع - فقط وقتی نتایج وجود دارد */}
           {showResults && (
@@ -1107,13 +1166,13 @@ const handleOpenNotificationModal = (item) => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                 {/* کارت آخرین IRN */}
                 <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-2 text-white shadow">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between  sm:gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:gap-2">
                     <div className="flex items-center gap-0 sm:gap-1">
                       <FaCalendarCheck className="text-base flex-shrink-0" />
-                      <span className="text-xs font-medium  flex-shrink-0">
+                      <span className="text-xs font-medium flex-shrink-0">
                         آخرین‌IRN:
                       </span>
-                      <span className="text-base font-bold flex-shrink-0 ">
+                      <span className="text-base font-bold flex-shrink-0">
                         {irnLoading ? (
                           <FaSync className="animate-spin inline text-xs" />
                         ) : (
@@ -1220,12 +1279,62 @@ const handleOpenNotificationModal = (item) => {
                         placeholder="فیلتر عددی"
                       />
 
-                      <SortHeader
-                        title="وضعیت"
-                        sortKey="RFI_Status"
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
+                      {/* ستون وضعیت با فیلتر چک‌باکس */}
+                      <th className="p-3 font-semibold text-white text-xs min-w-20 relative">
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <span className="truncate text-center">وضعیت</span>
+                            <div className="flex items-center gap-0.5 flex-shrink-0">
+                              {/* دکمه فیلتر وضعیت */}
+                              <button
+                                ref={statusFilterButtonRef}
+                                onClick={() => setShowStatusFilter(!showStatusFilter)}
+                                className={`p-1 rounded transition-colors duration-200 flex items-center ${
+                                  activeStatusCount > 0 ? "bg-blue-700" : "hover:bg-blue-700"
+                                }`}
+                                title={
+                                  activeStatusCount > 0
+                                    ? "فیلتر وضعیت فعال - کلیک برای تغییر"
+                                    : "افزودن فیلتر وضعیت"
+                                }
+                              >
+                                <FaFilter
+                                  className={`text-xs ${
+                                    activeStatusCount > 0 ? "text-yellow-300" : "text-white"
+                                  }`}
+                                />
+                              </button>
+
+                              {/* دکمه سورت وضعیت */}
+                              <button
+                                onClick={() => handleSort("RFI_Status")}
+                                className={`p-1 rounded transition-colors duration-200 flex items-center ${
+                                  sortConfig.key === "RFI_Status" ? "bg-blue-700" : "hover:bg-blue-700"
+                                }`}
+                                title="مرتب‌سازی وضعیت"
+                              >
+                                <SortIcon columnKey="RFI_Status" sortConfig={sortConfig} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* نشانگر فیلتر فعال */}
+                          {activeStatusCount > 0 && !showStatusFilter && (
+                            <div className="w-full flex justify-center">
+                              <div className="bg-yellow-500 text-white text-[10px] px-2 py-0.5 rounded-full truncate max-w-full text-center">
+                                {activeStatusCount} انتخاب
+                                <button
+                                  onClick={clearAllStatuses}
+                                  className="mr-1 text-yellow-200 hover:text-white"
+                                  title="حذف همه انتخاب‌ها"
+                                >
+                                  <FaTimes className="text-[8px]" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </th>
 
                       <SortHeader
                         title="تاریخ بازرسی"
@@ -1234,7 +1343,6 @@ const handleOpenNotificationModal = (item) => {
                         onSort={handleSort}
                       />
 
-                      {/* ستون جدید: IRN */}
                       <SortHeader
                         title="IRN"
                         sortKey="IRNNO"
@@ -1242,7 +1350,6 @@ const handleOpenNotificationModal = (item) => {
                         onSort={handleSort}
                       />
 
-                      {/* ستون جدید: Duration */}
                       <SortHeader
                         title="مدت"
                         sortKey="Duration"
@@ -1275,9 +1382,7 @@ const handleOpenNotificationModal = (item) => {
                           handleColumnFilterChange("RFI_Numbering", value)
                         }
                         showFilter={showColumnFilters.RFI_Numbering}
-                        onToggleFilter={() =>
-                          toggleColumnFilter("RFI_Numbering")
-                        }
+                        onToggleFilter={() => toggleColumnFilter("RFI_Numbering")}
                         onClearFilter={() => clearColumnFilter("RFI_Numbering")}
                         placeholder="مثل: FAH-INS-PCH-0480"
                       />
@@ -1285,24 +1390,14 @@ const handleOpenNotificationModal = (item) => {
                       {/* نوع پروژه با فیلتر چک‌باکس */}
                       <th className="p-3 font-semibold text-white text-xs min-w-20 relative">
                         <div className="flex flex-col items-center">
-                          {/* ردیف اول: عنوان و آیکون‌ها */}
                           <div className="flex items-center justify-center gap-1 mb-1">
-                            <span className="truncate text-center">
-                              نوع پروژه
-                            </span>
+                            <span className="truncate text-center">نوع پروژه</span>
                             <div className="flex items-center gap-0.5 flex-shrink-0">
-                              {/* دکمه فیلتر چک‌باکس */}
                               <button
                                 ref={projectTypeFilterButtonRef}
-                                onClick={() =>
-                                  setShowProjectTypeFilter(
-                                    !showProjectTypeFilter
-                                  )
-                                }
+                                onClick={() => setShowProjectTypeFilter(!showProjectTypeFilter)}
                                 className={`p-1 rounded transition-colors duration-200 flex items-center ${
-                                  activeProjectTypeCount > 0
-                                    ? "bg-blue-700"
-                                    : "hover:bg-blue-700"
+                                  activeProjectTypeCount > 0 ? "bg-blue-700" : "hover:bg-blue-700"
                                 }`}
                                 title={
                                   activeProjectTypeCount > 0
@@ -1312,53 +1407,43 @@ const handleOpenNotificationModal = (item) => {
                               >
                                 <FaFilter
                                   className={`text-xs ${
-                                    activeProjectTypeCount > 0
-                                      ? "text-yellow-300"
-                                      : "text-white"
+                                    activeProjectTypeCount > 0 ? "text-yellow-300" : "text-white"
                                   }`}
                                 />
                               </button>
 
-                              {/* دکمه سورت */}
                               <button
                                 onClick={() => handleSort("Over_Domestic")}
                                 className={`p-1 rounded transition-colors duration-200 flex items-center ${
-                                  sortConfig.key === "Over_Domestic"
-                                    ? "bg-blue-700"
-                                    : "hover:bg-blue-700"
+                                  sortConfig.key === "Over_Domestic" ? "bg-blue-700" : "hover:bg-blue-700"
                                 }`}
                                 title="مرتب‌سازی نوع پروژه"
                               >
-                                <SortIcon
-                                  columnKey="Over_Domestic"
-                                  sortConfig={sortConfig}
-                                />
+                                <SortIcon columnKey="Over_Domestic" sortConfig={sortConfig} />
                               </button>
                             </div>
                           </div>
 
-                          {/* ردیف دوم: نشانگر فیلتر فعال */}
-                          {activeProjectTypeCount > 0 &&
-                            !showProjectTypeFilter && (
-                              <div className="w-full flex justify-center">
-                                <div className="bg-yellow-500 text-white text-[10px] px-2 py-0.5 rounded-full truncate max-w-full text-center">
-                                  {activeProjectTypeCount} انتخاب
-                                  <button
-                                    onClick={clearAllProjectTypes}
-                                    className="mr-1 text-yellow-200 hover:text-white"
-                                    title="حذف همه انتخاب‌ها"
-                                  >
-                                    <FaTimes className="text-[8px]" />
-                                  </button>
-                                </div>
+                          {activeProjectTypeCount > 0 && !showProjectTypeFilter && (
+                            <div className="w-full flex justify-center">
+                              <div className="bg-yellow-500 text-white text-[10px] px-2 py-0.5 rounded-full truncate max-w-full text-center">
+                                {activeProjectTypeCount} انتخاب
+                                <button
+                                  onClick={clearAllProjectTypes}
+                                  className="mr-1 text-yellow-200 hover:text-white"
+                                  title="حذف همه انتخاب‌ها"
+                                >
+                                  <FaTimes className="text-[8px]" />
+                                </button>
                               </div>
-                            )}
+                            </div>
+                          )}
                         </div>
                       </th>
 
                       <th className="p-3 font-semibold text-white text-xs text-center min-w-[70px]">
-                      عملیات
-                    </th>
+                        عملیات
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1369,7 +1454,6 @@ const handleOpenNotificationModal = (item) => {
                           index % 2 === 0 ? "bg-white" : "bg-gray-50"
                         } hover:bg-blue-50`}
                       >
-                        {/* شماره RFI */}
                         <td className="p-3 font-semibold text-gray-800 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
@@ -1377,7 +1461,6 @@ const handleOpenNotificationModal = (item) => {
                           </div>
                         </td>
 
-                        {/* وضعیت RFI */}
                         <td className="p-3 text-center">
                           <div className="flex justify-center">
                             <span
@@ -1390,12 +1473,10 @@ const handleOpenNotificationModal = (item) => {
                           </div>
                         </td>
 
-                        {/* تاریخ بازرسی */}
                         <td className="p-3 text-gray-700 text-center">
                           {item.formattedInspectionDate}
                         </td>
 
-                        {/* ستون جدید: IRN */}
                         <td className="p-3 text-center">
                           <div className="flex items-center justify-center">
                             {item.IRNNO ? (
@@ -1408,7 +1489,6 @@ const handleOpenNotificationModal = (item) => {
                           </div>
                         </td>
 
-                        {/* ستون جدید: Duration */}
                         <td className="p-3 text-center">
                           <div className="flex flex-col items-center">
                             {item.Duration ? (
@@ -1423,7 +1503,6 @@ const handleOpenNotificationModal = (item) => {
                           </div>
                         </td>
 
-                        {/* شماره گزارش */}
                         <td className="p-3 font-mono text-gray-900 text-xs text-center">
                           <div className="flex justify-center">
                             {item.Report_No === "************" ||
@@ -1447,34 +1526,31 @@ const handleOpenNotificationModal = (item) => {
                           </div>
                         </td>
 
-                        {/* شماره نوتیفیکشن */}
                         <td className="p-3 font-mono text-gray-900 text-xs text-center">
                           <div className="flex justify-center">
-                          <button
-  onClick={() => handleOpenNotificationModal(item)}
-  className={`text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium ${
-    !item.RFI_Numbering ||  // تغییر از NotificationNo به RFI_Numbering
-    item.RFI_Numbering === "************"
-      ? "opacity-50 cursor-not-allowed"
-      : ""
-  }`}
-  title={
-    !item.RFI_Numbering ||  // تغییر از NotificationNo به RFI_Numbering
-    item.RFI_Numbering === "************"
-      ? "شماره RFI_Numbering معتبر نیست"
-      : "مشاهده اطلاعات نوتیفیکیشن"
-  }
->
-  {/* {item.NotificationNo} temp0 */}
-  {item.NotificationNo && item.NotificationNo !== "************" 
-        ? `\u200E${item.NotificationNo}`  // اضافه کردن نشانگر چپ‌چین
-        : item.NotificationNo
-      }
-</button>
+                            <button
+                              onClick={() => handleOpenNotificationModal(item)}
+                              className={`text-blue-600 hover:text-blue-800 hover:underline transition duration-200 font-medium ${
+                                !item.RFI_Numbering ||
+                                item.RFI_Numbering === "************"
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
+                              }`}
+                              title={
+                                !item.RFI_Numbering ||
+                                item.RFI_Numbering === "************"
+                                  ? "شماره RFI_Numbering معتبر نیست"
+                                  : "مشاهده اطلاعات نوتیفیکیشن"
+                              }
+                            >
+                              {item.NotificationNo && item.NotificationNo !== "************" 
+                                ? `\u200E${item.NotificationNo}`
+                                : item.NotificationNo
+                              }
+                            </button>
                           </div>
                         </td>
 
-                        {/* نوع پروژه */}
                         <td className="p-3 text-gray-700 text-center">
                           <div className="flex justify-center">
                             <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium inline-block">
@@ -1482,27 +1558,27 @@ const handleOpenNotificationModal = (item) => {
                             </span>
                           </div>
                         </td>
-                                   {/* ستون عملیات */}
-                      <td className="p-3 text-center">
-                        <div className="flex justify-center">
-                          <button
-                            onClick={() => handleDeleteNotification(item)}
-                            disabled={
-                              !item.RFI_Numbering ||
-                              item.RFI_Numbering === "************" ||
-                              isDeletingNotification
-                            }
-                            className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={
-                              !item.RFI_Numbering || item.RFI_Numbering === "************"
-                                ? " "
-                                : "حذف سطر"
-                            }
-                          >
-                            <FaTrash className="text-xs" />
-                          </button>
-                        </div>
-                      </td>
+
+                        <td className="p-3 text-center">
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => handleDeleteNotification(item)}
+                              disabled={
+                                !item.RFI_Numbering ||
+                                item.RFI_Numbering === "************" ||
+                                isDeletingNotification
+                              }
+                              className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={
+                                !item.RFI_Numbering || item.RFI_Numbering === "************"
+                                  ? " "
+                                  : "حذف سطر"
+                              }
+                            >
+                              <FaTrash className="text-xs" />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1528,6 +1604,11 @@ const handleOpenNotificationModal = (item) => {
                         {activeProjectTypeCount > 0 && (
                           <span className="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-xs">
                             نوع پروژه: {activeProjectTypeCount} مورد
+                          </span>
+                        )}
+                        {activeStatusCount > 0 && (
+                          <span className="bg-green-100 text-green-800 px-1.5 py-0.5 rounded text-xs">
+                            وضعیت: {activeStatusCount} مورد
                           </span>
                         )}
                       </div>
@@ -1558,7 +1639,6 @@ const handleOpenNotificationModal = (item) => {
           )}
 
           {/* Mobile View */}
-
           {showResults && (
             <div className="md:hidden space-y-3">
               {paginatedData.map((item, index) => (
@@ -1584,7 +1664,6 @@ const handleOpenNotificationModal = (item) => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      {/* تاریخ بازرسی */}
                       <div>
                         <span className="text-gray-600 font-medium">
                           تاریخ بازرسی:
@@ -1594,7 +1673,6 @@ const handleOpenNotificationModal = (item) => {
                         </p>
                       </div>
 
-                      {/* IRN جدید */}
                       <div>
                         <span className="text-gray-600 font-medium">IRN:</span>
                         <p className="text-gray-800 font-semibold">
@@ -1608,7 +1686,6 @@ const handleOpenNotificationModal = (item) => {
                         </p>
                       </div>
 
-                      {/* Duration جدید */}
                       <div>
                         <span className="text-gray-600 font-medium">
                           مدت بازرسی:
@@ -1624,7 +1701,6 @@ const handleOpenNotificationModal = (item) => {
                         </p>
                       </div>
 
-                      {/* شماره گزارش */}
                       <div>
                         <span className="text-gray-600 font-medium">
                           شماره گزارش:
@@ -1647,7 +1723,6 @@ const handleOpenNotificationModal = (item) => {
                         )}
                       </div>
 
-                      {/* شماره نوتیفیکیشن */}
                       <div className="col-span-2">
                         <span className="text-gray-600 font-medium">
                           RFI Numbering:
@@ -1657,7 +1732,6 @@ const handleOpenNotificationModal = (item) => {
                         </p>
                       </div>
 
-                      {/* نام پروژه */}
                       <div>
                         <span className="text-gray-600 font-medium">
                           نام پروژه:
@@ -1665,7 +1739,6 @@ const handleOpenNotificationModal = (item) => {
                         <p className="text-gray-800">{item.ProjectTitle}</p>
                       </div>
 
-                      {/* نوع پروژه */}
                       <div>
                         <span className="text-gray-600 font-medium">
                           نوع پروژه:
@@ -1681,7 +1754,6 @@ const handleOpenNotificationModal = (item) => {
                 </div>
               ))}
 
-              {/* صفحه‌بندی برای موبایل */}
               {totalPages > 0 && (
                 <PaginationControls
                   currentPage={currentPage}
@@ -1748,7 +1820,6 @@ const handleOpenNotificationModal = (item) => {
           {showAutoFetchLoading && (
             <div className="text-center py-8 text-gray-500 bg-white rounded-lg border border-gray-200">
               <FaSync className="text-3xl mx-auto mb-2 text-blue-400 animate-spin" />
-              {/* <p className="text-base font-semibold">در حال بارگذاری خودکار...</p> */}
               <p className="text-xs text-gray-400 mt-1">
                 گزارش برای پروژه{" "}
                 <span className="font-semibold text-gray-600">
@@ -1785,17 +1856,14 @@ const handleOpenNotificationModal = (item) => {
         nextIRN={lastIRNData?.next_irnno?.toString() || ""}
       />
 
-      {/* مدال اطلاعات نوتیفیکیشن */}
       <NotificationInfoModal
         isOpen={showNotificationModal}
         onClose={() => setShowNotificationModal(false)}
         notificationData={selectedNotification}
-        // rfiNumber={selectedRFINumber}
         rfiNumber={selectedRFINumbering}
       />
 
-            {/* پاپ‌آپ تأیید حذف نوتیفیکیشن */}
-            <DeleteNotificationPopover
+      <DeleteNotificationPopover
         isOpen={showDeleteNotification}
         onClose={() => {
           setShowDeleteNotification(false);
@@ -1818,12 +1886,28 @@ const handleOpenNotificationModal = (item) => {
         selectedTypes={projectTypeFilters}
         onTypeChange={handleProjectTypeFilterChange}
         onSelectAll={
-          areAllSelected ? clearAllProjectTypes : selectAllProjectTypes
+          areAllProjectTypesSelected ? clearAllProjectTypes : selectAllProjectTypes
         }
         onClearAll={clearAllProjectTypes}
-        areAllSelected={areAllSelected}
+        areAllSelected={areAllProjectTypesSelected}
         activeCount={activeProjectTypeCount}
         buttonRef={projectTypeFilterButtonRef}
+      />
+
+      {/* Dropdown فیلتر وضعیت با Portal */}
+      <StatusFilterDropdown
+        isOpen={showStatusFilter}
+        onClose={() => setShowStatusFilter(false)}
+        uniqueStatuses={uniqueStatuses}
+        selectedStatuses={statusFilters}
+        onStatusChange={handleStatusFilterChange}
+        onSelectAll={
+          areAllStatusesSelected ? clearAllStatuses : selectAllStatuses
+        }
+        onClearAll={clearAllStatuses}
+        areAllSelected={areAllStatusesSelected}
+        activeCount={activeStatusCount}
+        buttonRef={statusFilterButtonRef}
       />
     </div>
   );
@@ -1871,20 +1955,18 @@ const FilterableSortHeader = ({
   const isActive = sortConfig.key === sortKey;
   const hasFilter = filterValue && filterValue.trim() !== "";
 
-  // محاسبه موقعیت پوپ‌اور
   const calculatePopoverPosition = () => {
     if (headerRef.current) {
       const rect = headerRef.current.getBoundingClientRect();
       return {
         top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX + rect.width / 2 - 100, // وسط سلول
-        width: 200, // عرض ثابت
+        left: rect.left + window.scrollX + rect.width / 2 - 100,
+        width: 200,
       };
     }
     return { top: 0, left: 0, width: 200 };
   };
 
-  // موقعیت‌یابی پوپ‌اور هنگام باز شدن
   useEffect(() => {
     if (showFilter && headerRef.current) {
       const position = calculatePopoverPosition();
@@ -1898,11 +1980,9 @@ const FilterableSortHeader = ({
       className="p-3 font-semibold text-white text-xs min-w-20 relative"
     >
       <div className="flex flex-col items-center">
-        {/* ردیف اول: عنوان و آیکون‌ها */}
         <div className="flex items-center justify-center gap-1 mb-1">
           <span className="truncate text-center">{title}</span>
           <div className="flex items-center gap-0.5 flex-shrink-0">
-            {/* دکمه فیلتر */}
             <button
               onClick={onToggleFilter}
               className={`p-1 rounded transition-colors duration-200 flex items-center ${
@@ -1919,7 +1999,6 @@ const FilterableSortHeader = ({
               />
             </button>
 
-            {/* دکمه سورت */}
             <button
               onClick={() => onSort(sortKey)}
               className={`p-1 rounded transition-colors duration-200 flex items-center ${
@@ -1932,7 +2011,6 @@ const FilterableSortHeader = ({
           </div>
         </div>
 
-        {/* ردیف دوم: نشانگر فیلتر فعال */}
         {hasFilter && !showFilter && (
           <div className="w-full flex justify-center">
             <div className="bg-yellow-500 text-white text-[10px] px-2 py-0.5 rounded-full truncate max-w-full text-center">
@@ -1951,13 +2029,9 @@ const FilterableSortHeader = ({
         )}
       </div>
 
-      {/* پوپ‌اور فیلتر */}
       {showFilter && (
         <>
-          {/* Overlay برای بستن با کلیک بیرون */}
           <div className="fixed inset-0 z-40" onClick={onToggleFilter} />
-
-          {/* پوپ‌اور */}
           <div
             ref={popoverRef}
             className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-300 p-2"
@@ -2018,14 +2092,13 @@ const FilterableSortHeader = ({
   );
 };
 
-// 3. کامپوننت SortHeader برای ستون‌های بدون فیلتر:
+// 3. کامپوننت SortHeader
 const SortHeader = ({ title, sortKey, sortConfig, onSort }) => {
   const isActive = sortConfig.key === sortKey;
 
   return (
     <th className="p-3 font-semibold text-white text-xs min-w-20">
       <div className="flex flex-col items-center">
-        {/* ردیف اول: عنوان و آیکون سورت */}
         <div className="flex items-center justify-center gap-1">
           <span className="truncate text-center">{title}</span>
           <button
