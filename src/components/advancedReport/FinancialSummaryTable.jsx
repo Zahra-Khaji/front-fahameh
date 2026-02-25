@@ -1,5 +1,5 @@
 // src/components/reports/FinancialSummaryTable.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FaTrash, FaEdit, FaSort, FaSortUp, FaSortDown, FaFilter, FaTimes, FaSearch } from 'react-icons/fa';
 import { formatCurrency } from '../../utils/helpers';
 
@@ -7,18 +7,12 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [isTableReady, setIsTableReady] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [showProjectFilter, setShowProjectFilter] = useState(false);
-  const [showInspectorFilter, setShowInspectorFilter] = useState(false);
-  const [showRfiFilter, setShowRfiFilter] = useState(false);
-  const [selectedProjects, setSelectedProjects] = useState([]);
-  const [selectedInspectors, setSelectedInspectors] = useState([]);
-  const [rfiFilterText, setRfiFilterText] = useState('');
+  const [activeFilters, setActiveFilters] = useState({}); // { columnName: { type: 'checkbox'|'text', value: []|string } }
+  const [openFilter, setOpenFilter] = useState(null); // نام ستونی که فیلترش باز است
   
   const scrollContainerRef = useRef(null);
   const tableWrapperRef = useRef(null);
-  const projectFilterRef = useRef(null);
-  const inspectorFilterRef = useRef(null);
-  const rfiFilterRef = useRef(null);
+  const filterRefs = useRef({});
 
   // تنظیم موقعیت اسکرول افقی به ابتدا (راست) در بارگذاری اولیه
   useEffect(() => {
@@ -40,31 +34,45 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
   // بستن فیلترها با کلیک خارج
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (projectFilterRef.current && !projectFilterRef.current.contains(event.target)) {
-        setShowProjectFilter(false);
-      }
-      if (inspectorFilterRef.current && !inspectorFilterRef.current.contains(event.target)) {
-        setShowInspectorFilter(false);
-      }
-      if (rfiFilterRef.current && !rfiFilterRef.current.contains(event.target)) {
-        setShowRfiFilter(false);
+      if (openFilter && filterRefs.current[openFilter] && !filterRefs.current[openFilter].contains(event.target)) {
+        setOpenFilter(null);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [openFilter]);
 
-  // فرمت کردن اعداد به ریال
-  const formatPrice = (price) => {
-    if (!price && price !== 0) return '-';
-    return formatCurrency(price, 'ریال');
+  // استخراج اسامی ستون‌ها از دیتا
+  const columnNames = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    // گرفتن کلیدهای اولین آیتم
+    return Object.keys(data[0]);
+  }, [data]);
+
+  // تشخیص نوع ستون (عددی یا متنی)
+  const getColumnType = (columnName) => {
+    if (!data || data.length === 0) return 'string';
+    
+    // ستون‌های خاص که می‌دانیم عددی هستند
+    const numericColumns = ['نفر-روز', 'هزینه بازرسی', 'قیمت نهایی', 'مبلغ کل', 'مبلغ ثابت'];
+    if (numericColumns.includes(columnName)) {
+      return 'number';
+    }
+    
+    // بررسی نمونه‌ای از داده
+    const sample = data[0]?.[columnName];
+    if (typeof sample === 'number') return 'number';
+    if (sample && !isNaN(parseFloat(sample)) && isFinite(sample)) return 'number';
+    
+    return 'string';
   };
 
-  // فرمت تاریخ شمسی
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    return dateStr;
+  // گرفتن مقادیر یکتا برای ستون‌های متنی (برای فیلتر چک‌باکسی)
+  const getUniqueValues = (columnName) => {
+    if (!data) return [];
+    const values = [...new Set(data.map(item => item[columnName]).filter(Boolean))];
+    return values.sort((a, b) => String(a).localeCompare(String(b), 'fa'));
   };
 
   // تابع sort
@@ -93,76 +101,103 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     return <FaSort className="text-white/60 mr-1 text-xs" />;
   };
 
-  // گرفتن لیست یکتای نام پروژه‌ها
-  const uniqueProjects = React.useMemo(() => {
-    if (!data) return [];
-    const projects = [...new Set(data.map(item => item["نام پروژه"]).filter(Boolean))];
-    return projects.sort((a, b) => a.localeCompare(b, 'fa'));
-  }, [data]);
-
-  // گرفتن لیست یکتای نام بازرس‌ها
-  const uniqueInspectors = React.useMemo(() => {
-    if (!data) return [];
-    const inspectors = [...new Set(data.map(item => item["نام بازرس"]).filter(Boolean))];
-    return inspectors.sort((a, b) => a.localeCompare(b, 'fa'));
-  }, [data]);
-
-  // انتخاب/لغو انتخاب همه پروژه‌ها
-  const toggleAllProjects = () => {
-    if (selectedProjects.length === uniqueProjects.length) {
-      setSelectedProjects([]);
+  // انتخاب/لغو انتخاب همه برای فیلتر چک‌باکسی
+  const toggleSelectAll = (columnName, uniqueValues) => {
+    const currentFilter = activeFilters[columnName];
+    if (currentFilter?.type === 'checkbox' && currentFilter.value.length === uniqueValues.length) {
+      // همه انتخاب شده‌اند -> پاک کردن همه
+      const newFilters = { ...activeFilters };
+      delete newFilters[columnName];
+      setActiveFilters(newFilters);
     } else {
-      setSelectedProjects([...uniqueProjects]);
+      // همه را انتخاب کن
+      setActiveFilters({
+        ...activeFilters,
+        [columnName]: { type: 'checkbox', value: [...uniqueValues] }
+      });
     }
   };
 
-  // انتخاب/لغو انتخاب همه بازرس‌ها
-  const toggleAllInspectors = () => {
-    if (selectedInspectors.length === uniqueInspectors.length) {
-      setSelectedInspectors([]);
+  // انتخاب/لغو انتخاب یک آیتم در فیلتر چک‌باکسی
+  const toggleItem = (columnName, itemValue) => {
+    const currentFilter = activeFilters[columnName];
+    let newValues;
+    
+    if (currentFilter?.type === 'checkbox') {
+      if (currentFilter.value.includes(itemValue)) {
+        newValues = currentFilter.value.filter(v => v !== itemValue);
+      } else {
+        newValues = [...currentFilter.value, itemValue];
+      }
     } else {
-      setSelectedInspectors([...uniqueInspectors]);
+      newValues = [itemValue];
     }
+    
+    if (newValues.length === 0) {
+      // اگر چیزی انتخاب نشد، فیلتر رو حذف کن
+      const newFilters = { ...activeFilters };
+      delete newFilters[columnName];
+      setActiveFilters(newFilters);
+    } else {
+      setActiveFilters({
+        ...activeFilters,
+        [columnName]: { type: 'checkbox', value: newValues }
+      });
+    }
+  };
+
+  // تغییر فیلتر متنی
+  const handleTextFilterChange = (columnName, text) => {
+    if (text.trim() === '') {
+      const newFilters = { ...activeFilters };
+      delete newFilters[columnName];
+      setActiveFilters(newFilters);
+    } else {
+      setActiveFilters({
+        ...activeFilters,
+        [columnName]: { type: 'text', value: text }
+      });
+    }
+  };
+
+  // پاک کردن فیلتر یک ستون
+  const clearColumnFilter = (columnName) => {
+    const newFilters = { ...activeFilters };
+    delete newFilters[columnName];
+    setActiveFilters(newFilters);
   };
 
   // پاک کردن همه فیلترها
   const clearAllFilters = () => {
-    setSelectedProjects([]);
-    setSelectedInspectors([]);
-    setRfiFilterText('');
+    setActiveFilters({});
   };
 
   // اعمال sort و filter روی داده‌ها
-  const filteredAndSortedData = React.useMemo(() => {
+  const filteredAndSortedData = useMemo(() => {
     if (!data) return [];
     
     let result = [...data];
     
-    // اعمال فیلتر پروژه
-    if (selectedProjects.length > 0 && selectedProjects.length < uniqueProjects.length) {
-      result = result.filter(item => selectedProjects.includes(item["نام پروژه"]));
-    }
-    
-    // اعمال فیلتر بازرس
-    if (selectedInspectors.length > 0 && selectedInspectors.length < uniqueInspectors.length) {
-      result = result.filter(item => selectedInspectors.includes(item["نام بازرس"]));
-    }
-
-    // اعمال فیلتر RFI
-    if (rfiFilterText.trim() !== '') {
-      result = result.filter(item => 
-        item["شماره RFI"]?.toString().toLowerCase().includes(rfiFilterText.toLowerCase())
-      );
-    }
+    // اعمال فیلترها
+    Object.entries(activeFilters).forEach(([columnName, filter]) => {
+      if (filter.type === 'checkbox' && filter.value.length > 0) {
+        result = result.filter(item => filter.value.includes(item[columnName]));
+      } else if (filter.type === 'text' && filter.value.trim() !== '') {
+        result = result.filter(item => 
+          String(item[columnName] || '').toLowerCase().includes(filter.value.toLowerCase())
+        );
+      }
+    });
     
     // اعمال sort
     if (sortConfig.key) {
       result.sort((a, b) => {
         let aVal = a[sortConfig.key];
         let bVal = b[sortConfig.key];
+        const columnType = getColumnType(sortConfig.key);
 
-        // اگر مقدار عددی است (ستون‌های قیمت)
-        if (['هزینه بازرسی', 'قیمت نهایی', 'مبلغ کل', 'مبلغ ثابت', 'نفر-روز'].includes(sortConfig.key)) {
+        // اگر مقدار عددی است
+        if (columnType === 'number') {
           aVal = aVal || 0;
           bVal = bVal || 0;
           if (sortConfig.direction === 'asc') {
@@ -173,8 +208,8 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
         }
 
         // اگر رشته است
-        aVal = aVal?.toString() || '';
-        bVal = bVal?.toString() || '';
+        aVal = String(aVal || '');
+        bVal = String(bVal || '');
         
         if (sortConfig.direction === 'asc') {
           return aVal.localeCompare(bVal, 'fa');
@@ -185,11 +220,49 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     }
     
     return result;
-  }, [data, sortConfig, selectedProjects, selectedInspectors, uniqueProjects.length, uniqueInspectors.length, rfiFilterText]);
+  }, [data, sortConfig, activeFilters]);
 
-  const activeFiltersCount = (selectedProjects.length > 0 && selectedProjects.length < uniqueProjects.length ? 1 : 0) +
-                           (selectedInspectors.length > 0 && selectedInspectors.length < uniqueInspectors.length ? 1 : 0) +
-                           (rfiFilterText.trim() !== '' ? 1 : 0);
+  // فرمت کردن مقادیر برای نمایش - حذف عبارت ریال
+  const formatCellValue = (value, columnName) => {
+    if (value === null || value === undefined) return '-';
+    
+    const columnType = getColumnType(columnName);
+    
+    // اگر ستون "سال" است، بدون کاما و فرمت عددی نشون بده
+    if (columnName === 'سال') {
+      return String(value);
+    }
+    
+    if (columnType === 'number') {
+      // فقط عدد رو فرمت کن، بدون اضافه کردن "ریال"
+      return new Intl.NumberFormat('fa-IR').format(value);
+    }
+    
+    return String(value);
+  };
+
+  // تشخیص راست‌چین یا چپ‌چین بودن سلول
+  const getCellAlignment = (columnName) => {
+    const columnType = getColumnType(columnName);
+    // برای ستون "سال" راست‌چین باشه بهتره
+    if (columnName === 'سال') {
+      return 'text-right';
+    }
+    return columnType === 'number' ? 'text-left' : 'text-right';
+  };
+
+  // تشخیص نوع فیلتر مناسب برای هر ستون
+  const getFilterTypeForColumn = (columnName) => {
+    // ستون‌هایی که باید فیلتر متنی داشته باشند
+    const textFilterColumns = ['توضیحات', 'کد پرسنلی'];
+    if (textFilterColumns.includes(columnName)) {
+      return 'text';
+    }
+    return 'auto'; // بقیه ستون‌ها بر اساس تعداد مقادیر یکتا تصمیم‌گیری می‌شوند
+  };
+
+  // تعداد فیلترهای فعال
+  const activeFiltersCount = Object.keys(activeFilters).length;
 
   if (isLoading) {
     return (
@@ -237,6 +310,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-blue-600 to-blue-500 sticky top-0 z-10 shadow-sm">
                 <tr>
+                  {/* ستون ردیف */}
                   <th 
                     scope="col" 
                     className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap"
@@ -247,313 +321,232 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                     </div>
                   </th>
                   
-                  {/* ستون نام پروژه با فیلتر چک‌باکسی */}
-                  <th 
-                    scope="col" 
-                    className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap relative"
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>نام پروژه</span>
-                      <div className="relative" ref={projectFilterRef}>
-                        <button
-                          onClick={() => setShowProjectFilter(!showProjectFilter)}
-                          className={`p-1 rounded transition-colors duration-200 ${
-                            selectedProjects.length > 0 && selectedProjects.length < uniqueProjects.length
-                              ? 'bg-blue-700 text-yellow-300'
-                              : 'hover:bg-blue-700 text-white'
-                          }`}
-                          title="فیلتر پروژه"
-                        >
-                          <FaFilter className="text-xs" />
-                        </button>
-                        
-                        {/* Dropdown فیلتر پروژه */}
-                        {showProjectFilter && (
-                          <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[250px] max-h-[300px] overflow-y-auto">
-                            <div className="p-2 border-b border-gray-200">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-700">انتخاب پروژه</span>
-                                <button
-                                  onClick={() => setShowProjectFilter(false)}
-                                  className="text-gray-500 hover:text-gray-700"
+                  {/* ستون‌های داینامیک */}
+                  {columnNames.map((columnName, index) => {
+                    const columnType = getColumnType(columnName);
+                    const uniqueValues = columnType === 'string' ? getUniqueValues(columnName) : [];
+                    const activeFilter = activeFilters[columnName];
+                    const isFilterActive = activeFilter !== undefined;
+                    const isCheckboxFilter = activeFilter?.type === 'checkbox';
+                    const isTextFilter = activeFilter?.type === 'text';
+                    
+                    // تعیین نوع فیلتر مناسب برای این ستون
+                    const filterType = getFilterTypeForColumn(columnName);
+                    
+                    return (
+                      <th 
+                        key={index}
+                        scope="col" 
+                        className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap relative"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>{columnName}</span>
+                          
+                          {/* دکمه فیلتر - بر اساس نوع فیلتر تعیین شده */}
+                          {columnType === 'string' && (
+                            <>
+                              {/* اگر فیلتر متنی اجباری است */}
+                              {filterType === 'text' && (
+                                <div 
+                                  className="relative" 
+                                  ref={el => filterRefs.current[columnName] = el}
                                 >
-                                  <FaTimes className="text-xs" />
-                                </button>
-                              </div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <label className="flex items-center gap-1 text-xs">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedProjects.length === uniqueProjects.length}
-                                    onChange={toggleAllProjects}
-                                    className="rounded border-gray-300 text-blue-600"
-                                  />
-                                  <span>انتخاب همه</span>
-                                </label>
-                                {selectedProjects.length > 0 && (
                                   <button
-                                    onClick={() => setSelectedProjects([])}
-                                    className="text-red-600 hover:text-red-800 text-xs mr-auto"
+                                    onClick={() => setOpenFilter(openFilter === columnName ? null : columnName)}
+                                    className={`p-1 rounded transition-colors duration-200 ${
+                                      isFilterActive
+                                        ? 'bg-blue-700 text-yellow-300'
+                                        : 'hover:bg-blue-700 text-white'
+                                    }`}
+                                    title={`جستجو در ${columnName}`}
                                   >
-                                    پاک کردن
+                                    <FaSearch className="text-xs" />
                                   </button>
-                                )}
-                              </div>
-                            </div>
-                            <div className="p-2">
-                              {uniqueProjects.map(project => (
-                                <label key={project} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedProjects.includes(project)}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        setSelectedProjects([...selectedProjects, project]);
-                                      } else {
-                                        setSelectedProjects(selectedProjects.filter(p => p !== project));
-                                      }
-                                    }}
-                                    className="rounded border-gray-300 text-blue-600"
-                                  />
-                                  <span className="text-xs text-gray-700">{project}</span>
-                                </label>
-                              ))}
-                            </div>
+                                  
+                                  {/* Dropdown فیلتر متنی */}
+                                  {openFilter === columnName && (
+                                    <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[250px]">
+                                      <div className="p-2 border-b border-gray-200">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <span className="text-xs font-semibold text-gray-700">جستجوی {columnName}</span>
+                                          <button
+                                            onClick={() => setOpenFilter(null)}
+                                            className="text-gray-500 hover:text-gray-700"
+                                          >
+                                            <FaTimes className="text-xs" />
+                                          </button>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <input
+                                            type="text"
+                                            value={isTextFilter ? activeFilter.value : ''}
+                                            onChange={(e) => handleTextFilterChange(columnName, e.target.value)}
+                                            placeholder={`جستجوی ${columnName}...`}
+                                            className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white text-right"
+                                            autoFocus
+                                          />
+                                          {isFilterActive && (
+                                            <button
+                                              onClick={() => clearColumnFilter(columnName)}
+                                              className="text-red-600 hover:text-red-800 text-xs whitespace-nowrap"
+                                            >
+                                              پاک کردن
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* اگر فیلتر خودکار و تعداد مقادیر کم است */}
+                              {filterType === 'auto' && uniqueValues.length <= 20 && (
+                                <div 
+                                  className="relative" 
+                                  ref={el => filterRefs.current[columnName] = el}
+                                >
+                                  <button
+                                    onClick={() => setOpenFilter(openFilter === columnName ? null : columnName)}
+                                    className={`p-1 rounded transition-colors duration-200 ${
+                                      isFilterActive
+                                        ? 'bg-blue-700 text-yellow-300'
+                                        : 'hover:bg-blue-700 text-white'
+                                    }`}
+                                    title={`فیلتر ${columnName}`}
+                                  >
+                                    <FaFilter className="text-xs" />
+                                  </button>
+                                  
+                                  {/* Dropdown فیلتر چک‌باکسی */}
+                                  {openFilter === columnName && (
+                                    <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[250px] max-h-[300px] overflow-y-auto">
+                                      <div className="p-2 border-b border-gray-200">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <span className="text-xs font-semibold text-gray-700">انتخاب {columnName}</span>
+                                          <button
+                                            onClick={() => setOpenFilter(null)}
+                                            className="text-gray-500 hover:text-gray-700"
+                                          >
+                                            <FaTimes className="text-xs" />
+                                          </button>
+                                        </div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <label className="flex items-center gap-1 text-xs">
+                                            <input
+                                              type="checkbox"
+                                              checked={isFilterActive && isCheckboxFilter && activeFilter.value.length === uniqueValues.length}
+                                              onChange={() => toggleSelectAll(columnName, uniqueValues)}
+                                              className="rounded border-gray-300 text-blue-600"
+                                            />
+                                            <span>انتخاب همه</span>
+                                          </label>
+                                          {isFilterActive && (
+                                            <button
+                                              onClick={() => clearColumnFilter(columnName)}
+                                              className="text-red-600 hover:text-red-800 text-xs mr-auto"
+                                            >
+                                              پاک کردن
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="p-2">
+                                        {uniqueValues.map(value => (
+                                          <label key={value} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                                            <input
+                                              type="checkbox"
+                                              checked={isCheckboxFilter && activeFilter.value.includes(value)}
+                                              onChange={() => toggleItem(columnName, value)}
+                                              className="rounded border-gray-300 text-blue-600"
+                                            />
+                                            <span className="text-xs text-gray-700">{String(value)}</span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* اگر فیلتر خودکار و تعداد مقادیر زیاد است */}
+                              {filterType === 'auto' && uniqueValues.length > 20 && (
+                                <div 
+                                  className="relative" 
+                                  ref={el => filterRefs.current[columnName] = el}
+                                >
+                                  <button
+                                    onClick={() => setOpenFilter(openFilter === columnName ? null : columnName)}
+                                    className={`p-1 rounded transition-colors duration-200 ${
+                                      isFilterActive
+                                        ? 'bg-blue-700 text-yellow-300'
+                                        : 'hover:bg-blue-700 text-white'
+                                    }`}
+                                    title={`جستجو در ${columnName}`}
+                                  >
+                                    <FaSearch className="text-xs" />
+                                  </button>
+                                  
+                                  {/* Dropdown فیلتر متنی */}
+                                  {openFilter === columnName && (
+                                    <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[250px]">
+                                      <div className="p-2 border-b border-gray-200">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <span className="text-xs font-semibold text-gray-700">جستجوی {columnName}</span>
+                                          <button
+                                            onClick={() => setOpenFilter(null)}
+                                            className="text-gray-500 hover:text-gray-700"
+                                          >
+                                            <FaTimes className="text-xs" />
+                                          </button>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <input
+                                            type="text"
+                                            value={isTextFilter ? activeFilter.value : ''}
+                                            onChange={(e) => handleTextFilterChange(columnName, e.target.value)}
+                                            placeholder={`جستجوی ${columnName}...`}
+                                            className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white text-right"
+                                            autoFocus
+                                          />
+                                          {isFilterActive && (
+                                            <button
+                                              onClick={() => clearColumnFilter(columnName)}
+                                              className="text-red-600 hover:text-red-800 text-xs whitespace-nowrap"
+                                            >
+                                              پاک کردن
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
+                          
+                          {/* دکمه sort */}
+                          <button
+                            onClick={() => handleSort(columnName)}
+                            className="p-1 rounded hover:bg-blue-700 transition-colors"
+                          >
+                            {getSortIcon(columnName)}
+                          </button>
+                        </div>
+                        
+                        {/* نمایش وضعیت فیلتر فعال */}
+                        {isFilterActive && (
+                          <div className="text-[10px] text-yellow-300 mt-0.5">
+                            {isCheckboxFilter && `${activeFilter.value.length} انتخاب`}
+                            {isTextFilter && `شامل: ${activeFilter.value}`}
                           </div>
                         )}
-                      </div>
-                      <button
-                        onClick={() => handleSort('نام پروژه')}
-                        className="p-1 rounded hover:bg-blue-700 transition-colors"
-                      >
-                        {getSortIcon('نام پروژه')}
-                      </button>
-                    </div>
-                    {selectedProjects.length > 0 && selectedProjects.length < uniqueProjects.length && (
-                      <div className="text-[10px] text-yellow-300 mt-0.5">
-                        {selectedProjects.length} انتخاب
-                      </div>
-                    )}
-                  </th>
+                      </th>
+                    );
+                  })}
                   
-                  {/* ستون شماره RFI با فیلتر متنی */}
-                  <th 
-                    scope="col" 
-                    className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap relative"
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>شماره RFI</span>
-                      <div className="relative" ref={rfiFilterRef}>
-                        <button
-                          onClick={() => setShowRfiFilter(!showRfiFilter)}
-                          className={`p-1 rounded transition-colors duration-200 ${
-                            rfiFilterText.trim() !== ''
-                              ? 'bg-blue-700 text-yellow-300'
-                              : 'hover:bg-blue-700 text-white'
-                          }`}
-                          title="فیلتر شماره RFI"
-                        >
-                          <FaSearch className="text-xs" />
-                        </button>
-                        
-                        {/* Dropdown فیلتر RFI */}
-                        {showRfiFilter && (
-                          <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[250px]">
-                            <div className="p-2 border-b border-gray-200">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-700">جستجوی شماره RFI</span>
-                                <button
-                                  onClick={() => setShowRfiFilter(false)}
-                                  className="text-gray-500 hover:text-gray-700"
-                                >
-                                  <FaTimes className="text-xs" />
-                                </button>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={rfiFilterText}
-                                  onChange={(e) => setRfiFilterText(e.target.value)}
-                                  placeholder="مثال: FAH-INS-..."
-                                  className="w-full text-gray-700 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
-                                  autoFocus
-                                />
-                                {rfiFilterText.trim() !== '' && (
-                                  <button
-                                    onClick={() => setRfiFilterText('')}
-                                    className="text-red-600 hover:text-red-800 text-xs"
-                                  >
-                                    پاک کردن
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleSort('شماره RFI')}
-                        className="p-1 rounded hover:bg-blue-700 transition-colors"
-                      >
-                        {getSortIcon('شماره RFI')}
-                      </button>
-                    </div>
-                    {rfiFilterText.trim() !== '' && (
-                      <div className="text-[10px] text-yellow-300 mt-0.5">
-                        فیلتر: {rfiFilterText}
-                      </div>
-                    )}
-                  </th>
-                  
-                  {/* ستون نام بازرس با فیلتر چک‌باکسی */}
-                  <th 
-                    scope="col" 
-                    className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap relative"
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>نام بازرس</span>
-                      <div className="relative" ref={inspectorFilterRef}>
-                        <button
-                          onClick={() => setShowInspectorFilter(!showInspectorFilter)}
-                          className={`p-1 rounded transition-colors duration-200 ${
-                            selectedInspectors.length > 0 && selectedInspectors.length < uniqueInspectors.length
-                              ? 'bg-blue-700 text-yellow-300'
-                              : 'hover:bg-blue-700 text-white'
-                          }`}
-                          title="فیلتر بازرس"
-                        >
-                          <FaFilter className="text-xs" />
-                        </button>
-                        
-                        {/* Dropdown فیلتر بازرس */}
-                        {showInspectorFilter && (
-                          <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[250px] max-h-[300px] overflow-y-auto">
-                            <div className="p-2 border-b border-gray-200">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-700">انتخاب بازرس</span>
-                                <button
-                                  onClick={() => setShowInspectorFilter(false)}
-                                  className="text-gray-500 hover:text-gray-700"
-                                >
-                                  <FaTimes className="text-xs" />
-                                </button>
-                              </div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <label className="flex items-center gap-1 text-xs">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedInspectors.length === uniqueInspectors.length}
-                                    onChange={toggleAllInspectors}
-                                    className="rounded border-gray-300 text-blue-600"
-                                  />
-                                  <span>انتخاب همه</span>
-                                </label>
-                                {selectedInspectors.length > 0 && (
-                                  <button
-                                    onClick={() => setSelectedInspectors([])}
-                                    className="text-red-600 hover:text-red-800 text-xs mr-auto"
-                                  >
-                                    پاک کردن
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            <div className="p-2">
-                              {uniqueInspectors.map(inspector => (
-                                <label key={inspector} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedInspectors.includes(inspector)}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        setSelectedInspectors([...selectedInspectors, inspector]);
-                                      } else {
-                                        setSelectedInspectors(selectedInspectors.filter(i => i !== inspector));
-                                      }
-                                    }}
-                                    className="rounded border-gray-300 text-blue-600"
-                                  />
-                                  <span className="text-xs text-gray-700">{inspector}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleSort('نام بازرس')}
-                        className="p-1 rounded hover:bg-blue-700 transition-colors"
-                      >
-                        {getSortIcon('نام بازرس')}
-                      </button>
-                    </div>
-                    {selectedInspectors.length > 0 && selectedInspectors.length < uniqueInspectors.length && (
-                      <div className="text-[10px] text-yellow-300 mt-0.5">
-                        {selectedInspectors.length} انتخاب
-                      </div>
-                    )}
-                  </th>
-                  
-                  <th 
-                    scope="col" 
-                    className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-700 transition-colors"
-                    onClick={() => handleSort('تاریخ شمسی')}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>تاریخ شمسی</span>
-                      {getSortIcon('تاریخ شمسی')}
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-700 transition-colors"
-                    onClick={() => handleSort('نفر-روز')}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>نفر-روز</span>
-                      {getSortIcon('نفر-روز')}
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-700 transition-colors"
-                    onClick={() => handleSort('هزینه بازرسی')}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>هزینه بازرسی</span>
-                      {getSortIcon('هزینه بازرسی')}
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-700 transition-colors"
-                    onClick={() => handleSort('قیمت نهایی')}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>قیمت نهایی</span>
-                      {getSortIcon('قیمت نهایی')}
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-700 transition-colors"
-                    onClick={() => handleSort('مبلغ کل')}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>مبلغ کل</span>
-                      {getSortIcon('مبلغ کل')}
-                    </div>
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-700 transition-colors"
-                    onClick={() => handleSort('مبلغ ثابت')}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>مبلغ ثابت</span>
-                      {getSortIcon('مبلغ ثابت')}
-                    </div>
-                  </th>
+                  {/* ستون عملیات ثابت */}
                   <th 
                     scope="col" 
                     className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap"
@@ -564,40 +557,30 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredAndSortedData.map((item, index) => (
-                  <tr key={`${item["شماره RFI"]}-${index}`} className="hover:bg-gray-50">
+                  <tr key={`${item["شماره RFI"] || index}-${index}`} className="hover:bg-gray-50">
+                    {/* ستون ردیف */}
                     <td 
                       className="px-3 py-2 whitespace-nowrap text-xs text-gray-900"
                       style={{ paddingRight: '24px' }}
                     >
                       {index + 1}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
-                      {item["نام پروژه"] || '-'}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900 font-mono">
-                      {item["شماره RFI"] || '-'}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
-                      {item["نام بازرس"] || '-'}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
-                      {formatDate(item["تاریخ شمسی"])}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900 text-center">
-                      {item["نفر-روز"] || '-'}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900 text-left">
-                      {formatPrice(item["هزینه بازرسی"])}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900 text-left">
-                      {formatPrice(item["قیمت نهایی"])}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900 text-left">
-                      {formatPrice(item["مبلغ کل"])}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900 text-left">
-                      {formatPrice(item["مبلغ ثابت"])}
-                    </td>
+                    
+                    {/* سلول‌های دیتا */}
+                    {columnNames.map((columnName, colIndex) => (
+                      <td 
+                        key={colIndex}
+                        className={`px-3 py-2 whitespace-nowrap text-xs text-gray-900 ${getCellAlignment(columnName)}`}
+                      >
+                        {columnName === 'شماره RFI' ? (
+                          <span className="font-mono">{formatCellValue(item[columnName], columnName)}</span>
+                        ) : (
+                          formatCellValue(item[columnName], columnName)
+                        )}
+                      </td>
+                    ))}
+                    
+                    {/* ستون عملیات */}
                     <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
                       <div className="flex items-center gap-2">
                         <button
@@ -624,35 +607,31 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
         </div>
       </div>
       
-      {/* خلاصه فیلترها و جمع کل */}
+      {/* خلاصه فیلترها و جمع کل - با فرمت عددی بدون ریال */}
       <div className="bg-gray-50 px-3 py-2 border-t border-gray-200">
         <div className="flex justify-between items-center">
           {activeFiltersCount > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-blue-600 font-semibold">فیلترهای فعال:</span>
               <div className="flex gap-1 flex-wrap">
-                {selectedProjects.length > 0 && selectedProjects.length < uniqueProjects.length && (
-                  <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
-                    پروژه: {selectedProjects.length} مورد
+                {Object.entries(activeFilters).map(([columnName, filter]) => (
+                  <span key={columnName} className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs flex items-center gap-1">
+                    {columnName}: {filter.type === 'checkbox' ? `${filter.value.length} مورد` : filter.value}
+                    <button
+                      onClick={() => clearColumnFilter(columnName)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <FaTimes className="text-[10px]" />
+                    </button>
                   </span>
-                )}
-                {selectedInspectors.length > 0 && selectedInspectors.length < uniqueInspectors.length && (
-                  <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
-                    بازرس: {selectedInspectors.length} مورد
-                  </span>
-                )}
-                {rfiFilterText.trim() !== '' && (
-                  <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
-                    RFI: {rfiFilterText}
-                  </span>
-                )}
+                ))}
               </div>
               <button
                 onClick={clearAllFilters}
                 className="text-red-600 hover:text-red-800 text-xs flex items-center gap-1 mr-2"
               >
                 <FaTimes className="text-xs" />
-                حذف فیلترها
+                حذف همه
               </button>
             </div>
           )}
@@ -664,7 +643,18 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
             <div>
               <span className="font-medium text-gray-600">جمع کل: </span>
               <span className="text-gray-900">
-                {formatPrice(filteredAndSortedData.reduce((sum, item) => sum + (item["مبلغ کل"] || 0), 0))}
+                {new Intl.NumberFormat('fa-IR').format(
+                  filteredAndSortedData.reduce((sum, item) => {
+                    // سعی می‌کنیم ستون "مبلغ کل" یا هر ستون عددی دیگه‌ای رو پیدا کنیم
+                    const possibleSumColumns = ['مبلغ کل', 'قیمت نهایی', 'هزینه بازرسی'];
+                    for (const col of possibleSumColumns) {
+                      if (item[col] !== undefined) {
+                        return sum + (item[col] || 0);
+                      }
+                    }
+                    return sum;
+                  }, 0)
+                )}
               </span>
             </div>
           </div>
