@@ -919,152 +919,157 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   };
 
   // ========== useEffect اصلی با منطق جدید بر اساس IDRE ==========
-  useEffect(() => {
-    if (isOpen) {
-      const reportSource = reportInfo || rfiData;
+// src/components/ui/AddReportModal/AddReportModal.jsx - خط حدود 705
 
-      // **تغییر اینجا - بررسی وجود IDRE به جای Report_No**
-      const hasValidReport =
-        reportInfo && // اول باید reportInfo وجود داشته باشه
-        reportInfo.IDRE && // بعد IDRE داشته باشه
-        reportInfo.IDRE > 0; // و بزرگتر از صفر باشه
+useEffect(() => {
+  if (isOpen) {
+    const reportSource = reportInfo || rfiData;
 
-      const todayPersianDate = convertToPersianDate(new Date());
+    // **اصلاح شده: اگر reportInfo وجود نداشت یا 404 خورد، reportInfo = null هست**
+    // پس hasValidReport فقط وقتی true هست که reportInfo واقعاً وجود داشته باشه و IDRE داشته باشه
+    const hasValidReport =
+      reportInfo && // اول باید reportInfo وجود داشته باشه (یعنی API response داده)
+      reportInfo.IDRE && // بعد IDRE داشته باشه
+      reportInfo.IDRE > 0; // و بزرگتر از صفر باشه
 
-      // اگر گزارش معتبر داریم
-      if (hasValidReport) {
-        const englishStatus = reportSource.Doc_Status || "Acc";
+    console.log('📊 AddReportModal - hasValidReport:', hasValidReport, 'reportInfo:', reportInfo);
 
-        let initialStatusValue = "Acc";
+    const todayPersianDate = convertToPersianDate(new Date());
 
-        if (statusesData && Object.values(statusesData).length > 0) {
-          const exactMatch = Object.values(statusesData).find(
-            (status) => status === englishStatus
+    // اگر گزارش معتبر داریم
+    if (hasValidReport) {
+      const englishStatus = reportSource.Doc_Status || "Acc";
+
+      let initialStatusValue = "Acc";
+
+      if (statusesData && Object.values(statusesData).length > 0) {
+        const exactMatch = Object.values(statusesData).find(
+          (status) => status === englishStatus
+        );
+
+        if (exactMatch) {
+          initialStatusValue = exactMatch;
+        }
+        else {
+          const caseInsensitiveMatch = Object.values(statusesData).find(
+            (status) => status.toLowerCase() === englishStatus.toLowerCase()
           );
 
-          if (exactMatch) {
-            initialStatusValue = exactMatch;
+          if (caseInsensitiveMatch) {
+            initialStatusValue = caseInsensitiveMatch;
           }
           else {
-            const caseInsensitiveMatch = Object.values(statusesData).find(
-              (status) => status.toLowerCase() === englishStatus.toLowerCase()
+            const partialMatch = Object.values(statusesData).find(
+              (status) =>
+                status.toLowerCase().includes(englishStatus.toLowerCase()) ||
+                englishStatus.toLowerCase().includes(status.toLowerCase())
             );
 
-            if (caseInsensitiveMatch) {
-              initialStatusValue = caseInsensitiveMatch;
-            }
-            else {
-              const partialMatch = Object.values(statusesData).find(
-                (status) =>
-                  status.toLowerCase().includes(englishStatus.toLowerCase()) ||
-                  englishStatus.toLowerCase().includes(status.toLowerCase())
-              );
-
-              if (partialMatch) {
-                initialStatusValue = partialMatch;
-              } else {
-                initialStatusValue = Object.values(statusesData)[0];
-              }
+            if (partialMatch) {
+              initialStatusValue = partialMatch;
+            } else {
+              initialStatusValue = Object.values(statusesData)[0];
             }
           }
         }
-
-        const initialRow = {
-          id: 1,
-          reportNumber: reportSource.Report_No || "",
-          revNumber: reportSource.RevNO || "",
-          status: initialStatusValue,
-          statusEnglish: initialStatusValue,
-          corrections: reportSource.Remark || "",
-          receivedDate: convertToPersianDate(
-            reportSource.ReportReceivedDate || reportSource.IssueDate
-          ),
-          approvedDays: reportSource.App_manday_1stPrice || "",
-          unitNumber: reportSource.UnitNo || "",
-          vendorName: reportSource.VendorName || "",
-          irn: (reportSource.IRNNO && reportSource.IRNNO.trim() !== "") 
-          ? reportSource.IRNNO 
-          : "",
-          srn: reportSource.SRNNo || "",
-          firstPrice: reportSource.first_price || "80000000",
-          rfiNumbering: reportSource.RFI_Numbering || "",
-          issueDate:
-            reportSource.IssueDate || new Date().toISOString().split("T")[0],
-        };
-
-        setReportRows([initialRow]);
-
-        initialDataRef.current = {
-          reportRows: [
-            {
-              reportNumber: initialRow.reportNumber || "",
-              revNumber: initialRow.revNumber || "",
-              status: initialRow.status || "Acc",
-              statusEnglish: initialRow.statusEnglish || "Acc",
-              corrections: initialRow.corrections || "",
-              receivedDate: convertToString(initialRow.receivedDate),
-              approvedDays: convertToString(initialRow.approvedDays),
-              unitNumber: initialRow.unitNumber || "",
-              vendorName: initialRow.vendorName || "",
-              irn: initialRow.irn || "",
-              srn: initialRow.srn || "",
-              firstPrice: convertToString(initialRow.firstPrice),
-              rfiNumbering: initialRow.rfiNumbering || "",
-            },
-          ],
-        };
-
-      } else {
-        // اگر گزارش معتبر نداریم
-        const defaultStatus =
-          statusesData && Object.values(statusesData).length > 0
-            ? Object.values(statusesData)[0]
-            : "Acc";
-
-        const newRow = {
-          id: 1,
-          reportNumber: "",
-          revNumber: "",
-          status: defaultStatus,
-          statusEnglish: defaultStatus,
-          corrections: "",
-          receivedDate: todayPersianDate,
-          approvedDays: "",
-          unitNumber: "",
-          vendorName: rfiData?.VendorName || "",
-          irn: "", 
-          srn: "",
-          firstPrice: "80000000",
-          rfiNumbering: rfiData?.RFI_Numbering || "",
-          issueDate: new Date().toISOString().split("T")[0],
-        };
-
-        setReportRows([newRow]);
-
-        initialDataRef.current = {
-          reportRows: [
-            {
-              reportNumber: newRow.reportNumber || "",
-              revNumber: newRow.revNumber || "",
-              status: newRow.status || "Acc",
-              statusEnglish: newRow.statusEnglish || "Acc",
-              corrections: newRow.corrections || "",
-              receivedDate: convertToString(newRow.receivedDate),
-              approvedDays: convertToString(newRow.approvedDays),
-              unitNumber: newRow.unitNumber || "",
-              vendorName: newRow.vendorName || "",
-              irn: newRow.irn || "",
-              srn: newRow.srn || "",
-              firstPrice: convertToString(newRow.firstPrice),
-              rfiNumbering: newRow.rfiNumbering || "",
-            },
-          ],
-        };
       }
 
-      setHasChanges(false);
+      const initialRow = {
+        id: 1,
+        reportNumber: reportSource.Report_No || "",
+        revNumber: reportSource.RevNO || "",
+        status: initialStatusValue,
+        statusEnglish: initialStatusValue,
+        corrections: reportSource.Remark || "",
+        receivedDate: convertToPersianDate(
+          reportSource.ReportReceivedDate || reportSource.IssueDate
+        ),
+        approvedDays: reportSource.App_manday_1stPrice || "",
+        unitNumber: reportSource.UnitNo || "",
+        vendorName: reportSource.VendorName || "",
+        irn: (reportSource.IRNNO && reportSource.IRNNO.trim() !== "") 
+        ? reportSource.IRNNO 
+        : "",
+        srn: reportSource.SRNNo || "",
+        firstPrice: reportSource.first_price || "80000000",
+        rfiNumbering: reportSource.RFI_Numbering || "",
+        issueDate:
+          reportSource.IssueDate || new Date().toISOString().split("T")[0],
+      };
+
+      setReportRows([initialRow]);
+
+      initialDataRef.current = {
+        reportRows: [
+          {
+            reportNumber: initialRow.reportNumber || "",
+            revNumber: initialRow.revNumber || "",
+            status: initialRow.status || "Acc",
+            statusEnglish: initialRow.statusEnglish || "Acc",
+            corrections: initialRow.corrections || "",
+            receivedDate: convertToString(initialRow.receivedDate),
+            approvedDays: convertToString(initialRow.approvedDays),
+            unitNumber: initialRow.unitNumber || "",
+            vendorName: initialRow.vendorName || "",
+            irn: initialRow.irn || "",
+            srn: initialRow.srn || "",
+            firstPrice: convertToString(initialRow.firstPrice),
+            rfiNumbering: initialRow.rfiNumbering || "",
+          },
+        ],
+      };
+
+    } else {
+      // اگر گزارش معتبر نداریم (reportInfo = null یا 404 خورده)
+      const defaultStatus =
+        statusesData && Object.values(statusesData).length > 0
+          ? Object.values(statusesData)[0]
+          : "Acc";
+
+      const newRow = {
+        id: 1,
+        reportNumber: rfiData?.Report_No === "************" ? "" : rfiData?.Report_No || "",
+        revNumber: "",
+        status: defaultStatus,
+        statusEnglish: defaultStatus,
+        corrections: "",
+        receivedDate: todayPersianDate,
+        approvedDays: "",
+        unitNumber: "",
+        vendorName: rfiData?.VendorName || "",
+        irn: "", 
+        srn: "",
+        firstPrice: "80000000",
+        rfiNumbering: rfiData?.RFI_Numbering || "",
+        issueDate: new Date().toISOString().split("T")[0],
+      };
+
+      setReportRows([newRow]);
+
+      initialDataRef.current = {
+        reportRows: [
+          {
+            reportNumber: newRow.reportNumber || "",
+            revNumber: newRow.revNumber || "",
+            status: newRow.status || "Acc",
+            statusEnglish: newRow.statusEnglish || "Acc",
+            corrections: newRow.corrections || "",
+            receivedDate: convertToString(newRow.receivedDate),
+            approvedDays: convertToString(newRow.approvedDays),
+            unitNumber: newRow.unitNumber || "",
+            vendorName: newRow.vendorName || "",
+            irn: newRow.irn || "",
+            srn: newRow.srn || "",
+            firstPrice: convertToString(newRow.firstPrice),
+            rfiNumbering: newRow.rfiNumbering || "",
+          },
+        ],
+      };
     }
-  }, [isOpen, rfiData, reportInfo, nextIRN, statusesData]);
+
+    setHasChanges(false);
+  }
+}, [isOpen, rfiData, reportInfo, nextIRN, statusesData]);
 
   // ========== رندر ==========
 

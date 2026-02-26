@@ -21,19 +21,27 @@ export const reportKeys = {
 // در تابع useReportInfo:
 
 // src/hooks/useCreateReport.js
+// src/hooks/useCreateReport.js - خط حدود 20
+
 export const useReportInfo = (rfiNumbering, reportNumber = null) => {
   return useQuery({
     queryKey: ["report-info", rfiNumbering, reportNumber],
     queryFn: () => reportService.getReportInfo(rfiNumbering, reportNumber),
+    // **اصلاح شده: حتی اگر reportNumber "************" باشه، فعال باشه**
     enabled: !!(
-      reportNumber &&
-      reportNumber !== "************" &&
-      reportNumber.trim() !== ""
-    ), // اینجا باید reportNumber باشه
+      rfiNumbering && // حتماً rfiNumbering داشته باشیم
+      reportNumber && // reportNumber خالی نباشه
+      reportNumber.trim() !== "" // و رشته خالی نباشه
+    ),
     staleTime: 5 * 60 * 1000,
     retry: 1,
     onError: (error) => {
-      console.error("Error fetching report info:", error);
+      // خطای 404 رو نادیده بگیر - یعنی گزارش وجود نداره
+      if (error.response?.status === 404) {
+        console.log("ℹ️ No report found for this RFI");
+      } else {
+        console.error("Error fetching report info:", error);
+      }
     },
   });
 };

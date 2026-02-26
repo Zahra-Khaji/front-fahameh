@@ -1085,20 +1085,17 @@ const RFIReportTable = () => {
     }
   };
 
-  const handleOpenReportModal = (item) => {
-    const hasExistingReport =
-      item.Report_No &&
-      item.Report_No.trim() !== "" &&
-      item.Report_No !== "************";
+// src/components/rfi/RFIReportTable.jsx - خط حدود 265
 
-    setSelectedReportRFI(item);
-
-    if (!hasExistingReport) {
-      setShowReportModal(true);
-    } else {
-      setShowReportModal(true);
-    }
-  };
+const handleOpenReportModal = (item) => {
+  // حتی اگر Report_No === "************" باشه، باز هم item رو ست می‌کنیم
+  // تا AddReportModal بدون reportInfo باز بشه
+  setSelectedReportRFI(item);
+  setShowReportModal(true);
+  
+  // نیازی به چک کردن hasExistingReport نیست، 
+  // AddReportModal خودش تشخیص میده که reportInfo داریم یا نه
+};
 
   const handleColumnFilterChange = (columnKey, value) => {
     setColumnFilters((prev) => ({
