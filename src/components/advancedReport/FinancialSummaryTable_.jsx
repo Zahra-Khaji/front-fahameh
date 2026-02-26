@@ -1,40 +1,22 @@
 // src/components/reports/FinancialSummaryTable.jsx
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { 
-  FaTrash, FaSort, FaSortUp, FaSortDown, 
-  FaFilter, FaTimes, FaSearch, FaSave ,FaEdit 
-} from 'react-icons/fa';
+import { FaTrash, FaEdit, FaSort, FaSortUp, FaSortDown, FaFilter, FaTimes, FaSearch } from 'react-icons/fa';
 import { formatCurrency } from '../../utils/helpers';
-import FinancialSaveConfirmationPopover from './FinancialSaveConfirmationPopover';
-import { toast } from 'react-hot-toast';
 
 const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [isTableReady, setIsTableReady] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [activeFilters, setActiveFilters] = useState({});
-  const [openFilter, setOpenFilter] = useState(null);
-  const [editingCell, setEditingCell] = useState(null); // { rowIndex, columnName }
-  const [editedValue, setEditedValue] = useState('');
-  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  
-  // state محلی برای داده‌ها (برای دمو)
-  const [localData, setLocalData] = useState(data);
+  const [activeFilters, setActiveFilters] = useState({}); // { columnName: { type: 'checkbox'|'text', value: []|string } }
+  const [openFilter, setOpenFilter] = useState(null); // نام ستونی که فیلترش باز است
   
   const scrollContainerRef = useRef(null);
   const tableWrapperRef = useRef(null);
   const filterRefs = useRef({});
-  const inputRefs = useRef({});
-
-  // به‌روزرسانی localData وقتی prop.data تغییر می‌کنه
-  useEffect(() => {
-    setLocalData(data);
-  }, [data]);
 
   // تنظیم موقعیت اسکرول افقی به ابتدا (راست) در بارگذاری اولیه
   useEffect(() => {
-    if (scrollContainerRef.current && localData && localData.length > 0) {
+    if (scrollContainerRef.current && data && data.length > 0) {
       if (isInitialLoad) {
         requestAnimationFrame(() => {
           if (scrollContainerRef.current) {
@@ -47,19 +29,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
         });
       }
     }
-  }, [localData, isInitialLoad]);
-
-  // فوکوس خودکار روی اینپوت وقتی ویرایش فعال میشه
-  useEffect(() => {
-    if (editingCell) {
-      const inputKey = `${editingCell.rowIndex}-${editingCell.columnName}`;
-      setTimeout(() => {
-        if (inputRefs.current[inputKey]) {
-          inputRefs.current[inputKey].focus();
-        }
-      }, 50);
-    }
-  }, [editingCell]);
+  }, [data, isInitialLoad]);
 
   // بستن فیلترها با کلیک خارج
   useEffect(() => {
@@ -75,30 +45,33 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
 
   // استخراج اسامی ستون‌ها از دیتا
   const columnNames = useMemo(() => {
-    if (!localData || localData.length === 0) return [];
-    return Object.keys(localData[0]);
-  }, [localData]);
+    if (!data || data.length === 0) return [];
+    // گرفتن کلیدهای اولین آیتم
+    return Object.keys(data[0]);
+  }, [data]);
 
   // تشخیص نوع ستون (عددی یا متنی)
   const getColumnType = (columnName) => {
-    if (!localData || localData.length === 0) return 'string';
+    if (!data || data.length === 0) return 'string';
     
-    const numericColumns = ['نفر-روز', 'هزینه بازرسی', 'قیمت نهایی', 'مبلغ کل', 'مبلغ ثابت', 'تعداد روز تایید نهایی', 'جمع کارکرد اعداد ثابت'];
+    // ستون‌های خاص که می‌دانیم عددی هستند
+    const numericColumns = ['نفر-روز', 'هزینه بازرسی', 'قیمت نهایی', 'مبلغ کل', 'مبلغ ثابت'];
     if (numericColumns.includes(columnName)) {
       return 'number';
     }
     
-    const sample = localData[0]?.[columnName];
+    // بررسی نمونه‌ای از داده
+    const sample = data[0]?.[columnName];
     if (typeof sample === 'number') return 'number';
     if (sample && !isNaN(parseFloat(sample)) && isFinite(sample)) return 'number';
     
     return 'string';
   };
 
-  // گرفتن مقادیر یکتا برای ستون‌های متنی
+  // گرفتن مقادیر یکتا برای ستون‌های متنی (برای فیلتر چک‌باکسی)
   const getUniqueValues = (columnName) => {
-    if (!localData) return [];
-    const values = [...new Set(localData.map(item => item[columnName]).filter(Boolean))];
+    if (!data) return [];
+    const values = [...new Set(data.map(item => item[columnName]).filter(Boolean))];
     return values.sort((a, b) => String(a).localeCompare(String(b), 'fa'));
   };
 
@@ -128,14 +101,16 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     return <FaSort className="text-white/60 mr-1 text-xs" />;
   };
 
-  // توابع فیلتر
+  // انتخاب/لغو انتخاب همه برای فیلتر چک‌باکسی
   const toggleSelectAll = (columnName, uniqueValues) => {
     const currentFilter = activeFilters[columnName];
     if (currentFilter?.type === 'checkbox' && currentFilter.value.length === uniqueValues.length) {
+      // همه انتخاب شده‌اند -> پاک کردن همه
       const newFilters = { ...activeFilters };
       delete newFilters[columnName];
       setActiveFilters(newFilters);
     } else {
+      // همه را انتخاب کن
       setActiveFilters({
         ...activeFilters,
         [columnName]: { type: 'checkbox', value: [...uniqueValues] }
@@ -143,6 +118,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     }
   };
 
+  // انتخاب/لغو انتخاب یک آیتم در فیلتر چک‌باکسی
   const toggleItem = (columnName, itemValue) => {
     const currentFilter = activeFilters[columnName];
     let newValues;
@@ -158,6 +134,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     }
     
     if (newValues.length === 0) {
+      // اگر چیزی انتخاب نشد، فیلتر رو حذف کن
       const newFilters = { ...activeFilters };
       delete newFilters[columnName];
       setActiveFilters(newFilters);
@@ -169,6 +146,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     }
   };
 
+  // تغییر فیلتر متنی
   const handleTextFilterChange = (columnName, text) => {
     if (text.trim() === '') {
       const newFilters = { ...activeFilters };
@@ -182,22 +160,25 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     }
   };
 
+  // پاک کردن فیلتر یک ستون
   const clearColumnFilter = (columnName) => {
     const newFilters = { ...activeFilters };
     delete newFilters[columnName];
     setActiveFilters(newFilters);
   };
 
+  // پاک کردن همه فیلترها
   const clearAllFilters = () => {
     setActiveFilters({});
   };
 
   // اعمال sort و filter روی داده‌ها
   const filteredAndSortedData = useMemo(() => {
-    if (!localData) return [];
+    if (!data) return [];
     
-    let result = [...localData];
+    let result = [...data];
     
+    // اعمال فیلترها
     Object.entries(activeFilters).forEach(([columnName, filter]) => {
       if (filter.type === 'checkbox' && filter.value.length > 0) {
         result = result.filter(item => filter.value.includes(item[columnName]));
@@ -208,12 +189,14 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
       }
     });
     
+    // اعمال sort
     if (sortConfig.key) {
       result.sort((a, b) => {
         let aVal = a[sortConfig.key];
         let bVal = b[sortConfig.key];
         const columnType = getColumnType(sortConfig.key);
 
+        // اگر مقدار عددی است
         if (columnType === 'number') {
           aVal = aVal || 0;
           bVal = bVal || 0;
@@ -224,6 +207,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
           }
         }
 
+        // اگر رشته است
         aVal = String(aVal || '');
         bVal = String(bVal || '');
         
@@ -236,19 +220,21 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     }
     
     return result;
-  }, [localData, sortConfig, activeFilters]);
+  }, [data, sortConfig, activeFilters]);
 
-  // فرمت کردن مقادیر برای نمایش
+  // فرمت کردن مقادیر برای نمایش - حذف عبارت ریال
   const formatCellValue = (value, columnName) => {
     if (value === null || value === undefined) return '-';
     
     const columnType = getColumnType(columnName);
     
+    // اگر ستون "سال" است، بدون کاما و فرمت عددی نشون بده
     if (columnName === 'سال') {
       return String(value);
     }
     
     if (columnType === 'number') {
+      // فقط عدد رو فرمت کن، بدون اضافه کردن "ریال"
       return new Intl.NumberFormat('fa-IR').format(value);
     }
     
@@ -258,6 +244,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
   // تشخیص راست‌چین یا چپ‌چین بودن سلول
   const getCellAlignment = (columnName) => {
     const columnType = getColumnType(columnName);
+    // برای ستون "سال" راست‌چین باشه بهتره
     if (columnName === 'سال') {
       return 'text-right';
     }
@@ -266,100 +253,15 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
 
   // تشخیص نوع فیلتر مناسب برای هر ستون
   const getFilterTypeForColumn = (columnName) => {
+    // ستون‌هایی که باید فیلتر متنی داشته باشند
     const textFilterColumns = ['توضیحات', 'کد پرسنلی'];
     if (textFilterColumns.includes(columnName)) {
       return 'text';
     }
-    return 'auto';
+    return 'auto'; // بقیه ستون‌ها بر اساس تعداد مقادیر یکتا تصمیم‌گیری می‌شوند
   };
 
-  // تشخیص اینکه آیا ستون قابل ویرایش است
-  const isEditableColumn = (columnName) => {
-    return columnName === 'تعداد روز تایید نهایی' || columnName === 'جمع کارکرد اعداد ثابت';
-  };
-
-  // کلیک روی سلول برای ویرایش
-  const handleCellClick = (rowIndex, columnName, currentValue) => {
-    if (isEditableColumn(columnName)) {
-      setEditingCell({ rowIndex, columnName });
-      setEditedValue(currentValue || '');
-    }
-  };
-
-  // تغییر مقدار در اینپوت
-  const handleInputChange = (e) => {
-    // فقط اعداد مجاز هستند
-    const value = e.target.value.replace(/[^0-9]/g, '');
-    setEditedValue(value);
-  };
-
-  // ذخیره تغییرات یک سلول
-  const handleSaveClick = (rowIndex, columnName) => {
-    if (editedValue === '') return;
-    
-    setShowSaveConfirmation(true);
-  };
-
-  // تأیید نهایی ذخیره
-  const handleConfirmSave = () => {
-    if (!editingCell) return;
-    
-    setIsSaving(true);
-    
-    // شبیه‌سازی درخواست به سرور
-    setTimeout(() => {
-      const { rowIndex, columnName } = editingCell;
-      
-      // ایجاد یک کپی از داده‌های محلی و اعمال تغییرات
-      const updatedData = [...localData];
-      const rowToUpdate = { ...updatedData[rowIndex] };
-      
-      // اعمال تغییر
-      const numericValue = editedValue ? parseInt(editedValue, 10) : 0;
-      rowToUpdate[columnName] = numericValue;
-      
-      updatedData[rowIndex] = rowToUpdate;
-      
-      // به روز رسانی state محلی
-      setLocalData(updatedData);
-      
-      // همچنین اگر onEdit وجود داره، به والد هم اطلاع بده
-      if (onEdit) {
-        onEdit(rowToUpdate);
-      }
-      
-      // بستن پاپ‌آپ و ریست stateها
-      setIsSaving(false);
-      setShowSaveConfirmation(false);
-      setEditingCell(null);
-      setEditedValue('');
-      
-      // نمایش toast موفقیت
-      toast.success('تغییرات با موفقیت ذخیره شد!', {
-        position: 'top-center',
-        duration: 3000,
-        icon: '✅',
-        style: {
-          background: '#10b981',
-          color: 'white',
-          borderRadius: '10px',
-          padding: '16px',
-          fontSize: '14px',
-          direction: 'rtl',
-          textAlign: 'right',
-        },
-      });
-      
-    }, 500);
-  };
-
-  // بستن پاپ‌آپ بدون ذخیره
-  const handleClosePopover = () => {
-    setShowSaveConfirmation(false);
-    setEditingCell(null);
-    setEditedValue('');
-  };
-
+  // تعداد فیلترهای فعال
   const activeFiltersCount = Object.keys(activeFilters).length;
 
   if (isLoading) {
@@ -373,7 +275,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     );
   }
 
-  if (!localData || localData.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className="w-full bg-white rounded-lg shadow p-8 text-center">
         <p className="text-gray-500">اطلاعاتی برای نمایش وجود ندارد</p>
@@ -408,6 +310,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-blue-600 to-blue-500 sticky top-0 z-10 shadow-sm">
                 <tr>
+                  {/* ستون ردیف */}
                   <th 
                     scope="col" 
                     className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap"
@@ -418,12 +321,16 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                     </div>
                   </th>
                   
+                  {/* ستون‌های داینامیک */}
                   {columnNames.map((columnName, index) => {
                     const columnType = getColumnType(columnName);
                     const uniqueValues = columnType === 'string' ? getUniqueValues(columnName) : [];
                     const activeFilter = activeFilters[columnName];
                     const isFilterActive = activeFilter !== undefined;
+                    const isCheckboxFilter = activeFilter?.type === 'checkbox';
+                    const isTextFilter = activeFilter?.type === 'text';
                     
+                    // تعیین نوع فیلتر مناسب برای این ستون
                     const filterType = getFilterTypeForColumn(columnName);
                     
                     return (
@@ -435,8 +342,10 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                         <div className="flex items-center gap-1">
                           <span>{columnName}</span>
                           
+                          {/* دکمه فیلتر - بر اساس نوع فیلتر تعیین شده */}
                           {columnType === 'string' && (
                             <>
+                              {/* اگر فیلتر متنی اجباری است */}
                               {filterType === 'text' && (
                                 <div 
                                   className="relative" 
@@ -454,6 +363,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                     <FaSearch className="text-xs" />
                                   </button>
                                   
+                                  {/* Dropdown فیلتر متنی */}
                                   {openFilter === columnName && (
                                     <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[250px]">
                                       <div className="p-2 border-b border-gray-200">
@@ -469,7 +379,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                         <div className="flex items-center gap-2">
                                           <input
                                             type="text"
-                                            value={activeFilter?.type === 'text' ? activeFilter.value : ''}
+                                            value={isTextFilter ? activeFilter.value : ''}
                                             onChange={(e) => handleTextFilterChange(columnName, e.target.value)}
                                             placeholder={`جستجوی ${columnName}...`}
                                             className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white text-right"
@@ -490,6 +400,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                 </div>
                               )}
                               
+                              {/* اگر فیلتر خودکار و تعداد مقادیر کم است */}
                               {filterType === 'auto' && uniqueValues.length <= 20 && (
                                 <div 
                                   className="relative" 
@@ -507,6 +418,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                     <FaFilter className="text-xs" />
                                   </button>
                                   
+                                  {/* Dropdown فیلتر چک‌باکسی */}
                                   {openFilter === columnName && (
                                     <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[250px] max-h-[300px] overflow-y-auto">
                                       <div className="p-2 border-b border-gray-200">
@@ -523,7 +435,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                           <label className="flex items-center gap-1 text-xs">
                                             <input
                                               type="checkbox"
-                                              checked={activeFilter?.type === 'checkbox' && activeFilter.value.length === uniqueValues.length}
+                                              checked={isFilterActive && isCheckboxFilter && activeFilter.value.length === uniqueValues.length}
                                               onChange={() => toggleSelectAll(columnName, uniqueValues)}
                                               className="rounded border-gray-300 text-blue-600"
                                             />
@@ -544,7 +456,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                           <label key={value} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
                                             <input
                                               type="checkbox"
-                                              checked={activeFilter?.type === 'checkbox' && activeFilter.value.includes(value)}
+                                              checked={isCheckboxFilter && activeFilter.value.includes(value)}
                                               onChange={() => toggleItem(columnName, value)}
                                               className="rounded border-gray-300 text-blue-600"
                                             />
@@ -557,6 +469,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                 </div>
                               )}
                               
+                              {/* اگر فیلتر خودکار و تعداد مقادیر زیاد است */}
                               {filterType === 'auto' && uniqueValues.length > 20 && (
                                 <div 
                                   className="relative" 
@@ -574,6 +487,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                     <FaSearch className="text-xs" />
                                   </button>
                                   
+                                  {/* Dropdown فیلتر متنی */}
                                   {openFilter === columnName && (
                                     <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[250px]">
                                       <div className="p-2 border-b border-gray-200">
@@ -589,7 +503,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                         <div className="flex items-center gap-2">
                                           <input
                                             type="text"
-                                            value={activeFilter?.type === 'text' ? activeFilter.value : ''}
+                                            value={isTextFilter ? activeFilter.value : ''}
                                             onChange={(e) => handleTextFilterChange(columnName, e.target.value)}
                                             placeholder={`جستجوی ${columnName}...`}
                                             className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white text-right"
@@ -612,6 +526,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                             </>
                           )}
                           
+                          {/* دکمه sort */}
                           <button
                             onClick={() => handleSort(columnName)}
                             className="p-1 rounded hover:bg-blue-700 transition-colors"
@@ -620,28 +535,30 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                           </button>
                         </div>
                         
+                        {/* نمایش وضعیت فیلتر فعال */}
                         {isFilterActive && (
                           <div className="text-[10px] text-yellow-300 mt-0.5">
-                            {activeFilter.type === 'checkbox' && `${activeFilter.value.length} انتخاب`}
-                            {activeFilter.type === 'text' && `شامل: ${activeFilter.value}`}
+                            {isCheckboxFilter && `${activeFilter.value.length} انتخاب`}
+                            {isTextFilter && `شامل: ${activeFilter.value}`}
                           </div>
                         )}
                       </th>
                     );
                   })}
                   
-                  {/* ستون عملیات - فقط دکمه حذف */}
+                  {/* ستون عملیات ثابت */}
                   <th 
                     scope="col" 
                     className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap"
                   >
-                    <span>حذف</span>
+                    <span>عملیات</span>
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredAndSortedData.map((item, index) => (
                   <tr key={`${item["شماره RFI"] || index}-${index}`} className="hover:bg-gray-50">
+                    {/* ستون ردیف */}
                     <td 
                       className="px-3 py-2 whitespace-nowrap text-xs text-gray-900"
                       style={{ paddingRight: '24px' }}
@@ -649,66 +566,30 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                       {index + 1}
                     </td>
                     
-                    {columnNames.map((columnName, colIndex) => {
-                      const isEditing = editingCell && 
-                                       editingCell.rowIndex === index && 
-                                       editingCell.columnName === columnName;
-                      
-                      const inputKey = `${index}-${columnName}`;
-                      
-                      return (
-                        <td 
-                          key={colIndex}
-                          className={`px-3 py-2 whitespace-nowrap text-xs text-gray-900 ${getCellAlignment(columnName)}`}
-                          onClick={() => handleCellClick(index, columnName, item[columnName])}
-                        >
-                          <div className="flex items-center gap-1">
-                            {isEditing ? (
-                              <>
-                                <input
-                                  ref={el => inputRefs.current[inputKey] = el}
-                                  type="text"
-                                  value={editedValue}
-                                  onChange={handleInputChange}
-                                  className="w-20 px-1 py-0.5 text-xs border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
-                                  placeholder="عدد"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                                {/* دکمه ذخیره مخصوص این سلول */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSaveClick(index, columnName);
-                                  }}
-                                  className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
-                                  title="ذخیره"
-                                  disabled={editedValue === ''}
-                                >
-                                  <FaSave size={12} />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                {columnName === 'شماره RFI' ? (
-                                  <span className="font-mono">{formatCellValue(item[columnName], columnName)}</span>
-                                ) : (
-                                  formatCellValue(item[columnName], columnName)
-                                )}
-                                
-                                {/* اگر ستون قابل ویرایش است، یه آیکون کوچک ویرایش نشون بده */}
-                                {isEditableColumn(columnName) && (
-                                  <FaEdit className="text-gray-400 text-[10px] mr-1 opacity-0 group-hover:opacity-100" />
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      );
-                    })}
+                    {/* سلول‌های دیتا */}
+                    {columnNames.map((columnName, colIndex) => (
+                      <td 
+                        key={colIndex}
+                        className={`px-3 py-2 whitespace-nowrap text-xs text-gray-900 ${getCellAlignment(columnName)}`}
+                      >
+                        {columnName === 'شماره RFI' ? (
+                          <span className="font-mono">{formatCellValue(item[columnName], columnName)}</span>
+                        ) : (
+                          formatCellValue(item[columnName], columnName)
+                        )}
+                      </td>
+                    ))}
                     
-                    {/* ستون عملیات - فقط دکمه حذف */}
+                    {/* ستون عملیات */}
                     <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
-                      <div className="flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => onEdit(item)}
+                          className="text-blue-600 hover:text-blue-800 transition-colors p-1 rounded hover:bg-blue-50"
+                          title="ویرایش"
+                        >
+                          <FaEdit size={14} />
+                        </button>
                         <button
                           onClick={() => onDelete(item)}
                           className="text-red-600 hover:text-red-800 transition-colors p-1 rounded hover:bg-red-50"
@@ -726,7 +607,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
         </div>
       </div>
       
-      {/* خلاصه فیلترها و جمع کل */}
+      {/* خلاصه فیلترها و جمع کل - با فرمت عددی بدون ریال */}
       <div className="bg-gray-50 px-3 py-2 border-t border-gray-200">
         <div className="flex justify-between items-center">
           {activeFiltersCount > 0 && (
@@ -764,6 +645,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
               <span className="text-gray-900">
                 {new Intl.NumberFormat('fa-IR').format(
                   filteredAndSortedData.reduce((sum, item) => {
+                    // سعی می‌کنیم ستون "مبلغ کل" یا هر ستون عددی دیگه‌ای رو پیدا کنیم
                     const possibleSumColumns = ['مبلغ کل', 'قیمت نهایی', 'هزینه بازرسی'];
                     for (const col of possibleSumColumns) {
                       if (item[col] !== undefined) {
@@ -778,16 +660,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
           </div>
         </div>
       </div>
-
-      {/* پاپ‌آپ تأیید ذخیره */}
-      <FinancialSaveConfirmationPopover
-        isOpen={showSaveConfirmation}
-        onClose={handleClosePopover}
-        onConfirm={handleConfirmSave}
-        rowData={editingCell ? localData[editingCell.rowIndex] : null}
-        editedValues={editingCell ? { [editingCell.columnName]: editedValue } : {}}
-        isLoading={isSaving}
-      />
     </div>
   );
 };

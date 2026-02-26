@@ -131,19 +131,19 @@ const AdvancedReport = () => {
   // هندلر ویرایش (موقت)
   const handleEdit = (item) => {
     // console.log('ویرایش آیتم:', item);
-    toast.info('ویرایش آیتم - در حال توسعه', {
-      position: 'top-center',
-      duration: 2000,
-    });
+    // toast.info('ویرایش آیتم - در حال توسعه', {
+    //   position: 'top-center',
+    //   duration: 2000,
+    // });
   };
   
   // هندلر حذف (موقت)
   const handleDelete = (item) => {
     // console.log('حذف آیتم:', item);
-    toast.info('حذف آیتم - در حال توسعه', {
-      position: 'top-center',
-      duration: 2000,
-    });
+    // toast.info('حذف آیتم - در حال توسعه', {
+    //   position: 'top-center',
+    //   duration: 2000,
+    // });
   };
 
   return (
