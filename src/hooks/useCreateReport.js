@@ -38,6 +38,8 @@ export const useReportInfo = (rfiNumbering, reportNumber = null) => {
   });
 };
 
+// src/hooks/useCreateReport.js
+
 // هوک جدید برای ثبت گزارش جدید (POST)
 export const useCreateNewReport = () => {
   const queryClient = useQueryClient(); // اضافه کردن queryClient
@@ -75,6 +77,22 @@ export const useCreateNewReport = () => {
       return result;
     },
     onSuccess: (data, variables) => {
+      // ========== اضافه کردن toast موفقیت ==========
+      toast.success("✅ گزارش جدید با موفقیت ثبت شد", {
+        position: "top-center",
+        duration: 3000,
+        icon: "✅",
+        style: {
+          background: "#10b981",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
+
       // اینوالیدیت queryهای RFIReportTable
       queryClient.invalidateQueries({
         queryKey: ["rfiReport"], // کلید اصلی که useRFIReport استفاده می‌کند
@@ -102,6 +120,27 @@ export const useCreateNewReport = () => {
         variables.rfiNumbering
       );
       console.error("❌ useCreateNewReport: Error:", error);
+
+      // ========== اضافه کردن toast خطا ==========
+      toast.error(
+        `❌ خطا در ثبت گزارش: ${
+          error.response?.data?.message || error.message
+        }`,
+        {
+          position: "top-center",
+          duration: 4000,
+          icon: "❌",
+          style: {
+            background: "#ef4444",
+            color: "white",
+            borderRadius: "10px",
+            padding: "16px",
+            fontSize: "14px",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        }
+      );
     },
   });
 };
@@ -113,7 +152,11 @@ export const useUpdateReport = () => {
 
   return useMutation({
     mutationFn: async ({ reportData, rfiNumbering }) => {
-      const updateData = reportService.prepareReportUpdateData(reportData);
+      // const updateData = reportService.prepareReportUpdateData(reportData);
+      const updateData = {
+        ...reportService.prepareReportUpdateData(reportData),
+        rfi_numbering: rfiNumbering, // اضافه کردن rfi_numbering به body
+      };
 
       const result = await reportService.updateReport(rfiNumbering, updateData);
 
