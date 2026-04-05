@@ -60,7 +60,11 @@ function AppLayout({ children }) {
 
        
        >
-        <div className="mx-auto max-w-screen-lg flex flex-col gap-y-8 lg:gap-y-12">
+      {/* tempForChanges max-w-screen-lg  */}
+
+        {/* <div className="mx-auto max-w-screen-lg flex flex-col gap-y-8 lg:gap-y-12"> */}
+        <div className="mx-auto lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-screen-2xl  flex flex-col gap-y-8 lg:gap-y-12">
+
           <Outlet />
         </div>
       </main>
