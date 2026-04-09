@@ -26,6 +26,17 @@ class InspectorService {
     }
   }
 
+  async createInspector(data) {
+    try {
+      const response = await http.post('/inspectors', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating inspector:', error);
+      throw error;
+    }
+  }
+  
+
   // تبدیل داده‌های دریافتی از API به فرمت مورد نیاز کامپوننت
   transformInspectorsData(apiData) {
     // apiData = { "2": "صدری مهدی", "3": "علیزاده فرشید", ... }

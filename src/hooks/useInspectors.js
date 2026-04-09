@@ -30,3 +30,14 @@ export const useInspector = (id) => {
     staleTime: 5 * 60 * 1000,
   });
 };
+
+export const useCreateInspector = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data) => inspectorService.createInspector(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(inspectorKeys.lists());
+    },
+  });
+};

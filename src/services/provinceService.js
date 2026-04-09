@@ -26,6 +26,48 @@ class ProvinceService {
     }
   }
 
+  async createProvince(provinceData) {
+    try {
+      const apiData = {
+        name: provinceData.name?.trim()
+      };
+  
+      const response = await http.post('/locations/provinces', apiData);
+  
+      return {
+        id: response.data.id?.toString() || `province-${Date.now()}`,
+        name: apiData.name
+      };
+  
+    } catch (error) {
+      console.error('Error creating province:', error);
+      throw error;
+    }
+  }
+
+  async createCity(cityData) {
+    try {
+      const apiData = {
+        name: cityData.name?.trim(),
+        province_id: Number(cityData.province_id)
+      };
+  
+      const response = await http.post('/locations/cities', apiData);
+  
+      return {
+        id: response.data.id?.toString() || `city-${Date.now()}`,
+        name: apiData.name,
+        province_id: apiData.province_id
+      };
+  
+    } catch (error) {
+      console.error('Error creating city:', error);
+      throw error;
+    }
+  }
+  
+  
+
   // تبدیل داده‌های استان‌ها
   transformProvincesData(apiData) {
     // فرمت: { "1": "تهران", "2": "اصفهان", ... }

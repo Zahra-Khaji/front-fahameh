@@ -22,6 +22,8 @@ import Login from "./pages/Login";
 import RegisterReport from "./pages/RegisterReport";
 import ProjectsInfo from "./pages/ProjectsInfo";
 import AdvancedReportInfo from "./pages/AdvancedReportInfo";
+import BaseDataForm from "./pages/BaseData";
+import BaseData from "./pages/BaseData";
 
 
 
@@ -110,6 +112,8 @@ function App() {
             {/* <Route path="projectsInfo" element={<ProjectsInfo />} /> */}
       <Route path="rfi-report" element={<ProjectsInfo />} />
       <Route path="advanced-report" element={<AdvancedReportInfo />} />
+      <Route path="baseDataForm" element={<BaseData />} />
+
 
 
 

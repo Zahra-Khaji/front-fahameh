@@ -29,68 +29,33 @@ class VendorService {
 
   async createVendor(vendorData) {
     try {
-      console.log('📤 Creating new vendor:', vendorData);
-      
-      // **اضافه کردن فیلد over_domestic**
       const apiData = {
-        name: vendorData.name.trim(),
-        over_domestic: vendorData.over_domestic || false  // فیلد جدید
+        name: vendorData.name?.trim(),
+        over_domestic: vendorData.over_domestic || false,
+        address: vendorData.address || "",
+        contact_person: vendorData.contact_person || "",
+        phone: vendorData.phone || "",
+        email: vendorData.email || ""
       };
-
-      console.log('📤 Sending to /vendors endpoint:', apiData);
-      
-      // توجه: آدرس endpoint هم به /vendors تغییر کرد
-      const response = await http.post('/vendors', apiData);
-      console.log('✅ Vendor created successfully:', response.data);
-      
-      // **پاسخ جدید API: احتمالاً دیتا کامل برمی‌گرداند**
-      const newVendor = response.data;
-      
+  
+      const response = await http.post("/vendors/", apiData);
+  
       return {
-        id: newVendor.id?.toString() || `vendor-${Date.now()}`,
-        name: vendorData.name.trim(),
-        address: vendorData.address || '',
-        phone: vendorData.phone || '',
-        email: vendorData.email || '',
-        isTemp: false,
-        over_domestic: vendorData.over_domestic || false
+        id: response.data.id?.toString() || `vendor-${Date.now()}`,
+        name: apiData.name,
+        address: apiData.address,
+        contact_person: apiData.contact_person,
+        phone: apiData.phone,
+        email: apiData.email,
+        over_domestic: apiData.over_domestic
       };
+  
     } catch (error) {
-      console.error('❌ Error creating vendor:', error);
-      
-      // مدیریت خطا (بدون تغییر)
-      let errorMessage = 'خطا در ایجاد وندور';
-      
-      if (error.response) {
-        const { status, data } = error.response;
-        
-        if (status === 400 || status === 409) {
-          if (data.detail) {
-            // **مدیریت خطای تکراری با فرمت جدید: 'Vendor Name "تست" already exists.'**
-            if (data.detail.includes('already exists')) {
-              const match = data.detail.match(/Vendor Name "([^"]+)"/);
-              const vendorName = match ? match[1] : vendorData.name;
-              errorMessage = `نام وندور "${vendorName}" تکراری است. لطفاً نام دیگری انتخاب کنید.`;
-            } else {
-              errorMessage = data.detail;
-            }
-          } else if (data.message) {
-            errorMessage = data.message;
-          }
-        } else if (status === 401) {
-          errorMessage = 'دسترسی غیرمجاز. لطفاً دوباره وارد شوید.';
-        } else if (status === 500) {
-          errorMessage = 'خطای سرور. لطفاً دوباره تلاش کنید.';
-        }
-      }
-      
-      const customError = new Error(errorMessage);
-      customError.originalError = error;
-      customError.vendorData = vendorData;
-      
-      throw customError;
+      console.error("Error creating vendor:", error);
+      throw error;
     }
   }
+  
 
   // تبدیل داده‌های دریافتی از API به فرمت مورد نیاز کامپوننت
   transformVendorsData(apiData) {

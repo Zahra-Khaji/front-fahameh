@@ -1,5 +1,5 @@
 // src/hooks/useProvinces.js
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import provinceService from '../services/provinceService';
 
 // کلیدهای query
@@ -29,5 +29,50 @@ export const useCities = (provinceId) => {
     queryFn: () => provinceService.getCitiesByProvince(provinceId),
     enabled: !!provinceId, // فقط وقتی provinceId وجود دارد اجرا شود
     staleTime: 10 * 60 * 1000,
+  });
+};
+export const useCreateCity = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (cityData) =>
+      provinceService.createCity(cityData),
+
+    onSuccess: (newCity) => {
+
+      queryClient.invalidateQueries({
+        queryKey: provinceKeys.cities(newCity.province_id)
+      });
+
+    },
+
+    onError: (error) => {
+      console.error("Error creating city:", error);
+    }
+  });
+};
+
+
+export const useCreateProvince = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (provinceData) =>
+      provinceService.createProvince(provinceData),
+
+    onSuccess: (newProvince) => {
+      queryClient.setQueryData(provinceKeys.lists(), (oldData) => {
+        if (!oldData) return [newProvince];
+        return [...oldData, newProvince];
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: provinceKeys.lists()
+      });
+    },
+
+    onError: (error) => {
+      console.error("Error creating province:", error);
+    }
   });
 };
