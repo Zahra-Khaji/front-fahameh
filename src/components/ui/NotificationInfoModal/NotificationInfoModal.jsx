@@ -36,6 +36,7 @@ import {
   useUpdateNotificationRow,
   useUpdateNotificationInfoRow,useDeleteNotificationDate ,useDeleteInspectionDate,useAddInspectionDate
 } from "../../../hooks/useNotificationNumber";
+import {useInspectors} from "../../../hooks/useInspectors";
 import { toast } from "react-hot-toast";
 
 import {
@@ -152,6 +153,20 @@ const NotificationInfoModal = ({ isOpen, onClose, rfiNumber }) => {
     useUpdateNotificationInfoRow();
     // در بخش هوک‌های کامپوننت
 const { mutate: deleteNotificationDate, isLoading: isDeletingNotificationDate } = useDeleteNotificationDate();
+
+
+const {
+  data: inspectors,
+  isLoading: inspectorsLoading,
+  error: inspectorsError
+} = useInspectors();
+console.log("inspectors",inspectors)
+
+const inspectorOptions = inspectors?.map((item) => ({
+  label: item.name,
+  value: item.name, // فقط نام بازرس
+}));
+
 
   // حالت‌های پاپ‌آپ
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
@@ -2274,29 +2289,27 @@ const handleConfirmRowSave = () => {
             index % 2 === 0 ? "bg-white" : "bg-gray-50"
           } hover:bg-blue-50`}
         >
-          {/* تاریخ بازرسی - اگر سطر جدید است قابل ویرایش، وگرنه فقط خواندنی */}
-          <td className="p-2 text-gray-800 min-w-36">
-            <DatePicker
-              value={row.inspectionDate}
-              onChange={(date) =>
-                handleRfiDatesRowChange(
-                  row.id,
-                  "inspectionDate",
-                  date
-                )
-              }
-              calendar={persian}
-              locale={persian_fa}
-              format="YYYY/MM/DD"
-              inputClass={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md ${
-                row.isNew 
-                  ? "focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  : "bg-gray-50 cursor-not-allowed"
-              }`}
-              disabled={!row.isNew}
-              readOnly={!row.isNew}
-            />
-          </td>
+          {/* تاریخ بازرسی - ی */}
+          {/* تاریخ بازرسی - همیشه قابل ویرایش */}
+<td className="p-2 text-gray-800 min-w-36">
+  <DatePicker
+    value={row.inspectionDate}
+    onChange={(date) =>
+      handleRfiDatesRowChange(
+        row.id,
+        "inspectionDate",
+        date ? date.format("YYYY-MM-DD") : "" // تاریخ به فرمت YYYY-MM-DD
+      )
+    }
+    calendar={persian}
+    locale={persian_fa}
+    format="YYYY/MM/DD"
+    inputClass="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    // disabled و readOnly را حذف کردیم تا همیشه قابل ویرایش باشد
+  />
+</td>
+
+      
 
           {/* تعداد روز تائید شده - همیشه قابل ویرایش */}
           <td className="p-2 text-gray-800 min-w-32">
@@ -2351,28 +2364,30 @@ const handleConfirmRowSave = () => {
             />
           </td>
 
-          {/* بازرس اول - اگر سطر جدید است قابل ویرایش، وگرنه فقط خواندنی */}
-          <td className="p-2 text-gray-800 min-w-48">
-            <input
-              type="text"
-              value={row.inspectorName}
-              onChange={(e) =>
-                handleRfiDatesRowChange(
-                  row.id,
-                  "inspectorName",
-                  e.target.value
-                )
-              }
-              className={`w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md ${
-                row.isNew 
-                  ? "focus:ring-1 focus:ring-blue-200 focus:border-transparent" 
-                  : "bg-gray-50 cursor-not-allowed"
-              }`}
-              placeholder="نام بازرس"
-              disabled={!row.isNew}
-              readOnly={!row.isNew}
-            />
-          </td>
+          {/* بازرس اول - ی */}
+       {/* بازرس اول - همیشه قابل ویرایش */}
+<td className="p-2 text-gray-800 min-w-48">
+  <select
+    value={row.inspectorName}
+    onChange={(e) =>
+      handleRfiDatesRowChange(
+        row.id,
+        "inspectorName",
+        e.target.value
+      )
+    }
+    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent"
+    // disabled و readOnly را حذف کردیم تا همیشه قابل ویرایش باشد
+  >
+    <option value="" disabled>انتخاب بازرس</option> {/* گزینه پیش‌فرض */}
+    {inspectorOptions.map((option) => (
+      <option key={option.value} value={option.value}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+</td>
+
 
           {/* دستمزد - قابل ویرایش */}
           <td className="p-2 text-gray-800 min-w-40">
@@ -2510,32 +2525,28 @@ const handleConfirmRowSave = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-3 text-xs">
-        {/* تاریخ بازرسی - اگر سطر جدید است قابل ویرایش */}
-        <div>
-          <span className="text-gray-600 block mb-1">
-            شروع تاریخ بازرسی {row.isNew && <span className="text-green-600">*</span>}
-          </span>
-          <DatePicker
-            value={row.inspectionDate}
-            onChange={(date) =>
-              handleRfiDatesRowChange(
-                row.id,
-                "inspectionDate",
-                date
-              )
-            }
-            calendar={persian}
-            locale={persian_fa}
-            format="YYYY/MM/DD"
-            inputClass={`w-full px-3 py-2 border border-gray-300 rounded-md text-xs ${
-              row.isNew 
-                ? "focus:ring-2 focus:ring-blue-500" 
-                : "bg-gray-50 cursor-not-allowed"
-            }`}
-            disabled={!row.isNew}
-            readOnly={!row.isNew}
-          />
-        </div>
+     {/* تاریخ بازرسی - همیشه قابل ویرایش */}
+<div>
+  <span className="text-gray-600 block mb-1">
+    شروع تاریخ بازرسی
+  </span> {/* تگ isNew را حذف کردیم چون همیشه ویرایش پذیر است */}
+  <DatePicker
+    value={row.inspectionDate}
+    onChange={(date) =>
+      handleRfiDatesRowChange(
+        row.id,
+        "inspectionDate",
+        date ? date.format("YYYY-MM-DD") : "" // تاریخ به فرمت YYYY-MM-DD
+      )
+    }
+    calendar={persian}
+    locale={persian_fa}
+    format="YYYY/MM/DD"
+    inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500"
+    // disabled و readOnly را حذف کردیم تا همیشه قابل ویرایش باشد
+  />
+</div>
+
 
         {/* تعداد روز تائید شده - همیشه قابل ویرایش */}
         <div>
@@ -2593,31 +2604,32 @@ const handleConfirmRowSave = () => {
           />
         </div>
 
-        {/* بازرس اول - اگر سطر جدید است قابل ویرایش */}
-        <div>
-          <span className="text-gray-600 block mb-1">
-            بازرس اول {row.isNew && <span className="text-green-600">*</span>}
-          </span>
-          <input
-            type="text"
-            value={row.inspectorName}
-            onChange={(e) =>
-              handleRfiDatesRowChange(
-                row.id,
-                "inspectorName",
-                e.target.value
-              )
-            }
-            className={`w-full px-3 py-2 border border-gray-300 rounded-md text-xs ${
-              row.isNew 
-                ? "focus:ring-2 focus:ring-blue-500" 
-                : "bg-gray-50 cursor-not-allowed"
-            }`}
-            placeholder="نام بازرس"
-            disabled={!row.isNew}
-            readOnly={!row.isNew}
-          />
-        </div>
+      {/* بازرس اول - همیشه قابل ویرایش */}
+<div>
+  <span className="text-gray-600 block mb-1">
+    بازرس اول
+  </span> {/* تگ isNew را حذف کردیم چون همیشه ویرایش پذیر است */}
+  <select
+    value={row.inspectorName}
+    onChange={(e) =>
+      handleRfiDatesRowChange(
+        row.id,
+        "inspectorName",
+        e.target.value
+      )
+    }
+    className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500"
+    // disabled و readOnly را حذف کردیم تا همیشه قابل ویرایش باشد
+  >
+    <option value="" disabled>انتخاب بازرس</option> {/* گزینه پیش‌فرض */}
+    {inspectorOptions.map((option) => (
+      <option key={option.value} value={option.value}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+</div>
+
 
         {/* دستمزد - همیشه قابل ویرایش */}
         <div>
