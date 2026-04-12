@@ -1339,13 +1339,15 @@ const handleSaveRow = (rowId) => {
 // تابع handleConfirmRowSave را اینگونه اصلاح کنید:
 const handleConfirmRowSave = () => {
   if (!selectedRowForSave || !rowToSaveData) return;
-
+// console.log("rowToSaveData",rowToSaveData)
   const rowPayload = {
     rfiNumber: rowToSaveData.rfiNumbering,
     rowData: {
       approveManday: rowToSaveData.approveManday,
       idrd: rowToSaveData.idrd,
       fee: rowToSaveData.fee,
+      inspectorName:rowToSaveData.rawData.inspectorName,
+      inspectionDate:rowToSaveData.rawData.inspectionDate,
     },
   };
 

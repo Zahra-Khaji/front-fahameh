@@ -177,6 +177,8 @@ class NotificationService {
 
       // اطمینان حاصل کنیم که مقادیر عددی هستند
       const payload = {
+        InspectionDate: this.formatDateForAPI(rowData.inspectionDate),
+        Inspector_Name: rowData.inspectorName || "",
         ApproveManday: parseInt(rowData.approveManday) || 0,
         IDRD: parseInt(rowData.idrd) || 0,
         InspectorPrice: parseFloat(rowData.fee) || 0,
