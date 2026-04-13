@@ -1822,7 +1822,7 @@ const handleConfirmRowSave = () => {
                       </td>
 
                       {/* نام بازرس */}
-                      <td className="p-3 text-gray-800">
+                      {/* <td className="p-3 text-gray-800">
                         <input
                           type="text"
                           value={row.inspectorName}
@@ -1837,7 +1837,30 @@ const handleConfirmRowSave = () => {
                           placeholder="نام بازرس"
                           disabled={isLoadingAll || isUpdating}
                         />
+                      </td> */}
+                                            {/* نام بازرس */}
+                                            <td className="p-3 text-gray-800">
+                        <select
+                          value={row.inspectorName}
+                          onChange={(e) =>
+                            handleNotificationRowChange(
+                              row.id,
+                              "inspectorName",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-200 focus:border-transparent"
+                          disabled={isLoadingAll || isUpdating}
+                        >
+                          <option value="" disabled>انتخاب بازرس</option>
+                          {inspectorOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </td>
+
 
                       {/* Remark */}
                       <td className="p-3 text-gray-800">
@@ -2147,7 +2170,7 @@ const handleConfirmRowSave = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* <div className="grid grid-cols-2 gap-3">
                       <div>
                         <span className="text-gray-600 block mb-1">
                           نام بازرس
@@ -2186,7 +2209,31 @@ const handleConfirmRowSave = () => {
                           disabled={isLoadingAll || isUpdating}
                         />
                       </div>
-                    </div>
+                    </div> */}
+                    <div>
+  <span className="text-gray-600 block mb-1">نام بازرس</span>
+  <select
+    value={row.inspectorName}
+    onChange={(e) =>
+      handleNotificationRowChange(row.id, "inspectorName", e.target.value)
+    }
+    className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
+    disabled={isLoadingAll || isUpdating}
+  >
+    <option value="" disabled>انتخاب بازرس</option>
+    {inspectorOptions.map((option) => (
+      <option key={option.value} value={option.value}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+</div>
+
+
+
+
+
+                    
 
                     <div>
                       <span className="text-gray-600 block mb-1">Remark</span>
