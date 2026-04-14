@@ -857,20 +857,39 @@ const InspectionForm = ({ onComplete, onBack, previousData }) => {
                       )}
                     </div>
 
-                    {/* شهر */}
-                    <SelectField
-                      label="شهر *"
-                      {...register('projectInfo.city')}
-                      error={isSubmitted && errors.projectInfo?.city}
-                      disabled={!currentProvince || citiesLoading}
-                      options={cities || []}
-                      placeholder={
-                        !currentProvince ? "ابتدا استان را انتخاب کنید" :
-                          citiesLoading ? "در حال دریافت لیست شهرها..." :
-                            citiesError ? "خطا در دریافت داده‌ها" : "انتخاب شهر"
-                      }
-                      className="py-1.5 sm:py-1.5 lg:py-1.5"
-                    />
+                 
+
+{/* شهر - با قابلیت جستجو */}
+<div className="flex flex-col">
+  <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center">
+    شهر *
+  </label>
+  <SearchableSelect
+    value={watch('projectInfo.city')}
+    onChange={(cityId) => {
+      setValue('projectInfo.city', cityId, { shouldValidate: true });
+    }}
+    options={cities?.map(city => ({
+      value: city.id,
+      label: city.name,
+      ...city
+    })) || []}
+    placeholder={
+      !currentProvince ? "ابتدا استان را انتخاب کنید" :
+        citiesLoading ? "در حال دریافت لیست شهرها..." :
+          citiesError ? "خطا در دریافت داده‌ها" : "جستجو و انتخاب شهر"
+    }
+    disabled={!currentProvince || citiesLoading || !!citiesError}
+    error={isSubmitted && errors.projectInfo?.city}
+  />
+  <input type="hidden" {...register('projectInfo.city')} />
+  {isSubmitted && errors.projectInfo?.city && (
+    <p className="text-red-500 text-xs mt-1 flex items-center">
+      <FaExclamationTriangle className="ml-1 text-xs" />
+      {errors.projectInfo.city.message}
+    </p>
+  )}
+</div>
                   </>
                 )}
 
