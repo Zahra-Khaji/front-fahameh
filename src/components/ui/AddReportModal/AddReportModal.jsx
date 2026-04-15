@@ -37,10 +37,9 @@ import {
 import {
   useReportStatuses,
   useDeleteReport,
-  useSuggestedReportNo
 } from "../../../hooks/useCreateReport";
 import DeleteConfirmationPopover from "./DeleteConfirmationPopover";
-
+import reportService from "../../../services/reportService";
 
 // پاپ‌آپ تأیید مینیمال
 const ConfirmationPopover = ({
@@ -131,30 +130,14 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
 
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [showNewReportDialog, setShowNewReportDialog] = useState(false);
-  const [newReportAction, setNewReportAction] = useState(null);
-  const [selectedRowToCopy, setSelectedRowToCopy] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedReportForDelete, setSelectedReportForDelete] = useState(null);
   
-  const [suggestParams, setSuggestParams] = useState({
-    rfiNumbering: '',
-    reportNo: '',
-    revNo: ''
-  });
-
   const [reportRows, setReportRows] = useState([]);
   const [newlyAddedRows, setNewlyAddedRows] = useState([]);
   const [rowsToUpdate, setRowsToUpdate] = useState([]);
   const [hasRowAddition, setHasRowAddition] = useState(false);
-    
-  const { data: suggestedReportNo, isLoading: isSuggesting, refetch: fetchSuggestedReport } = useSuggestedReportNo(
-    suggestParams.rfiNumbering,
-    suggestParams.reportNo,
-    suggestParams.revNo,
-    false
-  );
-
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedReportForDelete, setSelectedReportForDelete] = useState(null);
+  
   const initialDataRef = useRef(null);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -162,95 +145,82 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     return transformReportStatuses(statusesData);
   }, [statusesData]);
 
-// ========== تابع اعمال منطق نوع گزارش با ذخیره مقدار اصلی ==========
-const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
-  const currentIndex = currentRows.findIndex(row => row.id === rowId);
-  if (currentIndex === -1) return currentRows;
-  
-  const updatedRows = [...currentRows];
-  const currentRow = { ...updatedRows[currentIndex] };
-  
-  // پیدا کردن آخرین سطر قبلی (غیر از سطر جاری)
-  let previousRow = null;
-  let previousIndex = -1;
-  
-  for (let i = currentIndex - 1; i >= 0; i--) {
-    const row = updatedRows[i];
-    previousRow = row;
-    previousIndex = i;
-    break;
-  }
-  
-  // اگر سطر قبلی پیدا نشد، فقط مقدار نوع گزارش را تغییر بده
-  if (!previousRow) {
-    currentRow.revNumber = newRevValue;
-    updatedRows[currentIndex] = currentRow;
+  // ========== تابع اعمال منطق نوع گزارش با ذخیره مقدار اصلی ==========
+  const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
+    const currentIndex = currentRows.findIndex(row => row.id === rowId);
+    if (currentIndex === -1) return currentRows;
+    
+    const updatedRows = [...currentRows];
+    const currentRow = { ...updatedRows[currentIndex] };
+    
+    // پیدا کردن آخرین سطر قبلی (غیر از سطر جاری)
+    let previousRow = null;
+    let previousIndex = -1;
+    
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const row = updatedRows[i];
+      previousRow = row;
+      previousIndex = i;
+      break;
+    }
+    
+    // اگر سطر قبلی پیدا نشد، فقط مقدار نوع گزارش را تغییر بده
+    if (!previousRow) {
+      currentRow.revNumber = newRevValue;
+      updatedRows[currentIndex] = currentRow;
+      return updatedRows;
+    }
+    
+    // مقدار اصلی سطر قبلی را محاسبه کن
+    let originalApprovedDays = previousRow.approvedDays;
+    
+    // اگر سطر قبلی مقدار originalApprovedDays دارد (یعنی قبلاً تغییر کرده بود)
+    if (previousRow.originalApprovedDays !== undefined) {
+      originalApprovedDays = previousRow.originalApprovedDays;
+    }
+    
+    const previousApprovedDaysValue = originalApprovedDays !== undefined && originalApprovedDays !== ""
+      ? parseInt(originalApprovedDays) || 0
+      : 0;
+    
+    if (newRevValue === 'multipart') {
+      const previousRowUpdated = { ...previousRow };
+      
+      if (previousRowUpdated.originalApprovedDays !== undefined) {
+        previousRowUpdated.approvedDays = previousRowUpdated.originalApprovedDays;
+      }
+      previousRowUpdated.needsUpdate = true;
+      updatedRows[previousIndex] = previousRowUpdated;
+      
+      currentRow.approvedDays = previousApprovedDaysValue;
+      currentRow.revNumber = newRevValue;
+      updatedRows[currentIndex] = currentRow;
+      
+    } else if (newRevValue === 'rev') {
+      const previousRowUpdated = { ...previousRow };
+      
+      if (previousRowUpdated.originalApprovedDays === undefined && previousRowUpdated.approvedDays !== undefined) {
+        previousRowUpdated.originalApprovedDays = previousRowUpdated.approvedDays;
+      }
+      
+      previousRowUpdated.approvedDays = 0;
+      previousRowUpdated.needsUpdate = true;
+      updatedRows[previousIndex] = previousRowUpdated;
+      
+      currentRow.approvedDays = previousApprovedDaysValue;
+      currentRow.revNumber = newRevValue;
+      updatedRows[currentIndex] = currentRow;
+      
+      if (!previousRow.isNew && !rowsToUpdate.includes(previousRow.id)) {
+        setRowsToUpdate(prev => [...prev, previousRow.id]);
+      }
+    } else {
+      currentRow.revNumber = newRevValue;
+      updatedRows[currentIndex] = currentRow;
+    }
+    
     return updatedRows;
-  }
-  
-  // مقدار اصلی سطر قبلی را محاسبه کن
-  let originalApprovedDays = previousRow.approvedDays;
-  
-  // اگر سطر قبلی مقدار originalApprovedDays دارد (یعنی قبلاً تغییر کرده بود)
-  if (previousRow.originalApprovedDays !== undefined) {
-    originalApprovedDays = previousRow.originalApprovedDays;
-  }
-  
-  const previousApprovedDaysValue = originalApprovedDays !== undefined && originalApprovedDays !== ""
-    ? parseInt(originalApprovedDays) || 0
-    : 0;
-  
-  if (newRevValue === 'multipart') {
-    // Multipart: 
-    // 1. مقدار سطر قبلی را به مقدار اصلی برگردان
-    // 2. مقدار سطر جدید = مقدار اصلی سطر قبلی
-    
-    const previousRowUpdated = { ...previousRow };
-    
-    // برگرداندن مقدار اصلی به سطر قبلی
-    if (previousRowUpdated.originalApprovedDays !== undefined) {
-      previousRowUpdated.approvedDays = previousRowUpdated.originalApprovedDays;
-    }
-    previousRowUpdated.needsUpdate = true;
-    updatedRows[previousIndex] = previousRowUpdated;
-    
-    // مقدار سطر جدید را برابر با مقدار اصلی سطر قبلی بگذار
-    currentRow.approvedDays = previousApprovedDaysValue;
-    currentRow.revNumber = newRevValue;
-    updatedRows[currentIndex] = currentRow;
-    
-  } else if (newRevValue === 'rev') {
-    // Rev: 
-    // 1. مقدار اصلی سطر قبلی را ذخیره کن (اگر قبلاً ذخیره نشده)
-    // 2. مقدار فعلی سطر قبلی را صفر کن
-    // 3. مقدار سطر جدید را برابر با مقدار اصلی سطر قبلی بگذار
-    
-    const previousRowUpdated = { ...previousRow };
-    
-    // ذخیره مقدار اصلی اگر قبلاً ذخیره نشده
-    if (previousRowUpdated.originalApprovedDays === undefined && previousRowUpdated.approvedDays !== undefined) {
-      previousRowUpdated.originalApprovedDays = previousRowUpdated.approvedDays;
-    }
-    
-    // مقدار فعلی را صفر کن
-    previousRowUpdated.approvedDays = 0;
-    previousRowUpdated.needsUpdate = true;
-    updatedRows[previousIndex] = previousRowUpdated;
-    
-    currentRow.approvedDays = previousApprovedDaysValue;
-    currentRow.revNumber = newRevValue;
-    updatedRows[currentIndex] = currentRow;
-    
-    if (!previousRow.isNew && !rowsToUpdate.includes(previousRow.id)) {
-      setRowsToUpdate(prev => [...prev, previousRow.id]);
-    }
-  } else {
-    currentRow.revNumber = newRevValue;
-    updatedRows[currentIndex] = currentRow;
-  }
-  
-  return updatedRows;
-};
+  };
 
   const convertToPersianDate = (dateString) => {
     if (!dateString) {
@@ -365,11 +335,98 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
     return str1 === str2;
   };
 
-  // ========== تابع افزودن سطر جدید (بدون تغییر در approvedDays) ==========
-  const handleAddNewRowBasic = () => {
+  // ========== تابع جدید برای دریافت شماره گزارش پیشنهادی از بک‌اند ==========
+  const fetchSuggestedReportNumber = async (rowId, revNoValue) => {
+    if (!rfiData?.RFI_Numbering) {
+      console.error('❌ rfiNumbering موجود نیست');
+      toast.error('❌ شماره RFI نامشخص است');
+      return;
+    }
+    
+    // پیدا کردن سطر قبلی برای گرفتن reportNo
+    const currentRows = [...reportRows];
+    const rowIndex = currentRows.findIndex(r => r.id === rowId);
+    if (rowIndex === -1) return;
+    
+    // پیدا کردن آخرین سطر غیر جدید (یا سطر قبلی) برای گرفتن reportNo پایه
+    let baseReportNo = '';
+    for (let i = rowIndex - 1; i >= 0; i--) {
+      const prevRow = currentRows[i];
+      if (prevRow.reportNumber && prevRow.reportNumber.trim() !== '') {
+        baseReportNo = prevRow.reportNumber;
+        break;
+      }
+    }
+    
+    // اگر سطر قبلی پیدا نشد، از اولین سطر استفاده کن
+    if (!baseReportNo && currentRows.length > 0) {
+      baseReportNo = currentRows[0].reportNumber;
+    }
+    
+    if (!baseReportNo || baseReportNo.trim() === '') {
+      console.error('⚠️ reportNo پایه پیدا نشد');
+      toast.error('❌ ابتدا یک شماره گزارش معتبر در سطرهای قبلی وجود داشته باشد');
+      return;
+    }
+    
+    // نمایش لودینگ در همان سطر
+    setReportRows(prevRows => 
+      prevRows.map(row => 
+        row.id === rowId ? { ...row, _loading: true } : row
+      )
+    );
+    
+    try {
+      const result = await reportService.getSuggestedReportNo(
+        rfiData.RFI_Numbering,
+        baseReportNo,
+        revNoValue
+      );
+      
+      // آپدیت سطر با شماره جدید
+      setReportRows(prevRows => 
+        prevRows.map(row => 
+          row.id === rowId 
+            ? { 
+                ...row, 
+                reportNumber: result, 
+                _loading: false,
+                revNumber: revNoValue
+              } 
+            : row
+        )
+      );
+      
+      toast.success(`شماره گزارش جدید دریافت شد`, {
+        duration: 3000,
+        position: 'top-center',
+        icon: '✅'
+      });
+      
+    } catch (error) {
+      console.error('❌ خطا در دریافت شماره گزارش:', error);
+      setReportRows(prevRows => 
+        prevRows.map(row => 
+          row.id === rowId ? { ...row, _loading: false, revNumber: '' } : row
+        )
+      );
+      toast.error('❌ خطا در دریافت شماره گزارش جدید', {
+        duration: 3000,
+        position: 'top-center'
+      });
+    }
+  };
+
+  // ========== تابع افزودن سطر جدید (بدون درخواست به بک‌اند) ==========
+  const handleAddNewRow = () => {
+    if (!rfiData?.RFI_Numbering) {
+      console.error('❌ rfiData یا RFI_Numbering موجود نیست');
+      toast.error('❌ شماره RFI نامشخص است');
+      return;
+    }
+    
     const newId = reportRows.length > 0 ? Math.max(...reportRows.map(r => r.id)) + 1 : 1;
     
-    // سطر قبلی را تغییر نده! فقط سطر جدید اضافه کن
     const newRow = {
       id: newId,
       reportNumber: '',
@@ -378,7 +435,7 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
       statusEnglish: "approved",
       corrections: "",
       receivedDate: convertToPersianDate(new Date()),
-      approvedDays: "", // خالی بگذار، مقداردهی بعد از انتخاب نوع گزارش انجام شود
+      approvedDays: "",
       unitNumber: "",
       vendorName: rfiData?.VendorName || "",
       irn: "",
@@ -387,132 +444,52 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
       rfiNumbering: rfiData?.RFI_Numbering || "",
       issueDate: new Date().toISOString().split("T")[0],
       isNew: true,
-      needsUpdate: false
+      needsUpdate: false,
+      _loading: false
     };
     
     setReportRows([...reportRows, newRow]);
     setHasRowAddition(true);
     
-    toast.info('📝 یک سطر جدید اضافه شد. لطفاً نوع گزارش را انتخاب کنید');
+    toast.info('📝 سطر جدید اضافه شد. لطفاً نوع گزارش را انتخاب کنید', {
+      duration: 3000,
+      position: 'top-center'
+    });
   };
 
-  const fetchNewReportNumber = async (action, rowToCopy = null) => {
+  // ========== تابع کپی سطر (بدون درخواست به بک‌اند) ==========
+  const handleCopyRow = (id) => {
+    const rowToCopy = reportRows.find(row => row.id === id);
+    if (!rowToCopy) {
+      toast.error('❌ ردیف مورد نظر یافت نشد');
+      return;
+    }
+    
     if (!rfiData?.RFI_Numbering) {
-      console.error('❌ rfiData یا RFI_Numbering موجود نیست');
       toast.error('❌ شماره RFI نامشخص است');
       return;
     }
     
-    let reportNo = '';
-    let revNo = 'rev';
+    const newId = Math.max(...reportRows.map(r => r.id), 0) + 1;
     
-    if (action === 'copy' && rowToCopy) {
-      reportNo = rowToCopy.reportNumber || '';
-      revNo = rowToCopy.revNumber || 'rev';
-      setSelectedRowToCopy(rowToCopy);
-    } else if (action === 'add') {
-      if (reportRows.length > 0) {
-        const lastRow = reportRows[reportRows.length - 1];
-        reportNo = lastRow.reportNumber || '';
-        revNo = lastRow.revNumber || 'rev';
-      } else {
-        handleAddNewRowBasic();
-        return;
-      }
-    }
-    
-    if (!reportNo || reportNo.trim() === '') {
-      console.error('⚠️ reportNo خالی است');
-      toast.error('❌ ابتدا یک شماره گزارش موجود را پر کنید');
-      return;
-    }
-    
-    setSuggestParams({
-      rfiNumbering: rfiData.RFI_Numbering,
-      reportNo: reportNo,
-      revNo: revNo
-    });
-    
-    setNewReportAction(action);
-    setShowNewReportDialog(true);
-    
-    setTimeout(() => {
-      fetchSuggestedReport();
-    }, 100);
-  };
-
-  // ========== تابع ایجاد سطر جدید با شماره پیشنهادی (بدون تغییر approvedDays) ==========
-  const createNewRowWithSuggestedNumber = () => {
-    const newId = reportRows.length > 0 ? Math.max(...reportRows.map(r => r.id)) + 1 : 1;
-    
-    let newRow = {
+    const newRow = {
+      ...rowToCopy,
       id: newId,
-      reportNumber: suggestedReportNo || '',
+      reportNumber: '',
       revNumber: '',
-      status: "5",
-      statusEnglish: "approved",
-      corrections: "",
-      receivedDate: convertToPersianDate(new Date()),
-      approvedDays: "", // خالی بگذار، مقداردهی بعد از انتخاب نوع گزارش انجام شود
-      unitNumber: "",
-      vendorName: rfiData?.VendorName || "",
-      irn: "",
-      srn: "",
-      firstPrice: "80000000",
-      rfiNumbering: rfiData?.RFI_Numbering || "",
-      issueDate: new Date().toISOString().split("T")[0],
       isNew: true,
-      needsUpdate: false
+      needsUpdate: false,
+      _loading: false,
+      _saved: false
     };
     
-    if (newReportAction === 'copy' && selectedRowToCopy) {
-      newRow = {
-        ...newRow,
-        revNumber: selectedRowToCopy.revNumber || '',
-        status: selectedRowToCopy.status || "5",
-        statusEnglish: selectedRowToCopy.statusEnglish || "approved",
-        corrections: selectedRowToCopy.corrections || "",
-        receivedDate: selectedRowToCopy.receivedDate || convertToPersianDate(new Date()),
-        unitNumber: selectedRowToCopy.unitNumber || "",
-        vendorName: selectedRowToCopy.vendorName || rfiData?.VendorName || "",
-        irn: "",
-        srn: selectedRowToCopy.srn || "",
-        firstPrice: selectedRowToCopy.firstPrice || "80000000",
-        approvedDays: "", // خالی بگذار
-        isNew: true,
-        needsUpdate: false
-      };
-    }
-    
-    // سطرهای قبلی را تغییر نده!
     setReportRows([...reportRows, newRow]);
-    setNewlyAddedRows([...newlyAddedRows, newId]);
     setHasRowAddition(true);
-    setShowNewReportDialog(false);
-    setSelectedRowToCopy(null);
-    setNewReportAction(null);
-  };
-
-  useEffect(() => {
-    if (suggestedReportNo && showNewReportDialog) {
-      createNewRowWithSuggestedNumber();
-    }
-  }, [suggestedReportNo]);
-
-  useEffect(() => {
-    if (reportRows.length > 0 && hasRowAddition) {
-      const secondLastIndex = reportRows.length - 2;
-      if (secondLastIndex >= 0) {
-        const secondLastRow = reportRows[secondLastIndex];
-        if (secondLastRow && !rowsToUpdate.includes(secondLastRow.id)) {
-          setRowsToUpdate([...rowsToUpdate, secondLastRow.id]);
-        }
-      }
-    }
-  }, [reportRows, hasRowAddition]);
-
-  const handleAddNewRow = () => {
-    fetchNewReportNumber('add');
+    
+    toast.info('📝 سطر کپی شد. لطفاً نوع گزارش را انتخاب کنید', {
+      duration: 3000,
+      position: 'top-center'
+    });
   };
 
   const handleDeleteRow = (id) => {
@@ -555,51 +532,68 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
     });
   };
 
-  const handleCopyRow = (id) => {
-    const rowToCopy = reportRows.find(row => row.id === id);
-    if (rowToCopy) {
-      fetchNewReportNumber('copy', rowToCopy);
-    }
-  };
-
-  const handleRowChange = (id, field, value) => {
-    if (field === "revNumber") {
+  // ========== تابع اصلاح شده handleRowChange با درخواست شماره گزارش هنگام انتخاب revNumber ==========
+ // ========== تابع اصلاح شده handleRowChange با درخواست مجدد هنگام تغییر نوع گزارش ==========
+const handleRowChange = (id, field, value) => {
+  if (field === "revNumber") {
+    // ابتدا مقدار revNumber را آپدیت کن
+    setReportRows(prevRows => 
+      prevRows.map(row => 
+        row.id === id ? { ...row, revNumber: value } : row
+      )
+    );
+    
+    // پیدا کردن سطر جاری
+    const targetRow = reportRows.find(row => row.id === id);
+    
+    if (targetRow && targetRow.isNew) {
+      // برای سطرهای جدید: همیشه درخواست بفرست (چه قبلاً شماره گرفته شده باشد، چه نه)
+      // چون کاربر نوع گزارش را عوض کرده و باید شماره جدید بگیرد
+      if (value && value !== '') {
+        // اگر در حال لودینگ است، درخواست جدید نده
+        if (!targetRow._loading) {
+          fetchSuggestedReportNumber(id, value);
+        }
+      }
+    } else if (targetRow && !targetRow.isNew) {
+      // برای سطرهای موجود، فقط منطق rev type را اعمال کن
       setReportRows(prevRows => applyRevTypeLogic(id, value, prevRows));
-    } else {
-      setReportRows(
-        reportRows.map((row) => {
-          if (row.id === id) {
-            if (field === "status") {
-              const selectedOption = statusOptions.find(
-                (opt) => opt.value === value
-              );
-              const englishStatus = selectedOption?.textValue || value;
-
-              return {
-                ...row,
-                [field]: value,
-                statusEnglish: englishStatus,
-                ...(englishStatus !== "Objection" && { corrections: "" }),
-              };
-            }
-
-            if (field === "approvedDays") {
-              if (value === "" || value === null || value === undefined) {
-                return { ...row, [field]: "" };
-              }
-              const numValue = parseInt(value, 10);
-              if (!isNaN(numValue) && numValue >= 0) {
-                return { ...row, [field]: numValue };
-              }
-              return row;
-            }
-            return { ...row, [field]: value };
-          }
-          return row;
-        })
-      );
     }
-  };
+  } else {
+    setReportRows(
+      reportRows.map((row) => {
+        if (row.id === id) {
+          if (field === "status") {
+            const selectedOption = statusOptions.find(
+              (opt) => opt.value === value
+            );
+            const englishStatus = selectedOption?.textValue || value;
+
+            return {
+              ...row,
+              [field]: value,
+              statusEnglish: englishStatus,
+              ...(englishStatus !== "Objection" && { corrections: "" }),
+            };
+          }
+
+          if (field === "approvedDays") {
+            if (value === "" || value === null || value === undefined) {
+              return { ...row, [field]: "" };
+            }
+            const numValue = parseInt(value, 10);
+            if (!isNaN(numValue) && numValue >= 0) {
+              return { ...row, [field]: numValue };
+            }
+            return row;
+          }
+          return { ...row, [field]: value };
+        }
+        return row;
+      })
+    );
+  }
+};
 
   const checkForChanges = () => {
     if (!initialDataRef.current) return false;
@@ -997,14 +991,10 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
                 type="button"
                 onClick={handleAddNewRow}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading || isSuggesting}
+                disabled={isLoading}
               >
-                {isSuggesting && newReportAction === 'add' ? (
-                  <FaSync className="animate-spin text-base" />
-                ) : (
-                  <FaPlusCircle className="text-base" />
-                )}
-                {isSuggesting && newReportAction === 'add' ? 'دریافت شماره جدید...' : 'افزودن گزارش'}
+                <FaPlusCircle className="text-base" />
+                افزودن گزارش
               </button>
             </div>
 
@@ -1033,22 +1023,29 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
                     {reportRows.map((row, index) => (
                       <tr key={row.id} className={`border-b border-gray-200 transition duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50`}>
                         <td className="p-3 min-w-[180px]">
-                          <input
-                            type="text"
-                            value={row.reportNumber}
-                            onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)}
-                            className="w-full px-3 py-2 text-gray-800 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="مثال: FAH-INS-APGT-0766"
-                            disabled={isLoading}
-                            required
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={row.reportNumber}
+                              onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)}
+                              className="w-full px-3 py-2 text-gray-800 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="مثال: FAH-INS-APGT-0766"
+                              disabled={isLoading || row._loading}
+                              required
+                            />
+                            {row._loading && (
+                              <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
+                                <FaSync className="animate-spin text-blue-500 text-xs" />
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="p-3 min-w-[90px] text-gray-800">
                           <select
                             value={row.revNumber || ""}
                             onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)}
                             className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            disabled={isLoading}
+                            disabled={isLoading || row._loading}
                           >
                             <option value="">-</option>
                             <option value="rev">Rev</option>
@@ -1161,13 +1158,9 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
                                 onClick={() => handleCopyRow(row.id)}
                                 className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200"
                                 title="کپی سطر"
-                                disabled={isLoading || isSuggesting}
+                                disabled={isLoading || row._loading}
                               >
-                                {isSuggesting && newReportAction === 'copy' && selectedRowToCopy?.id === row.id ? (
-                                  <FaSync className="animate-spin text-xs" />
-                                ) : (
-                                  <FaCopy className="text-xs" />
-                                )}
+                                <FaCopy className="text-xs" />
                               </button>
                               <button
                                 type="button"
@@ -1203,13 +1196,9 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
                         onClick={() => handleCopyRow(row.id)}
                         className="text-blue-600 hover:text-blue-800 p-1"
                         title="کپی"
-                        disabled={isLoading || isSuggesting}
+                        disabled={isLoading || row._loading}
                       >
-                        {isSuggesting && newReportAction === 'copy' && selectedRowToCopy?.id === row.id ? (
-                          <FaSync className="animate-spin text-sm" />
-                        ) : (
-                          <FaCopy className="text-sm" />
-                        )}
+                        <FaCopy className="text-sm" />
                       </button>
                       <button
                         type="button"
@@ -1226,15 +1215,22 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <span className="text-gray-600 block mb-1">شماره گزارش *</span>
-                        <input
-                          type="text"
-                          value={row.reportNumber}
-                          onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          placeholder="شماره گزارش"
-                          disabled={isLoading}
-                          required
-                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={row.reportNumber}
+                            onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
+                            placeholder="شماره گزارش"
+                            disabled={isLoading || row._loading}
+                            required
+                          />
+                          {row._loading && (
+                            <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
+                              <FaSync className="animate-spin text-blue-500 text-xs" />
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <span className="text-gray-600 block mb-1">نوع گزارش (RevNO)</span>
@@ -1242,7 +1238,7 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
                           value={row.revNumber || ""}
                           onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoading}
+                          disabled={isLoading || row._loading}
                         >
                           <option value="">-</option>
                           <option value="rev">Rev</option>
@@ -1401,34 +1397,6 @@ const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
           </form>
         )}
       </div>
-
-      {showNewReportDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-4">
-            <div className="flex flex-col items-center text-center">
-              {isSuggesting ? (
-                <>
-                  <FaSync className="animate-spin text-blue-500 text-2xl mb-3" />
-                  <h3 className="text-sm font-semibold text-gray-800 mb-1">در حال دریافت شماره گزارش جدید</h3>
-                  <p className="text-xs text-gray-600">لطفاً منتظر بمانید...</p>
-                </>
-              ) : suggestedReportNo ? (
-                <>
-                  <FaCheckCircle className="text-green-500 text-2xl mb-3" />
-                  <h3 className="text-sm font-semibold text-gray-800 mb-1">شماره جدید دریافت شد</h3>
-                  <p className="text-xs text-gray-800 font-mono bg-gray-100 p-2 rounded mb-3">{suggestedReportNo}</p>
-                  <p className="text-xs text-gray-600 mb-3">
-                    سطر جدید با این شماره اضافه خواهد شد.
-                  </p>
-                  <button onClick={() => setShowNewReportDialog(false)} className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded transition duration-200">
-                    ادامه
-                  </button>
-                </>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
 
       <ConfirmationPopover
         isOpen={showSaveConfirm}

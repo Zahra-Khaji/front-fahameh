@@ -96,14 +96,7 @@ class ReportService {
 
   // در reportService.js - متد را با logging کامل اضافه کنید:
   async getSuggestedReportNo(rfiNumbering, reportNo, revNo = "rev") {
-    // console.log('🔍 ReportService.getSuggestedReportNo - پارامترهای ورودی:', {
-    //   rfiNumbering,
-    //   reportNo,
-    //   revNo,
-    //   typeOf_rfiNumbering: typeof rfiNumbering,
-    //   typeOf_reportNo: typeof reportNo,
-    //   typeOf_revNo: typeof revNo
-    // });
+
 
     // اعتبارسنجی
     if (!rfiNumbering || rfiNumbering.trim() === "") {
