@@ -26,6 +26,7 @@ import {
   useCreateNewReport,
 } from "../../../hooks/useCreateReport";
 import { useUser } from "../../../hooks/useUser";
+import { useVendors } from "../../../hooks/useVendors";
 import { toast } from "react-hot-toast";
 
 import {
@@ -128,6 +129,21 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   const { mutate: deleteReport, isLoading: isDeleting } = useDeleteReport();
   const { user } = useUser();
 
+  // ========== اضافه کردن هوک useVendors ==========
+  const {
+    data: vendors,
+    isLoading: vendorsLoading,
+    error: vendorsError
+  } = useVendors(false); // false برای وندورهای داخلی
+
+  // ========== ساخت vendorOptions ==========
+  const vendorOptions = useMemo(() => {
+    return vendors?.map((vendor) => ({
+      label: vendor.name,
+      value: vendor.name,
+    })) || [];
+  }, [vendors]);
+
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -145,8 +161,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     return transformReportStatuses(statusesData);
   }, [statusesData]);
 
-  // ========== تابع اعمال منطق نوع گزارش با ذخیره مقدار اصلی ==========
-  const applyRevTypeLogic = (rowId, newRevValue, currentRows) => {
+  // ========== تابع جدید اعمال منطق Rev/Multipart روی approvedDays (با ذخیره مقدار اصلی) ==========
+  const applyRevTypeLogicWithDays = (rowId, newRevValue, currentRows) => {
     const currentIndex = currentRows.findIndex(row => row.id === rowId);
     if (currentIndex === -1) return currentRows;
     
@@ -172,11 +188,9 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     }
     
     // مقدار اصلی سطر قبلی را محاسبه کن
-    let originalApprovedDays = previousRow.approvedDays;
-    
-    // اگر سطر قبلی مقدار originalApprovedDays دارد (یعنی قبلاً تغییر کرده بود)
-    if (previousRow.originalApprovedDays !== undefined) {
-      originalApprovedDays = previousRow.originalApprovedDays;
+    let originalApprovedDays = previousRow.originalApprovedDays;
+    if (originalApprovedDays === undefined) {
+      originalApprovedDays = previousRow.approvedDays;
     }
     
     const previousApprovedDaysValue = originalApprovedDays !== undefined && originalApprovedDays !== ""
@@ -184,8 +198,12 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       : 0;
     
     if (newRevValue === 'multipart') {
-      const previousRowUpdated = { ...previousRow };
+      // حالت Multipart:
+      // - سطر قبلی: مقدار اصلی خود را حفظ می‌کند (تغییر نمی‌کند)
+      // - سطر جدید: مقدار سطر قبلی را می‌گیرد
       
+      const previousRowUpdated = { ...previousRow };
+      // اگر قبلاً originalApprovedDays ذخیره شده بود، approvedDays را به آن برگردان
       if (previousRowUpdated.originalApprovedDays !== undefined) {
         previousRowUpdated.approvedDays = previousRowUpdated.originalApprovedDays;
       }
@@ -197,12 +215,18 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       updatedRows[currentIndex] = currentRow;
       
     } else if (newRevValue === 'rev') {
+      // حالت Rev:
+      // - سطر قبلی: مقدارش صفر می‌شود (و مقدار اصلی ذخیره می‌شود)
+      // - سطر جدید: مقدار اصلی سطر قبلی را می‌گیرد
+      
       const previousRowUpdated = { ...previousRow };
       
+      // ذخیره مقدار اصلی اگر قبلاً ذخیره نشده باشد
       if (previousRowUpdated.originalApprovedDays === undefined && previousRowUpdated.approvedDays !== undefined) {
         previousRowUpdated.originalApprovedDays = previousRowUpdated.approvedDays;
       }
       
+      // مقدار سطر قبلی را صفر کن
       previousRowUpdated.approvedDays = 0;
       previousRowUpdated.needsUpdate = true;
       updatedRows[previousIndex] = previousRowUpdated;
@@ -215,6 +239,15 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
         setRowsToUpdate(prev => [...prev, previousRow.id]);
       }
     } else {
+      // اگر نوع گزارش خالی شد (یا مقدار دیگری)
+      // سطر قبلی را به مقدار اصلی برگردان
+      if (previousRow.originalApprovedDays !== undefined) {
+        const previousRowUpdated = { ...previousRow };
+        previousRowUpdated.approvedDays = previousRowUpdated.originalApprovedDays;
+        previousRowUpdated.needsUpdate = true;
+        updatedRows[previousIndex] = previousRowUpdated;
+      }
+      
       currentRow.revNumber = newRevValue;
       updatedRows[currentIndex] = currentRow;
     }
@@ -445,7 +478,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       issueDate: new Date().toISOString().split("T")[0],
       isNew: true,
       needsUpdate: false,
-      _loading: false
+      _loading: false,
+      originalApprovedDays: undefined
     };
     
     setReportRows([...reportRows, newRow]);
@@ -480,7 +514,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       isNew: true,
       needsUpdate: false,
       _loading: false,
-      _saved: false
+      _saved: false,
+      originalApprovedDays: undefined // ریست کردن مقدار اصلی برای سطر جدید
     };
     
     setReportRows([...reportRows, newRow]);
@@ -532,68 +567,72 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     });
   };
 
-  // ========== تابع اصلاح شده handleRowChange با درخواست شماره گزارش هنگام انتخاب revNumber ==========
- // ========== تابع اصلاح شده handleRowChange با درخواست مجدد هنگام تغییر نوع گزارش ==========
-const handleRowChange = (id, field, value) => {
-  if (field === "revNumber") {
-    // ابتدا مقدار revNumber را آپدیت کن
-    setReportRows(prevRows => 
-      prevRows.map(row => 
-        row.id === id ? { ...row, revNumber: value } : row
-      )
-    );
-    
-    // پیدا کردن سطر جاری
-    const targetRow = reportRows.find(row => row.id === id);
-    
-    if (targetRow && targetRow.isNew) {
-      // برای سطرهای جدید: همیشه درخواست بفرست (چه قبلاً شماره گرفته شده باشد، چه نه)
-      // چون کاربر نوع گزارش را عوض کرده و باید شماره جدید بگیرد
-      if (value && value !== '') {
-        // اگر در حال لودینگ است، درخواست جدید نده
-        if (!targetRow._loading) {
-          fetchSuggestedReportNumber(id, value);
+  // ========== تابع اصلاح شده handleRowChange با منطق جدید برای approvedDays ==========
+  const handleRowChange = (id, field, value) => {
+    if (field === "revNumber") {
+      // ابتدا مقدار revNumber را آپدیت کن
+      setReportRows(prevRows => 
+        prevRows.map(row => 
+          row.id === id ? { ...row, revNumber: value } : row
+        )
+      );
+      
+      // پیدا کردن سطر جاری
+      const targetRow = reportRows.find(row => row.id === id);
+      
+      if (targetRow && targetRow.isNew) {
+        // برای سطرهای جدید: 
+        // 1. اعمال منطق Rev/Multipart روی approvedDays
+        // 2. درخواست شماره گزارش به بک‌اند
+        
+        if (value && value !== '') {
+          // اعمال منطق روی approvedDays
+          setReportRows(prevRows => applyRevTypeLogicWithDays(id, value, prevRows));
+          
+          // اگر در حال لودینگ نیست، درخواست شماره گزارش بفرست
+          if (!targetRow._loading) {
+            fetchSuggestedReportNumber(id, value);
+          }
         }
+      } else if (targetRow && !targetRow.isNew) {
+        // برای سطرهای موجود، فقط منطق rev type را اعمال کن (بدون درخواست به بک‌اند)
+        setReportRows(prevRows => applyRevTypeLogicWithDays(id, value, prevRows));
       }
-    } else if (targetRow && !targetRow.isNew) {
-      // برای سطرهای موجود، فقط منطق rev type را اعمال کن
-      setReportRows(prevRows => applyRevTypeLogic(id, value, prevRows));
+    } else {
+      setReportRows(
+        reportRows.map((row) => {
+          if (row.id === id) {
+            if (field === "status") {
+              const selectedOption = statusOptions.find(
+                (opt) => opt.value === value
+              );
+              const englishStatus = selectedOption?.textValue || value;
+
+              return {
+                ...row,
+                [field]: value,
+                statusEnglish: englishStatus,
+                ...(englishStatus !== "Objection" && { corrections: "" }),
+              };
+            }
+
+            if (field === "approvedDays") {
+              if (value === "" || value === null || value === undefined) {
+                return { ...row, [field]: "" };
+              }
+              const numValue = parseInt(value, 10);
+              if (!isNaN(numValue) && numValue >= 0) {
+                return { ...row, [field]: numValue };
+              }
+              return row;
+            }
+            return { ...row, [field]: value };
+          }
+          return row;
+        })
+      );
     }
-  } else {
-    setReportRows(
-      reportRows.map((row) => {
-        if (row.id === id) {
-          if (field === "status") {
-            const selectedOption = statusOptions.find(
-              (opt) => opt.value === value
-            );
-            const englishStatus = selectedOption?.textValue || value;
-
-            return {
-              ...row,
-              [field]: value,
-              statusEnglish: englishStatus,
-              ...(englishStatus !== "Objection" && { corrections: "" }),
-            };
-          }
-
-          if (field === "approvedDays") {
-            if (value === "" || value === null || value === undefined) {
-              return { ...row, [field]: "" };
-            }
-            const numValue = parseInt(value, 10);
-            if (!isNaN(numValue) && numValue >= 0) {
-              return { ...row, [field]: numValue };
-            }
-            return row;
-          }
-          return { ...row, [field]: value };
-        }
-        return row;
-      })
-    );
-  }
-};
+  };
 
   const checkForChanges = () => {
     if (!initialDataRef.current) return false;
@@ -675,7 +714,8 @@ const handleRowChange = (id, field, value) => {
         receivedDate: row.receivedDate?.format?.() || row.receivedDate,
         approvedDays: typeof row.approvedDays === "number" ? row.approvedDays.toString() : row.approvedDays,
         isNew: false,
-        needsUpdate: false
+        needsUpdate: false,
+        originalApprovedDays: undefined // پاک کردن مقدار اصلی بعد از ذخیره موفق
       })),
     };
     
@@ -865,6 +905,7 @@ const handleRowChange = (id, field, value) => {
           firstPrice: reportSource.FirstPrice || "80000000",
           rfiNumbering: reportSource.RFI_Numbering || "",
           issueDate: reportSource.IssueDate || new Date().toISOString().split("T")[0],
+          originalApprovedDays: undefined
         };
 
         setReportRows([initialRow]);
@@ -883,6 +924,7 @@ const handleRowChange = (id, field, value) => {
             srn: initialRow.srn || "",
             firstPrice: convertToString(initialRow.firstPrice),
             rfiNumbering: initialRow.rfiNumbering || "",
+            originalApprovedDays: undefined
           }],
         };
       } else {
@@ -906,6 +948,7 @@ const handleRowChange = (id, field, value) => {
           firstPrice: "80000000",
           rfiNumbering: rfiData?.RFI_Numbering || "",
           issueDate: new Date().toISOString().split("T")[0],
+          originalApprovedDays: undefined
         };
 
         setReportRows([newRow]);
@@ -924,6 +967,7 @@ const handleRowChange = (id, field, value) => {
             srn: newRow.srn || "",
             firstPrice: convertToString(newRow.firstPrice),
             rfiNumbering: newRow.rfiNumbering || "",
+            originalApprovedDays: undefined
           }],
         };
       }
@@ -1089,15 +1133,21 @@ const handleRowChange = (id, field, value) => {
                             disabled={isLoading}
                           />
                         </td>
+                        {/* ستون نام وندور - به صورت select از دیتابیس */}
                         <td className="p-3 min-w-[160px] text-gray-800">
-                          <input
-                            type="text"
+                          <select
                             value={row.vendorName}
                             onChange={(e) => handleRowChange(row.id, "vendorName", e.target.value)}
                             className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="نام وندور"
-                            disabled={isLoading}
-                          />
+                            disabled={vendorsLoading || isLoading}
+                          >
+                            <option value="" disabled>انتخاب وندور</option>
+                            {vendorOptions.map((option) => (
+                              <option key={option.value} value={option.label}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                         <td className="p-3 text-gray-800" style={{ width: "8%" }}>
                           <input
@@ -1288,14 +1338,17 @@ const handleRowChange = (id, field, value) => {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <span className="text-gray-600 block mb-1">نام وندور</span>
-                        <input
-                          type="text"
+                        <select
                           value={row.vendorName}
                           onChange={(e) => handleRowChange(row.id, "vendorName", e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          placeholder="نام وندور"
-                          disabled={isLoading}
-                        />
+                          disabled={vendorsLoading || isLoading}
+                        >
+                          <option value="" disabled>انتخاب وندور</option>
+                          {vendorOptions.map((option) => (
+                            <option key={option.value} value={option.label}>{option.label}</option>
+                          ))}
+                        </select>
                       </div>
                       <div>
                         <span className="text-gray-600 block mb-1">تعداد روز</span>
