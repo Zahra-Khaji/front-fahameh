@@ -5,7 +5,7 @@ import FormSection from "../common/FormSection";
 import Button from "../ui/Button";
 import { useProjects } from "../../hooks/useProjects";
 import { useInspectors } from "../../hooks/useInspectors";
-import AddProjectModal from "../ui/AddProjectModal";
+import AddProjectModal from "./AddProjectModal";
 import AddInspectorModal from "./AddInspectorModal";
 import { useVendors } from "../../hooks/useVendors";
 import AddVendorModal from "./AddVendorModal";
