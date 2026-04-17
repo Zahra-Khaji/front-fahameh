@@ -14,6 +14,7 @@ import AddProvinceModal from "./AddProvinceModal";
 import AddCityModal from "./AddCityModal";
 import DataTable from "../common/DataTable";
 import ConfirmDeletePopover from "./ConfirmDeletePopover";
+import toast from 'react-hot-toast';
 
 const BaseDataForm = () => {
   const [entityType, setEntityType] = useState("");
@@ -49,6 +50,7 @@ const BaseDataForm = () => {
   const [cityToDelete, setCityToDelete] = useState(null);
   const [deleteCityPopoverOpen, setDeleteCityPopoverOpen] = useState(false);
   const [selectedProvinceForCity, setSelectedProvinceForCity] = useState("");
+  const [selectedProvinceIdForModal, setSelectedProvinceIdForModal] = useState("");
 
   // ========== هوک‌های داده ==========
   const {
@@ -146,6 +148,7 @@ const BaseDataForm = () => {
     setIsEditModeVendor(false);
     setIsEditModeProvince(false);
     setIsEditModeCity(false);
+    setSelectedProvinceIdForModal("");
     setIsModalOpen(false);
   };
 
@@ -311,6 +314,14 @@ const BaseDataForm = () => {
 
   // ========== توابع شهر ==========
   const openModalForAddCity = () => {
+    if (!selectedProvinceForCity) {
+      toast.error('لطفاً ابتدا یک استان انتخاب کنید', {
+        position: 'top-center',
+        duration: 3000,
+      });
+      return;
+    }
+    setSelectedProvinceIdForModal(selectedProvinceForCity);
     setEditingCity(null);
     setIsEditModeCity(false);
     setIsModalOpen(true);
@@ -320,6 +331,7 @@ const BaseDataForm = () => {
     setEditingCity(city);
     setIsEditModeCity(true);
     setIsModalOpen(true);
+    setSelectedProvinceIdForModal(city.province_id || "");
   };
 
   const openDeleteCityPopover = (city) => {
@@ -410,10 +422,10 @@ const BaseDataForm = () => {
   // ستون‌های وندور
   const vendorColumns = [
     { key: "name", title: "نام وندور" },
-    // { key: "contact_person", title: "شخص رابط" },
-    // { key: "phone", title: "شماره تماس" },
-    // { key: "email", title: "ایمیل" },
-    // { key: "address", title: "آدرس" },
+    { key: "contact_person", title: "شخص رابط" },
+    { key: "phone", title: "شماره تماس" },
+    { key: "email", title: "ایمیل" },
+    { key: "address", title: "آدرس" },
     {
       key: "actions",
       title: "عملیات",
@@ -692,6 +704,7 @@ const BaseDataForm = () => {
           initialData={editingCity}
           isEdit={isEditModeCity}
           provinces={provinces}
+          selectedProvinceId={selectedProvinceIdForModal}
         />
       )}
 

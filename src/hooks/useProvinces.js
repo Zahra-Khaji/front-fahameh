@@ -131,16 +131,29 @@ export const useDeleteProvince = () => {
 
 // ========== هوک‌های شهر ==========
 
-// هوک برای ایجاد شهر جدید
+// ========== اصلاح هوک useCreateCity ==========
 export const useCreateCity = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (cityData) => provinceService.createCity(cityData),
 
-    onSuccess: (newCity) => {
+    onSuccess: (newCity, variables) => {
       console.log('✅ City created successfully:', newCity);
       
+      // **به روز رسانی مستقیم کش شهرها**
+      queryClient.setQueryData(
+        provinceKeys.cities(newCity.province_id),
+        (oldData) => {
+          if (!oldData) return [newCity];
+          // بررسی اینکه آیا شهر قبلاً وجود دارد (جلوگیری از دplicate)
+          const exists = oldData.some(city => city.name === newCity.name);
+          if (exists) return oldData;
+          return [...oldData, newCity];
+        }
+      );
+      
+      // اینوالیدیت برای اطمینان از هماهنگی با سرور (اختیاری)
       queryClient.invalidateQueries({
         queryKey: provinceKeys.cities(newCity.province_id)
       });
@@ -156,7 +169,7 @@ export const useCreateCity = () => {
   });
 };
 
-// **جدید: هوک برای بروزرسانی شهر**
+// ========== همچنین اصلاح useUpdateCity برای آپدیت خودکار ==========
 export const useUpdateCity = () => {
   const queryClient = useQueryClient();
 
@@ -165,6 +178,24 @@ export const useUpdateCity = () => {
 
     onSuccess: (updatedCity, variables) => {
       console.log('✅ City updated successfully:', updatedCity);
+      
+      // به روز رسانی مستقیم کش شهرها
+      queryClient.setQueryData(
+        provinceKeys.cities(updatedCity.province_id),
+        (oldData) => {
+          if (!oldData) return [updatedCity];
+          return oldData.map(city => 
+            city.id === variables.id ? { ...city, ...updatedCity } : city
+          );
+        }
+      );
+      
+      // اگر استان شهر تغییر کرده، کش استان قدیم را هم به روز کن
+      if (variables.data.province_id !== updatedCity.province_id) {
+        queryClient.invalidateQueries({
+          queryKey: provinceKeys.cities(variables.data.province_id)
+        });
+      }
       
       queryClient.invalidateQueries({
         queryKey: provinceKeys.cities(updatedCity.province_id)
@@ -180,6 +211,31 @@ export const useUpdateCity = () => {
     }
   });
 };
+
+// **جدید: هوک برای بروزرسانی شهر**
+// export const useUpdateCity = () => {
+//   const queryClient = useQueryClient();
+
+//   return useMutation({
+//     mutationFn: ({ id, data }) => provinceService.updateCity(id, data),
+
+//     onSuccess: (updatedCity, variables) => {
+//       console.log('✅ City updated successfully:', updatedCity);
+      
+//       queryClient.invalidateQueries({
+//         queryKey: provinceKeys.cities(updatedCity.province_id)
+//       });
+      
+//       toast.success('شهر با موفقیت بروزرسانی شد');
+//     },
+
+//     onError: (error) => {
+//       console.error('❌ Error updating city:', error);
+//       toast.error(error.message || 'خطا در بروزرسانی شهر');
+//       throw error;
+//     }
+//   });
+// };
 
 // **جدید: هوک برای حذف شهر**
 export const useDeleteCity = () => {

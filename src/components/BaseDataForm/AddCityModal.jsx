@@ -11,8 +11,15 @@ import Button from "../ui/Button";
 import { showSuccessToast, showErrorToast, showLoadingToast } from "../../utils/toastConfig";
 import toast from 'react-hot-toast';
 
-
-const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit = false, provinces = [] }) => {
+const AddCityModal = ({ 
+  isOpen, 
+  onClose, 
+  onAddCity, 
+  initialData = null, 
+  isEdit = false, 
+  provinces = [],
+  selectedProvinceId = ""  // اضافه شده: استان انتخاب شده از BaseDataForm
+}) => {
   const { data: provincesData } = useProvinces();
   const allProvinces = provinces.length > 0 ? provinces : (provincesData || []);
   
@@ -26,6 +33,11 @@ const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit =
   const { mutate: createCity, isLoading: isCreating } = useCreateCity();
   const { mutate: updateCity, isLoading: isUpdating } = useUpdateCity();
 
+  // پیدا کردن نام استان انتخاب شده برای نمایش
+  const selectedProvinceName = allProvinces.find(
+    p => p.id === (isEdit ? formData.province_id : selectedProvinceId)
+  )?.name || "";
+
   // ریست فرم وقتی مدال باز می‌شود یا initialData تغییر می‌کند
   useEffect(() => {
     if (isOpen) {
@@ -36,15 +48,15 @@ const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit =
           province_id: initialData.province_id || ""
         });
       } else {
-        // حالت ایجاد جدید - ریست فرم
+        // حالت ایجاد جدید - استفاده از selectedProvinceId از BaseDataForm
         setFormData({
           name: "",
-          province_id: ""
+          province_id: selectedProvinceId
         });
       }
       setLocalError("");
     }
-  }, [isOpen, isEdit, initialData]);
+  }, [isOpen, isEdit, initialData, selectedProvinceId]);
 
   // اعتبارسنجی فرم
   const validateForm = () => {
@@ -78,7 +90,6 @@ const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit =
     const validationError = validateForm();
     if (validationError) {
       setLocalError(validationError);
-      // showErrorToast(validationError);
       return;
     }
     
@@ -102,7 +113,6 @@ const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit =
         {
           onSuccess: (updatedCity) => {
             toast.dismiss(loadingToast);
-            // showSuccessToast(`شهر "${formData.name.trim()}" با موفقیت بروزرسانی شد`);
             
             if (onAddCity) {
               onAddCity(updatedCity);
@@ -131,7 +141,6 @@ const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit =
             }
             
             setLocalError(errorMessage);
-            // showErrorToast(errorMessage);
             setIsSubmitting(false);
           }
         }
@@ -143,7 +152,6 @@ const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit =
       createCity(apiData, {
         onSuccess: (newCity) => {
           toast.dismiss(loadingToast);
-          // showSuccessToast(`شهر "${formData.name.trim()}" با موفقیت ایجاد شد`);
           
           if (onAddCity) {
             onAddCity(newCity);
@@ -161,7 +169,6 @@ const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit =
           
           let errorMessage = 'خطا در ایجاد شهر';
           
-          // مدیریت خطای تکراری بودن نام شهر
           if (error?.response?.data?.detail) {
             const detail = error.response.data.detail;
             if (typeof detail === 'string' && detail.includes('already exists')) {
@@ -174,7 +181,6 @@ const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit =
           }
           
           setLocalError(errorMessage);
-          // showErrorToast(errorMessage);
           setIsSubmitting(false);
         }
       });
@@ -229,28 +235,49 @@ const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit =
             </div>
           )}
 
-          {/* انتخاب استان */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-              <FaMapMarkerAlt className="ml-1 text-purple-500" />
-              استان *
-            </label>
-            <select
-              name="province_id"
-              value={formData.province_id}
-              onChange={handleChange}
-              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              required
-              disabled={isLoading}
-            >
-              <option value="">انتخاب استان</option>
-              {allProvinces?.map((province) => (
-                <option key={province.id} value={province.id}>
-                  {province.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* نمایش استان (غیرقابل ویرایش) - فقط در حالت ایجاد جدید */}
+          {!isEdit && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                <FaMapMarkerAlt className="ml-1 text-purple-500" />
+                استان
+              </label>
+              <div className="w-full px-3 py-2.5 text-sm bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
+                {selectedProvinceName || (selectedProvinceId ? "در حال بارگذاری..." : "استانی انتخاب نشده است")}
+              </div>
+              {/* فیلد مخفی برای ذخیره province_id */}
+              <input
+                type="hidden"
+                name="province_id"
+                value={formData.province_id}
+              />
+            </div>
+          )}
+
+          {/* انتخاب استان - فقط در حالت ویرایش (امکان تغییر استان) */}
+          {isEdit && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                <FaMapMarkerAlt className="ml-1 text-purple-500" />
+                استان *
+              </label>
+              <select
+                name="province_id"
+                value={formData.province_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                required
+                disabled={isLoading}
+              >
+                <option value="">انتخاب استان</option>
+                {allProvinces?.map((province) => (
+                  <option key={province.id} value={province.id}>
+                    {province.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* نام شهر */}
           <div>
@@ -278,7 +305,7 @@ const AddCityModal = ({ isOpen, onClose, onAddCity, initialData = null, isEdit =
               variant="primary"
               icon={isLoading ? FaSpinner : undefined}
               className="flex-1"
-              disabled={isLoading || !formData.name.trim() || !formData.province_id}
+              disabled={isLoading || !formData.name.trim() || (!isEdit && !formData.province_id)}
               isLoading={isLoading}
               spinnerClassName="text-white"
             >
