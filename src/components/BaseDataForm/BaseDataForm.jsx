@@ -432,10 +432,10 @@ const handleCitySuccess = (newCity) => {
   // ستون‌های وندور
   const vendorColumns = [
     { key: "name", title: "نام وندور" },
-    { key: "contact_person", title: "شخص رابط" },
-    { key: "phone", title: "شماره تماس" },
-    { key: "email", title: "ایمیل" },
-    { key: "address", title: "آدرس" },
+    // { key: "contact_person", title: "شخص رابط" },
+    // { key: "phone", title: "شماره تماس" },
+    // { key: "email", title: "ایمیل" },
+    // { key: "address", title: "آدرس" },
     {
       key: "actions",
       title: "عملیات",
