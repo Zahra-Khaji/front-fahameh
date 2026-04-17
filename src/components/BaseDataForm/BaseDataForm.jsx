@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaDatabase, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import StepHeader from "../common/StepHeader";
 import FormSection from "../common/FormSection";
 import Button from "../ui/Button";
 import { useProjects, useDeleteProject } from "../../hooks/useProjects";
-import { useInspectors, useDeleteInspector } from "../../hooks/useInspectors";
+import { useInspectors, useDeleteInspector, useInspector } from "../../hooks/useInspectors";
 import { useVendors, useDeleteVendor } from "../../hooks/useVendors";
 import { useProvinces, useDeleteProvince, useCities, useDeleteCity } from "../../hooks/useProvinces";
 import AddProjectModal from "./AddProjectModal";
@@ -81,12 +81,37 @@ const BaseDataForm = () => {
     error: citiesError
   } = useCities(selectedProvinceForCity);
 
+  // ========== هوک برای گرفتن اطلاعات کامل بازرس (برای ویرایش) ==========
+  const { 
+    data: inspectorDetails, 
+    isLoading: inspectorDetailsLoading
+  } = useInspector(editingInspector?.id);
+
   // ========== هوک‌های عملیاتی ==========
   const { mutate: deleteProject, isLoading: isDeletingProject } = useDeleteProject();
   const { mutate: deleteInspector, isLoading: isDeletingInspector } = useDeleteInspector();
   const { mutate: deleteVendor, isLoading: isDeletingVendor } = useDeleteVendor();
   const { mutate: deleteProvince, isLoading: isDeletingProvince } = useDeleteProvince();
   const { mutate: deleteCity, isLoading: isDeletingCity } = useDeleteCity();
+
+  // ========== آپدیت editingInspector با اطلاعات کامل از API ==========
+  useEffect(() => {
+    if (inspectorDetails && inspectorDetails.id === editingInspector?.id && isEditModeInspector) {
+      setEditingInspector(prev => ({
+        ...prev,
+        Inspector_Name: inspectorDetails.Inspector_Name || inspectorDetails.name,
+        PersonnelCode: inspectorDetails.PersonnelCode || "",
+        Inspector_Discipline: inspectorDetails.Inspector_Discipline || "",
+        Inspector_Email: inspectorDetails.Inspector_Email || "",
+        Inspector_phone_no: inspectorDetails.Inspector_phone_no || "",
+        Location_Coverd: inspectorDetails.Location_Coverd || "",
+        status: inspectorDetails.status || "Active",
+        Price: inspectorDetails.Price || "",
+        OVRDom: inspectorDetails.OVRDom || "Domestic",
+        Price1403: inspectorDetails.Price1403 || ""
+      }));
+    }
+  }, [inspectorDetails]);
 
   // ========== توابع عمومی ==========
   const closeModal = () => {
@@ -308,10 +333,6 @@ const BaseDataForm = () => {
   // ستون‌های پروژه
   const projectColumns = [
     { key: "name", title: "Title" },
-    // { key: "project_code", title: "کد پروژه" },
-    // { key: "Abbreviation", title: "مخفف" },
-    // { key: "SubProject", title: "زیر پروژه" },
-    // { key: "Material_Code", title: "کد متریال" },
     {
       key: "actions",
       title: "عملیات",
@@ -340,10 +361,6 @@ const BaseDataForm = () => {
   // ستون‌های بازرس
   const inspectorColumns = [
     { key: "name", title: "نام" },
-    // { key: "PersonnelCode", title: "کد پرسنلی" },
-    // { key: "Inspector_Discipline", title: "تخصص" },
-    // { key: "Inspector_phone_no", title: "شماره تماس" },
-    // { key: "Location_Coverd", title: "محدوده پوشش" },
     {
       key: "actions",
       title: "عملیات",
