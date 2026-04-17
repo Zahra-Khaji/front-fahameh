@@ -3,25 +3,54 @@ import { FaDatabase, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import StepHeader from "../common/StepHeader";
 import FormSection from "../common/FormSection";
 import Button from "../ui/Button";
-import { useProjects } from "../../hooks/useProjects";
-import { useInspectors } from "../../hooks/useInspectors";
+import { useProjects, useDeleteProject } from "../../hooks/useProjects";
+import { useInspectors, useDeleteInspector } from "../../hooks/useInspectors";
+import { useVendors, useDeleteVendor } from "../../hooks/useVendors";
+import { useProvinces, useDeleteProvince, useCities, useDeleteCity } from "../../hooks/useProvinces";
 import AddProjectModal from "./AddProjectModal";
 import AddInspectorModal from "./AddInspectorModal";
-import { useVendors } from "../../hooks/useVendors";
 import AddVendorModal from "./AddVendorModal";
-import DataTable from "../common/DataTable";
-import { useProvinces,useCities } from "../../hooks/useProvinces";
 import AddProvinceModal from "./AddProvinceModal";
-// import { useProvinces, useCities } from "../../hooks/useProvinces";
 import AddCityModal from "./AddCityModal";
-
+import DataTable from "../common/DataTable";
+import ConfirmDeletePopover from "./ConfirmDeletePopover";
 
 const BaseDataForm = () => {
   const [entityType, setEntityType] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedProvince, setSelectedProvince] = useState("");
+  
+  // ========== State برای پروژه ==========
+  const [editingProject, setEditingProject] = useState(null);
+  const [isEditModeProject, setIsEditModeProject] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [deleteProjectPopoverOpen, setDeleteProjectPopoverOpen] = useState(false);
+  
+  // ========== State برای بازرس ==========
+  const [editingInspector, setEditingInspector] = useState(null);
+  const [isEditModeInspector, setIsEditModeInspector] = useState(false);
+  const [inspectorToDelete, setInspectorToDelete] = useState(null);
+  const [deleteInspectorPopoverOpen, setDeleteInspectorPopoverOpen] = useState(false);
 
+  // ========== State برای وندور ==========
+  const [editingVendor, setEditingVendor] = useState(null);
+  const [isEditModeVendor, setIsEditModeVendor] = useState(false);
+  const [vendorToDelete, setVendorToDelete] = useState(null);
+  const [deleteVendorPopoverOpen, setDeleteVendorPopoverOpen] = useState(false);
 
+  // ========== State برای استان ==========
+  const [editingProvince, setEditingProvince] = useState(null);
+  const [isEditModeProvince, setIsEditModeProvince] = useState(false);
+  const [provinceToDelete, setProvinceToDelete] = useState(null);
+  const [deleteProvincePopoverOpen, setDeleteProvincePopoverOpen] = useState(false);
+
+  // ========== State برای شهر ==========
+  const [editingCity, setEditingCity] = useState(null);
+  const [isEditModeCity, setIsEditModeCity] = useState(false);
+  const [cityToDelete, setCityToDelete] = useState(null);
+  const [deleteCityPopoverOpen, setDeleteCityPopoverOpen] = useState(false);
+  const [selectedProvinceForCity, setSelectedProvinceForCity] = useState("");
+
+  // ========== هوک‌های داده ==========
   const {
     data: projects,
     isLoading: projectsLoading,
@@ -33,6 +62,7 @@ const BaseDataForm = () => {
     isLoading: inspectorsLoading,
     error: inspectorsError
   } = useInspectors();
+  
   const {
     data: vendors,
     isLoading: vendorsLoading,
@@ -45,39 +75,261 @@ const BaseDataForm = () => {
     error: provincesError
   } = useProvinces();
 
-  // const { data: provinces } = useProvinces();
   const {
     data: cities,
     isLoading: citiesLoading,
     error: citiesError
-  } = useCities(selectedProvince);
+  } = useCities(selectedProvinceForCity);
+
+  // ========== هوک‌های عملیاتی ==========
+  const { mutate: deleteProject, isLoading: isDeletingProject } = useDeleteProject();
+  const { mutate: deleteInspector, isLoading: isDeletingInspector } = useDeleteInspector();
+  const { mutate: deleteVendor, isLoading: isDeletingVendor } = useDeleteVendor();
+  const { mutate: deleteProvince, isLoading: isDeletingProvince } = useDeleteProvince();
+  const { mutate: deleteCity, isLoading: isDeletingCity } = useDeleteCity();
+
+  // ========== توابع عمومی ==========
+  const closeModal = () => {
+    setEditingProject(null);
+    setEditingInspector(null);
+    setEditingVendor(null);
+    setEditingProvince(null);
+    setEditingCity(null);
+    setIsEditModeProject(false);
+    setIsEditModeInspector(false);
+    setIsEditModeVendor(false);
+    setIsEditModeProvince(false);
+    setIsEditModeCity(false);
+    setIsModalOpen(false);
+  };
+
+  // ========== توابع پروژه ==========
+  const openModalForAddProject = () => {
+    setEditingProject(null);
+    setIsEditModeProject(false);
+    setIsModalOpen(true);
+  };
+
+  const openModalForEditProject = (project) => {
+    setEditingProject(project);
+    setIsEditModeProject(true);
+    setIsModalOpen(true);
+  };
+
+  const openDeleteProjectPopover = (project) => {
+    setProjectToDelete(project);
+    setDeleteProjectPopoverOpen(true);
+  };
+
+  const closeDeleteProjectPopover = () => {
+    setProjectToDelete(null);
+    setDeleteProjectPopoverOpen(false);
+  };
+
+  const handleDeleteProject = () => {
+    if (projectToDelete) {
+      deleteProject(projectToDelete.id, {
+        onSuccess: () => {
+          closeDeleteProjectPopover();
+        },
+        onError: () => {
+          closeDeleteProjectPopover();
+        }
+      });
+    }
+  };
+
+  const handleProjectSuccess = () => {
+    closeModal();
+  };
+
+  // ========== توابع بازرس ==========
+  const openModalForAddInspector = () => {
+    setEditingInspector(null);
+    setIsEditModeInspector(false);
+    setIsModalOpen(true);
+  };
+
+  const openModalForEditInspector = (inspector) => {
+    setEditingInspector(inspector);
+    setIsEditModeInspector(true);
+    setIsModalOpen(true);
+  };
+
+  const openDeleteInspectorPopover = (inspector) => {
+    setInspectorToDelete(inspector);
+    setDeleteInspectorPopoverOpen(true);
+  };
+
+  const closeDeleteInspectorPopover = () => {
+    setInspectorToDelete(null);
+    setDeleteInspectorPopoverOpen(false);
+  };
+
+  const handleDeleteInspector = () => {
+    if (inspectorToDelete) {
+      deleteInspector(inspectorToDelete.id, {
+        onSuccess: () => {
+          closeDeleteInspectorPopover();
+        },
+        onError: () => {
+          closeDeleteInspectorPopover();
+        }
+      });
+    }
+  };
+
+  const handleInspectorSuccess = () => {
+    closeModal();
+  };
+
+  // ========== توابع وندور ==========
+  const openModalForAddVendor = () => {
+    setEditingVendor(null);
+    setIsEditModeVendor(false);
+    setIsModalOpen(true);
+  };
+
+  const openModalForEditVendor = (vendor) => {
+    setEditingVendor(vendor);
+    setIsEditModeVendor(true);
+    setIsModalOpen(true);
+  };
+
+  const openDeleteVendorPopover = (vendor) => {
+    setVendorToDelete(vendor);
+    setDeleteVendorPopoverOpen(true);
+  };
+
+  const closeDeleteVendorPopover = () => {
+    setVendorToDelete(null);
+    setDeleteVendorPopoverOpen(false);
+  };
+
+  const handleDeleteVendor = () => {
+    if (vendorToDelete) {
+      deleteVendor(vendorToDelete.name, {
+        onSuccess: () => {
+          closeDeleteVendorPopover();
+        },
+        onError: () => {
+          closeDeleteVendorPopover();
+        }
+      });
+    }
+  };
+
+  const handleVendorSuccess = () => {
+    closeModal();
+  };
+
+  // ========== توابع استان ==========
+  const openModalForAddProvince = () => {
+    setEditingProvince(null);
+    setIsEditModeProvince(false);
+    setIsModalOpen(true);
+  };
+
+  const openModalForEditProvince = (province) => {
+    setEditingProvince(province);
+    setIsEditModeProvince(true);
+    setIsModalOpen(true);
+  };
+
+  const openDeleteProvincePopover = (province) => {
+    setProvinceToDelete(province);
+    setDeleteProvincePopoverOpen(true);
+  };
+
+  const closeDeleteProvincePopover = () => {
+    setProvinceToDelete(null);
+    setDeleteProvincePopoverOpen(false);
+  };
+
+  const handleDeleteProvince = () => {
+    if (provinceToDelete) {
+      deleteProvince(provinceToDelete.id, {
+        onSuccess: () => {
+          closeDeleteProvincePopover();
+        },
+        onError: () => {
+          closeDeleteProvincePopover();
+        }
+      });
+    }
+  };
+
+  const handleProvinceSuccess = () => {
+    closeModal();
+  };
+
+  // ========== توابع شهر ==========
+  const openModalForAddCity = () => {
+    setEditingCity(null);
+    setIsEditModeCity(false);
+    setIsModalOpen(true);
+  };
+
+  const openModalForEditCity = (city) => {
+    setEditingCity(city);
+    setIsEditModeCity(true);
+    setIsModalOpen(true);
+  };
+
+  const openDeleteCityPopover = (city) => {
+    setCityToDelete(city);
+    setDeleteCityPopoverOpen(true);
+  };
+
+  const closeDeleteCityPopover = () => {
+    setCityToDelete(null);
+    setDeleteCityPopoverOpen(false);
+  };
+
+  const handleDeleteCity = () => {
+    if (cityToDelete) {
+      deleteCity(cityToDelete.id, {
+        onSuccess: () => {
+          closeDeleteCityPopover();
+        },
+        onError: () => {
+          closeDeleteCityPopover();
+        }
+      });
+    }
+  };
+
+  const handleCitySuccess = () => {
+    closeModal();
+  };
+
+  // ========== تعریف ستون‌های جدول‌ها ==========
   
-
-  
-  
-
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
-
-  // ---------------- پروژه ----------------
-
+  // ستون‌های پروژه
   const projectColumns = [
     { key: "name", title: "Title" },
-    // { key: "project_code", title: "Project Code" },
-    // { key: "abbreviation", title: "Abbreviation" },
-    // { key: "subProject", title: "SubProject" },
-    // { key: "material_code", title: "Material Code" },
+    // { key: "project_code", title: "کد پروژه" },
+    // { key: "Abbreviation", title: "مخفف" },
+    // { key: "SubProject", title: "زیر پروژه" },
+    // { key: "Material_Code", title: "کد متریال" },
     {
       key: "actions",
       title: "عملیات",
       align: "center",
-      render: () => (
+      render: (row) => (
         <div className="flex justify-center gap-3">
-          <button className="text-blue-600 hover:text-blue-800">
+          <button 
+            onClick={() => openModalForEditProject(row)}
+            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+            title="ویرایش پروژه"
+          >
             <FaEdit />
           </button>
-
-          <button className="text-red-600 hover:text-red-800">
+          <button 
+            onClick={() => openDeleteProjectPopover(row)}
+            className="text-red-600 hover:text-red-800 transition-colors duration-200"
+            title="حذف پروژه"
+          >
             <FaTrash />
           </button>
         </div>
@@ -85,24 +337,31 @@ const BaseDataForm = () => {
     },
   ];
 
-  // ---------------- بازرس ----------------
-
+  // ستون‌های بازرس
   const inspectorColumns = [
     { key: "name", title: "نام" },
-    // { key: "personnelCode", title: "کد پرسنلی" },
-    // { key: "phone", title: "شماره موبایل" },
-    // { key: "location", title: "موقعیت" },
+    { key: "PersonnelCode", title: "کد پرسنلی" },
+    { key: "Inspector_Discipline", title: "تخصص" },
+    { key: "Inspector_phone_no", title: "شماره تماس" },
+    { key: "Location_Coverd", title: "محدوده پوشش" },
     {
       key: "actions",
       title: "عملیات",
       align: "center",
-      render: () => (
+      render: (row) => (
         <div className="flex justify-center gap-3">
-          <button className="text-blue-600 hover:text-blue-800">
+          <button 
+            onClick={() => openModalForEditInspector(row)}
+            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+            title="ویرایش بازرس"
+          >
             <FaEdit />
           </button>
-
-          <button className="text-red-600 hover:text-red-800">
+          <button 
+            onClick={() => openDeleteInspectorPopover(row)}
+            className="text-red-600 hover:text-red-800 transition-colors duration-200"
+            title="حذف بازرس"
+          >
             <FaTrash />
           </button>
         </div>
@@ -110,23 +369,31 @@ const BaseDataForm = () => {
     },
   ];
 
+  // ستون‌های وندور
   const vendorColumns = [
     { key: "name", title: "نام وندور" },
-    // { key: "contact_person", title: "شخص رابط" },
-    // { key: "phone", title: "شماره تماس" },
-    // { key: "email", title: "ایمیل" },
-  
+    { key: "contact_person", title: "شخص رابط" },
+    { key: "phone", title: "شماره تماس" },
+    { key: "email", title: "ایمیل" },
+    { key: "address", title: "آدرس" },
     {
       key: "actions",
       title: "عملیات",
       align: "center",
-      render: () => (
+      render: (row) => (
         <div className="flex justify-center gap-3">
-          <button className="text-blue-600 hover:text-blue-800">
+          <button 
+            onClick={() => openModalForEditVendor(row)}
+            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+            title="ویرایش وندور"
+          >
             <FaEdit />
           </button>
-  
-          <button className="text-red-600 hover:text-red-800">
+          <button 
+            onClick={() => openDeleteVendorPopover(row)}
+            className="text-red-600 hover:text-red-800 transition-colors duration-200"
+            title="حذف وندور"
+          >
             <FaTrash />
           </button>
         </div>
@@ -134,20 +401,27 @@ const BaseDataForm = () => {
     },
   ];
 
+  // ستون‌های استان
   const provinceColumns = [
     { key: "name", title: "نام استان" },
-  
     {
       key: "actions",
       title: "عملیات",
       align: "center",
-      render: () => (
+      render: (row) => (
         <div className="flex justify-center gap-3">
-          <button className="text-blue-600 hover:text-blue-800">
+          <button 
+            onClick={() => openModalForEditProvince(row)}
+            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+            title="ویرایش استان"
+          >
             <FaEdit />
           </button>
-  
-          <button className="text-red-600 hover:text-red-800">
+          <button 
+            onClick={() => openDeleteProvincePopover(row)}
+            className="text-red-600 hover:text-red-800 transition-colors duration-200"
+            title="حذف استان"
+          >
             <FaTrash />
           </button>
         </div>
@@ -155,32 +429,35 @@ const BaseDataForm = () => {
     },
   ];
 
+  // ستون‌های شهر
   const cityColumns = [
     { key: "name", title: "نام شهر" },
-  
     {
       key: "actions",
       title: "عملیات",
       align: "center",
-      render: () => (
+      render: (row) => (
         <div className="flex justify-center gap-3">
-          <button className="text-blue-600 hover:text-blue-800">
+          <button 
+            onClick={() => openModalForEditCity(row)}
+            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+            title="ویرایش شهر"
+          >
             <FaEdit />
           </button>
-  
-          <button className="text-red-600 hover:text-red-800">
+          <button 
+            onClick={() => openDeleteCityPopover(row)}
+            className="text-red-600 hover:text-red-800 transition-colors duration-200"
+            title="حذف شهر"
+          >
             <FaTrash />
           </button>
         </div>
       ),
     },
   ];
-  
-  
-  
 
-  // ---------------- عنوان دکمه داینامیک ----------------
-
+  // عنوان دکمه‌های افزودن
   const addButtonText = {
     project: "افزودن پروژه جدید",
     inspector: "افزودن بازرس جدید",
@@ -190,7 +467,6 @@ const BaseDataForm = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4" dir="rtl">
       <div className="max-w-7xl mx-auto">
-
         <StepHeader
           icon={FaDatabase}
           title="ثبت اطلاعات پایه"
@@ -198,7 +474,7 @@ const BaseDataForm = () => {
         />
 
         <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
-
+          {/* انتخاب نوع اطلاعات */}
           <FormSection title="نوع اطلاعات">
             <select
               value={entityType}
@@ -211,19 +487,15 @@ const BaseDataForm = () => {
               <option value="vendor">وندور</option>
               <option value="province">استان</option>
               <option value="city">شهر</option>
-
             </select>
           </FormSection>
 
-          {/* جدول پروژه */}
-
+          {/* ========== جدول پروژه ========== */}
           {entityType === "project" && (
             <FormSection title="لیست پروژه ها">
-
               <div className="flex justify-between items-center mb-4">
                 <div></div>
-
-                <Button icon={FaPlus} onClick={openModal} variant="primary">
+                <Button icon={FaPlus} onClick={openModalForAddProject} variant="primary">
                   {addButtonText.project}
                 </Button>
               </div>
@@ -234,19 +506,15 @@ const BaseDataForm = () => {
                 loading={projectsLoading}
                 error={projectsError}
               />
-
             </FormSection>
           )}
 
-          {/* جدول بازرس */}
-
+          {/* ========== جدول بازرس ========== */}
           {entityType === "inspector" && (
             <FormSection title="لیست بازرس ها">
-
               <div className="flex justify-between items-center mb-4">
                 <div></div>
-
-                <Button icon={FaPlus} onClick={openModal} variant="primary">
+                <Button icon={FaPlus} onClick={openModalForAddInspector} variant="primary">
                   {addButtonText.inspector}
                 </Button>
               </div>
@@ -257,129 +525,204 @@ const BaseDataForm = () => {
                 loading={inspectorsLoading}
                 error={inspectorsError}
               />
-
             </FormSection>
           )}
 
-{entityType === "vendor" && (
-  <FormSection title="لیست وندورها">
+          {/* ========== جدول وندور ========== */}
+          {entityType === "vendor" && (
+            <FormSection title="لیست وندورها">
+              <div className="flex justify-between items-center mb-4">
+                <div></div>
+                <Button icon={FaPlus} onClick={openModalForAddVendor} variant="primary">
+                  افزودن وندور جدید
+                </Button>
+              </div>
 
-    <div className="flex justify-between items-center mb-4">
-      <div></div>
+              <DataTable
+                columns={vendorColumns}
+                data={vendors || []}
+                loading={vendorsLoading}
+                error={vendorsError}
+              />
+            </FormSection>
+          )}
 
-      <Button icon={FaPlus} onClick={openModal} variant="primary">
-        افزودن وندور جدید
-      </Button>
-    </div>
+          {/* ========== جدول استان ========== */}
+          {entityType === "province" && (
+            <FormSection title="لیست استان‌ها">
+              <div className="flex justify-between items-center mb-4">
+                <div></div>
+                <Button icon={FaPlus} onClick={openModalForAddProvince} variant="primary">
+                  افزودن استان جدید
+                </Button>
+              </div>
 
-    <DataTable
-      columns={vendorColumns}
-      data={vendors || []}
-      loading={vendorsLoading}
-      error={vendorsError}
-    />
+              <DataTable
+                columns={provinceColumns}
+                data={provinces || []}
+                loading={provincesLoading}
+                error={provincesError}
+              />
+            </FormSection>
+          )}
 
-  </FormSection>
-)}
+          {/* ========== جدول شهر ========== */}
+          {entityType === "city" && (
+            <FormSection title="مدیریت شهرها">
+              <div className="flex justify-between items-center mb-4">
+                <select
+                  value={selectedProvinceForCity}
+                  onChange={(e) => setSelectedProvinceForCity(e.target.value)}
+                  className="border p-2 rounded w-full md:w-64"
+                >
+                  <option value="">انتخاب استان</option>
+                  {provinces?.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
 
-{entityType === "province" && (
-  <FormSection title="لیست استان‌ها">
+                <Button icon={FaPlus} onClick={openModalForAddCity} variant="primary">
+                  افزودن شهر جدید
+                </Button>
+              </div>
 
-    <div className="flex justify-between items-center mb-4">
-      <div></div>
-
-      <Button icon={FaPlus} onClick={openModal} variant="primary">
-        افزودن استان جدید
-      </Button>
-    </div>
-
-    <DataTable
-      columns={provinceColumns}
-      data={provinces || []}
-      loading={provincesLoading}
-      error={provincesError}
-    />
-
-  </FormSection>
-)}
-{entityType === "city" && (
-  <FormSection title="مدیریت شهرها">
-
-    <div className="flex justify-between items-center mb-4">
-
-      <select
-        value={selectedProvince}
-        onChange={(e) => setSelectedProvince(e.target.value)}
-        className="border p-2 rounded"
-      >
-        <option value="">انتخاب استان</option>
-
-        {provinces?.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-
-      </select>
-
-      <Button icon={FaPlus} onClick={openModal} variant="primary">
-        افزودن شهر جدید
-      </Button>
-
-    </div>
-
-    <DataTable
-      columns={cityColumns}
-      data={cities || []}
-      loading={citiesLoading}
-      error={citiesError}
-    />
-
-  </FormSection>
-)}
-
-
-
-
-
-
+              <DataTable
+                columns={cityColumns}
+                data={cities || []}
+                loading={citiesLoading}
+                error={citiesError}
+              />
+            </FormSection>
+          )}
         </div>
       </div>
 
-      {/* Modals */}
+      {/* ========== مودال‌ها ========== */}
 
+      {/* مودال پروژه */}
       {entityType === "project" && (
-        <AddProjectModal isOpen={isModalOpen} onClose={closeModal} />
+        <AddProjectModal 
+          isOpen={isModalOpen} 
+          onClose={closeModal}
+          onAddProject={handleProjectSuccess}
+          initialData={editingProject}
+          isEdit={isEditModeProject}
+        />
       )}
 
+      {/* مودال بازرس */}
       {entityType === "inspector" && (
-        <AddInspectorModal isOpen={isModalOpen} onClose={closeModal} />
+        <AddInspectorModal 
+          isOpen={isModalOpen} 
+          onClose={closeModal}
+          onAddInspector={handleInspectorSuccess}
+          initialData={editingInspector}
+          isEdit={isEditModeInspector}
+        />
       )}
 
-{entityType === "vendor" && (
-  <AddVendorModal
-    isOpen={isModalOpen}
-    onClose={closeModal}
-  />
-)}
-{entityType === "province" && (
-  <AddProvinceModal
-    isOpen={isModalOpen}
-    onClose={closeModal}
-  />
+      {/* مودال وندور */}
+      {entityType === "vendor" && (
+        <AddVendorModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onAddVendor={handleVendorSuccess}
+          initialData={editingVendor}
+          isEdit={isEditModeVendor}
+        />
+      )}
 
-)}
+      {/* مودال استان */}
+      {entityType === "province" && (
+        <AddProvinceModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onAddProvince={handleProvinceSuccess}
+          initialData={editingProvince}
+          isEdit={isEditModeProvince}
+        />
+      )}
 
-{entityType === "city" && (
-  <AddCityModal
-    isOpen={isModalOpen}
-    onClose={closeModal}
-  />
-)}
+      {/* مودال شهر */}
+      {entityType === "city" && (
+        <AddCityModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onAddCity={handleCitySuccess}
+          initialData={editingCity}
+          isEdit={isEditModeCity}
+          provinces={provinces}
+        />
+      )}
 
+      {/* ========== پاپ‌آپ‌های تأیید حذف ========== */}
 
+      {/* پاپ‌آپ حذف پروژه */}
+      <ConfirmDeletePopover
+        isOpen={deleteProjectPopoverOpen}
+        onClose={closeDeleteProjectPopover}
+        onConfirm={handleDeleteProject}
+        title="حذف پروژه"
+        message={`آیا از حذف پروژه "${projectToDelete?.name}" اطمینان دارید؟ این عمل غیرقابل بازگشت است.`}
+        confirmText="بله، حذف شود"
+        cancelText="انصراف"
+        isLoading={isDeletingProject}
+        type="danger"
+      />
 
+      {/* پاپ‌آپ حذف بازرس */}
+      <ConfirmDeletePopover
+        isOpen={deleteInspectorPopoverOpen}
+        onClose={closeDeleteInspectorPopover}
+        onConfirm={handleDeleteInspector}
+        title="حذف بازرس"
+        message={`آیا از حذف بازرس "${inspectorToDelete?.name}" اطمینان دارید؟ این عمل غیرقابل بازگشت است.`}
+        confirmText="بله، حذف شود"
+        cancelText="انصراف"
+        isLoading={isDeletingInspector}
+        type="danger"
+      />
 
+      {/* پاپ‌آپ حذف وندور */}
+      <ConfirmDeletePopover
+        isOpen={deleteVendorPopoverOpen}
+        onClose={closeDeleteVendorPopover}
+        onConfirm={handleDeleteVendor}
+        title="حذف وندور"
+        message={`آیا از حذف وندور "${vendorToDelete?.name}" اطمینان دارید؟ این عمل غیرقابل بازگشت است.`}
+        confirmText="بله، حذف شود"
+        cancelText="انصراف"
+        isLoading={isDeletingVendor}
+        type="danger"
+      />
+
+      {/* پاپ‌آپ حذف استان */}
+      <ConfirmDeletePopover
+        isOpen={deleteProvincePopoverOpen}
+        onClose={closeDeleteProvincePopover}
+        onConfirm={handleDeleteProvince}
+        title="حذف استان"
+        message={`آیا از حذف استان "${provinceToDelete?.name}" اطمینان دارید؟ این عمل غیرقابل بازگشت است.`}
+        confirmText="بله، حذف شود"
+        cancelText="انصراف"
+        isLoading={isDeletingProvince}
+        type="danger"
+      />
+
+      {/* پاپ‌آپ حذف شهر */}
+      <ConfirmDeletePopover
+        isOpen={deleteCityPopoverOpen}
+        onClose={closeDeleteCityPopover}
+        onConfirm={handleDeleteCity}
+        title="حذف شهر"
+        message={`آیا از حذف شهر "${cityToDelete?.name}" اطمینان دارید؟ این عمل غیرقابل بازگشت است.`}
+        confirmText="بله، حذف شود"
+        cancelText="انصراف"
+        isLoading={isDeletingCity}
+        type="danger"
+      />
     </div>
   );
 };
