@@ -340,10 +340,10 @@ const BaseDataForm = () => {
   // ستون‌های بازرس
   const inspectorColumns = [
     { key: "name", title: "نام" },
-    { key: "PersonnelCode", title: "کد پرسنلی" },
-    { key: "Inspector_Discipline", title: "تخصص" },
-    { key: "Inspector_phone_no", title: "شماره تماس" },
-    { key: "Location_Coverd", title: "محدوده پوشش" },
+    // { key: "PersonnelCode", title: "کد پرسنلی" },
+    // { key: "Inspector_Discipline", title: "تخصص" },
+    // { key: "Inspector_phone_no", title: "شماره تماس" },
+    // { key: "Location_Coverd", title: "محدوده پوشش" },
     {
       key: "actions",
       title: "عملیات",

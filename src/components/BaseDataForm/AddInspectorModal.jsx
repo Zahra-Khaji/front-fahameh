@@ -433,7 +433,7 @@ const AddInspectorModal = ({ isOpen, onClose, onAddInspector, initialData = null
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
               <FaMoneyBillWave className="ml-1 text-green-600" />
-              هزینه (قیمت)
+            دستمزد
               <span className="text-xs text-gray-400 mr-1">(اختیاری)</span>
             </label>
             <input
@@ -452,7 +452,7 @@ const AddInspectorModal = ({ isOpen, onClose, onAddInspector, initialData = null
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
               <FaMoneyBillWave className="ml-1 text-teal-500" />
-              قیمت ۱۴۰۳
+              دستمزد ۱۴۰۳
               <span className="text-xs text-gray-400 mr-1">(اختیاری)</span>
             </label>
             <input
