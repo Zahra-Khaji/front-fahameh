@@ -373,9 +373,9 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor, initialData = null, isEd
                 وندور خارجی
               </span>
             </label>
-            <p className="text-xs text-gray-400 mt-1 mr-6">
+            {/* <p className="text-xs text-gray-400 mt-1 mr-6">
               در صورت فعال بودن، این وندور به عنوان وندور خارجی در نظر گرفته می‌شود
-            </p>
+            </p> */}
           </div>
 
           {/* Buttons */}
