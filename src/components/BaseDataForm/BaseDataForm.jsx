@@ -80,7 +80,8 @@ const BaseDataForm = () => {
   const {
     data: cities,
     isLoading: citiesLoading,
-    error: citiesError
+    error: citiesError,
+    refetch: refetchCities  // اضافه شده
   } = useCities(selectedProvinceForCity);
 
   // ========== هوک برای گرفتن اطلاعات کامل بازرس (برای ویرایش) ==========
@@ -357,9 +358,18 @@ const BaseDataForm = () => {
     }
   };
 
-  const handleCitySuccess = () => {
-    closeModal();
-  };
+  // const handleCitySuccess = () => {
+  //   closeModal();
+  // };
+  // ========== اصلاح handleCitySuccess ==========
+const handleCitySuccess = (newCity) => {
+  closeModal();
+  
+  // رفرش دستی جدول شهرها
+  if (selectedProvinceForCity === newCity?.province_id?.toString()) {
+    refetchCities();
+  }
+};
 
   // ========== تعریف ستون‌های جدول‌ها ==========
   
