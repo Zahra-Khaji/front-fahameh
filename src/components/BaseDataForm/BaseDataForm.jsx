@@ -5,7 +5,7 @@ import FormSection from "../common/FormSection";
 import Button from "../ui/Button";
 import { useProjects, useDeleteProject } from "../../hooks/useProjects";
 import { useInspectors, useDeleteInspector, useInspector } from "../../hooks/useInspectors";
-import { useVendors, useDeleteVendor, useVendor } from "../../hooks/useVendors";
+import { useVendors, useDeleteVendor, useVendor,useVendorDetailForEdit  } from "../../hooks/useVendors";
 import { useProvinces, useDeleteProvince, useCities, useDeleteCity } from "../../hooks/useProvinces";
 import AddProjectModal from "./AddProjectModal";
 import AddInspectorModal from "./AddInspectorModal";
@@ -91,10 +91,14 @@ const BaseDataForm = () => {
   } = useInspector(editingInspector?.id);
 
   // ========== هوک برای گرفتن اطلاعات کامل وندور (برای ویرایش) ==========
+  // const { 
+  //   data: vendorDetails, 
+  //   isLoading: vendorDetailsLoading
+  // } = useVendor(editingVendor?.id);
   const { 
     data: vendorDetails, 
     isLoading: vendorDetailsLoading
-  } = useVendor(editingVendor?.id);
+  } = useVendorDetailForEdit(editingVendor?.id);
 
   // ========== هوک‌های عملیاتی ==========
   const { mutate: deleteProject, isLoading: isDeletingProject } = useDeleteProject();

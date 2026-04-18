@@ -9,6 +9,7 @@ export const vendorKeys = {
   list: (isForeign) => [...vendorKeys.lists(), { isForeign }],
   details: () => [...vendorKeys.all, "detail"],
   detail: (id) => [...vendorKeys.details(), id],
+  detailForEdit: (id) => [...vendorKeys.details(), id, "edit"], // کلید جدید برای ویرایش
 };
 
 // هوک برای گرفتن لیست وندورها بر اساس نوع پروژه
@@ -22,13 +23,24 @@ export const useVendors = (isForeign = false) => {
   });
 };
 
-// هوک برای گرفتن اطلاعات یک وندور خاص
+// هوک برای گرفتن اطلاعات یک وندور خاص (متد قبلی - بدون تغییر)
 export const useVendor = (id) => {
   return useQuery({
     queryKey: vendorKeys.detail(id),
     queryFn: () => vendorService.getVendorById(id),
     enabled: !!id,
     staleTime: 10 * 60 * 1000,
+  });
+};
+
+// **جدید: هوک برای گرفتن جزئیات وندور برای ویرایش**
+export const useVendorDetailForEdit = (id) => {
+  return useQuery({
+    queryKey: vendorKeys.detailForEdit(id),
+    queryFn: () => vendorService.getVendorDetailForEdit(id),
+    enabled: !!id,
+    staleTime: 0, // برای ویرایش همیشه داده تازه بگیر
+    cacheTime: 0,
   });
 };
 
@@ -63,7 +75,7 @@ export const useCreateVendor = () => {
   });
 };
 
-// **جدید: هوک برای بروزرسانی وندور**
+// هوک برای بروزرسانی وندور
 export const useUpdateVendor = () => {
   const queryClient = useQueryClient();
 
@@ -75,7 +87,6 @@ export const useUpdateVendor = () => {
 
       const isForeign = updatedVendor.over_domestic || false;
 
-      // بروزرسانی کش لیست وندورها
       queryClient.setQueryData(vendorKeys.list(isForeign), (oldData) => {
         if (!oldData) return [updatedVendor];
         return oldData.map(vendor => 
@@ -83,7 +94,6 @@ export const useUpdateVendor = () => {
         );
       });
 
-      // همچنین لیست مخالف را هم آپدیت کن (اگر isForeign تغییر کرده باشد)
       const oppositeIsForeign = !isForeign;
       queryClient.setQueryData(vendorKeys.list(oppositeIsForeign), (oldData) => {
         if (!oldData) return oldData;
@@ -92,6 +102,7 @@ export const useUpdateVendor = () => {
 
       queryClient.invalidateQueries({ queryKey: vendorKeys.lists() });
       queryClient.invalidateQueries({ queryKey: vendorKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: vendorKeys.detailForEdit(variables.id) });
       
       toast.success('وندور با موفقیت بروزرسانی شد');
     },
@@ -104,7 +115,7 @@ export const useUpdateVendor = () => {
   });
 };
 
-// **جدید: هوک برای حذف وندور (بر اساس NAME)**
+// هوک برای حذف وندور (بر اساس NAME)
 export const useDeleteVendor = () => {
   const queryClient = useQueryClient();
 
@@ -114,7 +125,6 @@ export const useDeleteVendor = () => {
     onSuccess: (data, deletedName) => {
       console.log("✅ Vendor deleted successfully:", deletedName);
 
-      // حذف وندور از هر دو کش (داخلی و خارجی)
       queryClient.setQueryData(vendorKeys.list(true), (oldData) => {
         if (!oldData) return [];
         return oldData.filter(vendor => vendor.name !== deletedName);
@@ -153,11 +163,10 @@ export const useVendorOperations = () => {
   const deleteVendor = useDeleteVendor();
 
   return {
-    // Query operations
     useVendors,
     useVendor,
+    useVendorDetailForEdit, // اضافه شده
 
-    // Mutation operations
     createVendor: createVendor.mutate,
     createVendorAsync: createVendor.mutateAsync,
     createVendorStatus: {

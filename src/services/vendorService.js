@@ -14,7 +14,7 @@ class VendorService {
     }
   }
 
-  // گرفتن اطلاعات یک وندور خاص بر اساس ID
+  // گرفتن اطلاعات یک وندور خاص بر اساس ID (متد قبلی - بدون تغییر)
   async getVendorById(id) {
     try {
       const response = await http.get(`/vendors/${id}`);
@@ -22,6 +22,52 @@ class VendorService {
     } catch (error) {
       console.error(`Error fetching vendor ${id}:`, error);
       throw error;
+    }
+  }
+
+  // **جدید: متد مخصوص ویرایش وندور - دریافت جزئیات کامل**
+  async getVendorDetailForEdit(id) {
+    try {
+      console.log(`📤 Fetching vendor detail for edit with ID: ${id}`);
+      const response = await http.get(`/vendors/detail/${id}`);
+      console.log('✅ Vendor detail response:', response.data);
+      
+      // تبدیل پاسخ به فرمت استاندارد
+      return {
+        id: response.data.id?.toString(),
+        name: response.data.name || "",
+        address: response.data.address || "",
+        contact_person: response.data.contact_person || "",
+        phone: response.data.phone || "",
+        email: response.data.email || "",
+        over_domestic: response.data.over_domestic || false
+      };
+    } catch (error) {
+      console.error(`❌ Error fetching vendor detail for edit ${id}:`, error);
+      
+      let errorMessage = "خطا در دریافت اطلاعات وندور";
+      
+      if (error.response) {
+        const { status, data } = error.response;
+        
+        if (status === 404) {
+          errorMessage = "وندور مورد نظر یافت نشد";
+        } else if (status === 400) {
+          if (data.detail) {
+            errorMessage = data.detail;
+          } else if (data.message) {
+            errorMessage = data.message;
+          }
+        } else if (status === 401) {
+          errorMessage = "دسترسی غیرمجاز";
+        } else if (status === 500) {
+          errorMessage = "خطای سرور";
+        }
+      }
+      
+      const customError = new Error(errorMessage);
+      customError.originalError = error;
+      throw customError;
     }
   }
 
@@ -77,7 +123,7 @@ class VendorService {
     }
   }
 
-  // **جدید: بروزرسانی وندور بر اساس ID**
+  // بروزرسانی وندور بر اساس ID
   async updateVendor(id, vendorData) {
     try {
       const apiData = {
@@ -131,11 +177,10 @@ class VendorService {
     }
   }
 
-  // **جدید: حذف وندور بر اساس NAME (طبق API که دادی)**
+  // حذف وندور بر اساس NAME
   async deleteVendor(name) {
     try {
       console.log(`🗑️ Deleting vendor with name: ${name}`);
-      // توجه: API حذف بر اساس name است، نه ID
       const response = await http.delete(`/vendors/${encodeURIComponent(name)}/`);
       console.log('✅ Vendor deleted successfully:', response.data);
       return response.data;
@@ -173,17 +218,14 @@ class VendorService {
     if (typeof apiData === 'object' && apiData !== null) {
       return Object.entries(apiData)
         .filter(([id, vendor]) => {
-          // اگر vendor یک شیء است
           if (typeof vendor === 'object' && vendor !== null) {
             const name = vendor.name?.toString().trim() || '';
             return name && name !== '' && name !== '-';
           }
-          // اگر فقط یک string است
           const name = vendor?.toString().trim() || '';
           return name && name !== '' && name !== '-';
         })
         .map(([id, vendor]) => {
-          // اگر vendor یک شیء است
           if (typeof vendor === 'object' && vendor !== null) {
             return {
               id: id.toString(),
@@ -195,7 +237,6 @@ class VendorService {
               over_domestic: vendor.over_domestic || false
             };
           }
-          // اگر فقط یک string است (برای سازگاری با نسخه قبلی)
           return {
             id: id.toString(),
             name: this.cleanVendorName(vendor.toString()),
