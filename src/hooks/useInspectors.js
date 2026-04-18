@@ -6,16 +6,16 @@ import toast from 'react-hot-toast';
 export const inspectorKeys = {
   all: ['inspectors'],
   lists: () => [...inspectorKeys.all, 'list'],
-  list: (filters) => [...inspectorKeys.lists(), { filters }],
+  list: (filters, isActive = true) => [...inspectorKeys.lists(), { filters, isActive }],
   details: () => [...inspectorKeys.all, 'detail'],
   detail: (id) => [...inspectorKeys.details(), id],
 };
 
 // هوک برای گرفتن لیست بازرس‌ها
-export const useInspectors = () => {
+export const useInspectors = (isActive = true) => {
   return useQuery({
-    queryKey: inspectorKeys.lists(),
-    queryFn: () => inspectorService.getAllInspectors(),
+    queryKey: inspectorKeys.list(undefined, isActive),
+    queryFn: () => inspectorService.getAllInspectors(isActive),
     staleTime: 5 * 60 * 1000,
     cacheTime: 10 * 60 * 1000,
   });

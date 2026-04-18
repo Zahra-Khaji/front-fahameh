@@ -2,15 +2,21 @@ import http from './httpService';
 
 class InspectorService {
   // گرفتن لیست تمام بازرس‌ها
-  async getAllInspectors() {
-    try {
-      const response = await http.get('/inspectors');
-      return this.transformInspectorsData(response.data);
-    } catch (error) {
-      console.error('Error fetching inspectors:', error);
-      throw error;
-    }
+ // گرفتن لیست تمام بازرس‌ها - اضافه کردن پارامتر isActive
+ async getAllInspectors(isActive = true) {
+  try {
+    const response = await http.get('/inspectors/', {
+      params: {
+        is_active: isActive
+      }
+    });
+    console.log(`Inspectors API Response (is_active=${isActive}):`, response.data);
+    return this.transformInspectorsData(response.data);
+  } catch (error) {
+    console.error('Error fetching inspectors:', error);
+    throw error;
   }
+}
 
   // گرفتن اطلاعات یک بازرس خاص
   async getInspectorById(id) {

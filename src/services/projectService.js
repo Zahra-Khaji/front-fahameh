@@ -2,9 +2,14 @@ import http from "./httpService";
 
 class ProjectService {
   // گرفتن لیست تمام پروژه‌ها
-  async getAllProjects() {
+  async getAllProjects(onlyActive = true) {
     try {
-      const response = await http.get("/projects");
+      const response = await http.get("/projects/", {
+        params: {
+          only_active: onlyActive
+        }
+      });
+      console.log(`Projects API Response (only_active=${onlyActive}):`, response.data);
       return this.transformProjectsData(response.data);
     } catch (error) {
       console.error("Error fetching projects:", error);

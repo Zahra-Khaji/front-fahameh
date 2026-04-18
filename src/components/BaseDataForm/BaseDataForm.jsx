@@ -53,17 +53,18 @@ const BaseDataForm = () => {
   const [selectedProvinceIdForModal, setSelectedProvinceIdForModal] = useState("");
 
   // ========== هوک‌های داده ==========
-  const {
-    data: projects,
-    isLoading: projectsLoading,
-    error: projectsError,
-  } = useProjects();
+  // const {
+  //   data: projects,
+  //   isLoading: projectsLoading,
+  //   error: projectsError,
+  // } = useProjects();
+  const { data: projects, isLoading: projectsLoading, error: projectsError } = useProjects(false);
 
   const {
     data: inspectors,
     isLoading: inspectorsLoading,
     error: inspectorsError
-  } = useInspectors();
+  } = useInspectors(false);
   
   const {
     data: vendors,

@@ -4,19 +4,34 @@ import toast from 'react-hot-toast';
 
 
 // کلیدهای query
+// export const projectKeys = {
+//   all: ["projects"],
+//   lists: () => [...projectKeys.all, "list"],
+//   list: (filters) => [...projectKeys.lists(), { filters }],
+//   details: () => [...projectKeys.all, "detail"],
+//   detail: (id) => [...projectKeys.details(), id],
+// };
 export const projectKeys = {
   all: ["projects"],
   lists: () => [...projectKeys.all, "list"],
-  list: (filters) => [...projectKeys.lists(), { filters }],
+  list: (filters, onlyActive = true) => [...projectKeys.lists(), { filters, onlyActive }],
   details: () => [...projectKeys.all, "detail"],
   detail: (id) => [...projectKeys.details(), id],
 };
 
 // هوک برای گرفتن لیست پروژه‌ها
-export const useProjects = () => {
+// export const useProjects = () => {
+//   return useQuery({
+//     queryKey: projectKeys.lists(),
+//     queryFn: () => projectService.getAllProjects(),
+//     staleTime: 5 * 60 * 1000,
+//     cacheTime: 10 * 60 * 1000,
+//   });
+// };
+export const useProjects = (onlyActive = true) => {
   return useQuery({
-    queryKey: projectKeys.lists(),
-    queryFn: () => projectService.getAllProjects(),
+    queryKey: projectKeys.list(undefined, onlyActive),
+    queryFn: () => projectService.getAllProjects(onlyActive),
     staleTime: 5 * 60 * 1000,
     cacheTime: 10 * 60 * 1000,
   });
