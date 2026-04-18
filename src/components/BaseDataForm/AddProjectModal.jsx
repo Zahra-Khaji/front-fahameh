@@ -4,11 +4,12 @@ import {
   FaBuilding, 
   FaSpinner, 
   FaExclamationTriangle, 
-  FaKey,
   FaTag,
   FaCodeBranch,
   FaBox,
-  FaComment
+  FaComment,
+  FaCheckCircle,
+  FaBan
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import Button from '../ui/Button';
@@ -19,11 +20,11 @@ import { showSuccessToast, showErrorToast, showLoadingToast } from '../../utils/
 const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, isEdit = false }) => {
   const [formData, setFormData] = useState({
     Title: '',
-    project_code: '',
     Abbreviation: '',
     SubProject: '',
     Material_Code: '',
-    Remark: ''
+    Remark: '',
+    Status: true
   });
   
   const [localError, setLocalError] = useState('');
@@ -37,23 +38,36 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
     if (isOpen) {
       if (isEdit && initialData) {
         // حالت ویرایش - پر کردن فرم با داده‌های موجود
+        // console.log('📝 AddProjectModal - initialData:', initialData);
+        // console.log('📝 AddProjectModal - initialData.Status:', initialData.Status);
+        
+        // تبدیل صحیح Status
+        let statusValue = true; // پیش‌فرض فعال
+        if (initialData.Status === 'inactive' || initialData.Status === false) {
+          statusValue = false;
+        } else if (initialData.Status === 'active' || initialData.Status === true) {
+          statusValue = true;
+        }
+        
+        // console.log('📝 AddProjectModal - statusValue:', statusValue);
+        
         setFormData({
           Title: initialData.name || initialData.Title || '',
-          project_code: initialData.project_code || '',
           Abbreviation: initialData.Abbreviation || '',
           SubProject: initialData.SubProject || '',
           Material_Code: initialData.Material_Code || '',
-          Remark: initialData.Remark || ''
+          Remark: initialData.Remark || '',
+          Status: statusValue
         });
       } else {
-        // حالت ایجاد جدید - ریست فرم
+        // حالت ایجاد جدید - ریست فرم با مقدار پیش‌فرض فعال
         setFormData({
           Title: '',
-          project_code: '',
           Abbreviation: '',
           SubProject: '',
           Material_Code: '',
-          Remark: ''
+          Remark: '',
+          Status: true
         });
       }
       setLocalError('');
@@ -70,35 +84,18 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
       return 'نام پروژه باید حداقل ۲ حرف داشته باشد';
     }
     
-    if (!formData.project_code.trim()) {
-      return 'کد پروژه الزامی است';
-    }
-    
-    if (formData.project_code.trim().length < 1) {
-      return 'کد پروژه باید حداقل ۱ کاراکتر داشته باشد';
-    }
-    
-    // اعتبارسنجی کد پروژه (فقط حروف، اعداد و خط تیره مجاز)
-    const codeRegex = /^[A-Za-z0-9\-_]+$/;
-    if (!codeRegex.test(formData.project_code)) {
-      return 'کد پروژه فقط می‌تواند شامل حروف انگلیسی، اعداد، خط تیره و _ باشد';
-    }
-    
     return null;
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     
-    // برای کد پروژه - فقط حذف فاصله
-    if (name === 'project_code') {
-      const cleanedValue = value.replace(/\s+/g, '');
-      setFormData(prev => ({ ...prev, [name]: cleanedValue }));
+    if (type === 'radio') {
+      setFormData(prev => ({ ...prev, Status: value === 'active' }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
     
-    // پاک کردن خطا هنگام تایپ
     if (localError) setLocalError('');
   };
 
@@ -106,7 +103,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
     e.preventDefault();
     e.stopPropagation();
     
-    // اعتبارسنجی فرم
     const validationError = validateForm();
     if (validationError) {
       setLocalError(validationError);
@@ -117,20 +113,18 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
     setLocalError('');
     setIsSubmitting(true);
     
-    // آماده سازی داده برای API
     const apiData = {
       Title: formData.Title.trim(),
-      project_code: formData.project_code.trim() || null,
       Abbreviation: formData.Abbreviation.trim() || null,
       SubProject: formData.SubProject.trim() || null,
       Material_Code: formData.Material_Code.trim() || null,
-      Remark: formData.Remark.trim() || null
+      Remark: formData.Remark.trim() || null,
+      Status: formData.Status ? 'active' : 'inactive'
     };
     
-    console.log('📤 Sending data to API:', apiData);
+    // console.log('📤 Sending data to API:', apiData);
     
     if (isEdit && initialData?.id) {
-      // حالت ویرایش
       const loadingToast = showLoadingToast('در حال بروزرسانی پروژه...');
       
       updateProject(
@@ -167,7 +161,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
         }
       );
     } else {
-      // حالت ایجاد جدید
       const loadingToast = showLoadingToast('در حال ایجاد پروژه جدید...');
       
       createProject(apiData, {
@@ -182,11 +175,11 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
           setTimeout(() => {
             setFormData({
               Title: '',
-              project_code: '',
               Abbreviation: '',
               SubProject: '',
               Material_Code: '',
-              Remark: ''
+              Remark: '',
+              Status: true
             });
             setIsSubmitting(false);
             onClose();
@@ -203,8 +196,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
             if (typeof detail === 'string') {
               if (detail.includes('already exists')) {
                 errorMessage = `نام پروژه "${formData.Title}" تکراری است. لطفاً نام دیگری انتخاب کنید.`;
-              } else if (detail.includes('project_code')) {
-                errorMessage = 'کد پروژه تکراری است. لطفاً کد دیگری انتخاب کنید.';
               } else {
                 errorMessage = detail;
               }
@@ -225,11 +216,11 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
     if (!isSubmitting && !isCreating && !isUpdating) {
       setFormData({
         Title: '',
-        project_code: '',
         Abbreviation: '',
         SubProject: '',
         Material_Code: '',
-        Remark: ''
+        Remark: '',
+        Status: true
       });
       setLocalError('');
       onClose();
@@ -241,15 +232,8 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
   const isLoading = isSubmitting || isCreating || isUpdating;
 
   return (
-    <div 
-    
-    // style={{ direction: "ltr" }}
-    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div 
-    // style={{ direction: "rtl" }}
-      
-      
-      className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
@@ -270,7 +254,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* نمایش خطا */}
           {localError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               <div className="flex items-start">
@@ -297,37 +280,11 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
               className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
                 localError && !formData.Title.trim() ? 'border-red-300' : 'border-gray-300'
               } ${isLoading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
-              // placeholder="نام کامل پروژه را وارد کنید"
               required
               disabled={isLoading}
               autoFocus
               maxLength={100}
             />
-          </div>
-
-          {/* کد پروژه */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
-              <FaKey className="ml-1 text-green-500" />
-              کد پروژه *
-            </label>
-            <input
-              type="text"
-              name="project_code"
-              value={formData.project_code}
-              onChange={handleChange}
-              className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
-                localError && !formData.project_code.trim() ? 'border-red-300' : 'border-gray-300'
-              } ${isLoading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
-              // placeholder="کد پروژه (مثال: PRJ-001)"
-              required
-              disabled={isLoading}
-              maxLength={20}
-              dir="ltr"
-            />
-            <div className="mt-1 text-xs text-gray-500">
-              حروف انگلیسی، اعداد، خط تیره و _
-            </div>
           </div>
 
           {/* مخفف پروژه - اختیاری */}
@@ -343,7 +300,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
               value={formData.Abbreviation}
               onChange={handleChange}
               className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              // placeholder="مخفف پروژه"
               disabled={isLoading}
               maxLength={20}
               dir="ltr"
@@ -363,7 +319,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
               value={formData.SubProject}
               onChange={handleChange}
               className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              // placeholder="زیر پروژه"
               disabled={isLoading}
               maxLength={50}
             />
@@ -382,7 +337,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
               value={formData.Material_Code}
               onChange={handleChange}
               className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              // placeholder="کد متریال"
               disabled={isLoading}
               maxLength={30}
               dir="ltr"
@@ -401,11 +355,50 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
               value={formData.Remark}
               onChange={handleChange}
               className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
-              // placeholder="توضیحات اضافی"
               disabled={isLoading}
               rows={3}
               maxLength={500}
             />
+          </div>
+
+          {/* وضعیت پروژه (فعال/غیرفعال) - آخرین فیلد */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center">
+              <FaCheckCircle className="ml-1 text-green-500" />
+              وضعیت پروژه
+            </label>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="Status"
+                  value="active"
+                  checked={formData.Status === true}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
+                  disabled={isLoading}
+                />
+                <span className="flex items-center gap-1 text-sm text-gray-700">
+                  {/* <FaCheckCircle className="text-green-500" /> */}
+                  فعال
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="Status"
+                  value="inactive"
+                  checked={formData.Status === false}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                  disabled={isLoading}
+                />
+                <span className="flex items-center gap-1 text-sm text-gray-700">
+                  {/* <FaBan className="text-red-500" /> */}
+                  غیرفعال
+                </span>
+              </label>
+            </div>
           </div>
 
           {/* Buttons */}
@@ -415,7 +408,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
               variant="primary"
               icon={isLoading ? FaSpinner : undefined}
               className="flex-1"
-              disabled={isLoading || !formData.Title.trim() || !formData.project_code.trim()}
+              disabled={isLoading || !formData.Title.trim()}
               isLoading={isLoading}
               spinnerClassName="text-white"
             >
