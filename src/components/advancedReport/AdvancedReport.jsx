@@ -151,8 +151,9 @@ const AdvancedReport = () => {
       <div className="max-w-7xl mx-auto">
         
         <StepHeader
-          title="فرم مدیریت"
-          description="مشاهده و دریافت گزارشات مالی بر اساس ماه و سال"
+          title="صورت وضعیت بازرسین(جزئیات)"
+          description="مشاهده صورت وضعیت بازرسین بر اساس ماه و سال"
+
           icon={FaChartBar}
         />
 

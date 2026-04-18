@@ -107,7 +107,8 @@ const InspectorFinancialSummary = () => {
       <div className="max-w-7xl mx-auto">
         
         <StepHeader
-          title="صورت وضعیت بازرسین"
+                    title="صورت وضعیت بازرسین(نهایی)"
+
           description="مشاهده صورت وضعیت بازرسین بر اساس ماه و سال"
           icon={FaChartBar}
         />
