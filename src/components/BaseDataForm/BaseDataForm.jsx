@@ -386,6 +386,7 @@ useEffect(() => {
       deleteCity(cityToDelete.id, {
         onSuccess: () => {
           closeDeleteCityPopover();
+          refetchCities();  // همیشه رفرش کن
         },
         onError: () => {
           closeDeleteCityPopover();
