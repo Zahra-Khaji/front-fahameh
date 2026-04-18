@@ -3,7 +3,7 @@ import { FaDatabase, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import StepHeader from "../common/StepHeader";
 import FormSection from "../common/FormSection";
 import Button from "../ui/Button";
-import { useProjects, useDeleteProject } from "../../hooks/useProjects";
+import {  useProjects, useDeleteProject, useProject } from "../../hooks/useProjects";
 import { useInspectors, useDeleteInspector, useInspector } from "../../hooks/useInspectors";
 import { useVendors, useDeleteVendor, useVendor,useVendorDetailForEdit  } from "../../hooks/useVendors";
 import { useProvinces, useDeleteProvince, useCities, useDeleteCity } from "../../hooks/useProvinces";
@@ -99,6 +99,27 @@ const BaseDataForm = () => {
     data: vendorDetails, 
     isLoading: vendorDetailsLoading
   } = useVendorDetailForEdit(editingVendor?.id);
+
+  // ========== اضافه کردن هوک useProject در بخش هوک‌ها (بعد از useProjects) ==========
+const { 
+  data: projectDetails, 
+  isLoading: projectDetailsLoading
+} = useProject(editingProject?.id);
+// ========== آپدیت editingProject با اطلاعات کامل از API ==========
+useEffect(() => {
+  if (projectDetails && projectDetails.id === editingProject?.id && isEditModeProject) {
+    setEditingProject(prev => ({
+      ...prev,
+      Title: projectDetails.Title || projectDetails.name,
+      name: projectDetails.Title || projectDetails.name,
+      project_code: projectDetails.project_code || "",
+      Abbreviation: projectDetails.Abbreviation || "",
+      SubProject: projectDetails.SubProject || "",
+      Material_Code: projectDetails.Material_Code || "",
+      Remark: projectDetails.Remark || ""
+    }));
+  }
+}, [projectDetails]);
 
   // ========== هوک‌های عملیاتی ==========
   const { mutate: deleteProject, isLoading: isDeletingProject } = useDeleteProject();
