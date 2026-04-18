@@ -107,8 +107,12 @@ const {
   isLoading: projectDetailsLoading
 } = useProject(editingProject?.id);
 // ========== آپدیت editingProject با اطلاعات کامل از API ==========
+// ========== آپدیت editingProject با اطلاعات کامل از API ==========
 useEffect(() => {
   if (projectDetails && projectDetails.IDP?.toString() === editingProject?.id && isEditModeProject) {
+    // console.log('🔵 BaseDataForm - projectDetails from API:', projectDetails);
+    // console.log('🔵 BaseDataForm - projectDetails.Status:', projectDetails.Status);
+    
     setEditingProject(prev => ({
       ...prev,
       Title: projectDetails.Title || projectDetails.name,
@@ -117,8 +121,14 @@ useEffect(() => {
       Abbreviation: projectDetails.Abbreviation || "",
       SubProject: projectDetails.SubProject || "",
       Material_Code: projectDetails.Material_Code || "",
-      Remark: projectDetails.Remark || ""
+      Remark: projectDetails.Remark || "",
+      Status: projectDetails.Status || "active"  // <-- اضافه شد
     }));
+    
+    // لاگ بعد از set
+    // setTimeout(() => {
+    //   console.log('🔵 BaseDataForm - editingProject after update:', editingProject);
+    // }, 100);
   }
 }, [projectDetails]);
 

@@ -38,8 +38,8 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject, initialData = null, is
     if (isOpen) {
       if (isEdit && initialData) {
         // حالت ویرایش - پر کردن فرم با داده‌های موجود
-        // console.log('📝 AddProjectModal - initialData:', initialData);
-        // console.log('📝 AddProjectModal - initialData.Status:', initialData.Status);
+        console.log('📝 AddProjectModal - initialData:', initialData);
+        console.log('📝 AddProjectModal - initialData.Status:', initialData.Status);
         
         // تبدیل صحیح Status
         let statusValue = true; // پیش‌فرض فعال
