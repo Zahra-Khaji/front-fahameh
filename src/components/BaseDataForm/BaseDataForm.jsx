@@ -108,7 +108,7 @@ const {
 } = useProject(editingProject?.id);
 // ========== آپدیت editingProject با اطلاعات کامل از API ==========
 useEffect(() => {
-  if (projectDetails && projectDetails.id === editingProject?.id && isEditModeProject) {
+  if (projectDetails && projectDetails.IDP?.toString() === editingProject?.id && isEditModeProject) {
     setEditingProject(prev => ({
       ...prev,
       Title: projectDetails.Title || projectDetails.name,
