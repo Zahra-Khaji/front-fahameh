@@ -96,8 +96,6 @@ class ReportService {
 
   // در reportService.js - متد را با logging کامل اضافه کنید:
   async getSuggestedReportNo(rfiNumbering, reportNo, revNo = "rev") {
-
-
     // اعتبارسنجی
     if (!rfiNumbering || rfiNumbering.trim() === "") {
       console.error("❌ rfiNumbering خالی است");
@@ -326,6 +324,46 @@ class ReportService {
         status: error.response?.status,
         headers: error.response?.headers,
       });
+      throw error;
+    }
+  }
+
+  // اضافه کردن این متد به کلاس ReportService
+
+  // گرفتن صورت وضعیت بازرسین (خلاصه مالی بازرسان)
+  async getInspectorFinancialSummary(year, month) {
+    try {
+      console.log(
+        "📊 ReportService.getInspectorFinancialSummary - پارامترها:",
+        {
+          year,
+          month,
+        }
+      );
+
+      if (!year || !month) {
+        throw new Error("سال و ماه الزامی هستند");
+      }
+
+      const params = {
+        year: year.toString(),
+        month: month,
+      };
+
+      const response = await http.get("/manager/financial-summary-final", {
+        params: params,
+        headers: {
+          accept: "application/json",
+        },
+      });
+
+      console.log("✅ دریافت پاسخ از API:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error(
+        "❌ ReportService: خطا در دریافت صورت وضعیت بازرسین:",
+        error
+      );
       throw error;
     }
   }

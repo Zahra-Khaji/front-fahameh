@@ -23,7 +23,11 @@ function AdminLayout() {
       </CustomNavLink>
       <CustomNavLink to="advanced-report">
         <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
-        <span>فرم مدیریت</span>
+        <span>صورت وضعیت(جزئیات)</span>
+      </CustomNavLink>
+      <CustomNavLink to="inspectorFinancialSummary">
+        <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
+        <span>صورت وضعیت(نهایی)</span>
       </CustomNavLink>
       <CustomNavLink to="baseDataForm">
         <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />

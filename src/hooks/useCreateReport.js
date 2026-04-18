@@ -624,3 +624,51 @@ export const useSuggestedReportNo = (
     retry: false, // غیرفعال کردن retry برای دیباگ
   });
 };
+
+// اضافه کردن این هوک به انتهای فایل useCreateReport.js
+
+// هوک برای دریافت صورت وضعیت بازرسین (خلاصه مالی بازرسان)
+export const useInspectorFinancialSummary = (year, month, enabled = false) => {
+  return useQuery({
+    queryKey: ["inspector-financial-summary", year, month],
+    queryFn: async () => {
+      if (!year || !month) {
+        throw new Error("لطفاً سال و ماه را انتخاب کنید");
+      }
+
+      try {
+        const result = await reportService.getInspectorFinancialSummary(year, month);
+        return result;
+      } catch (error) {
+        console.error("❌ useInspectorFinancialSummary: خطا در دریافت اطلاعات:", error);
+
+        if (error.response?.status === 404) {
+          throw new Error("اطلاعاتی برای تاریخ انتخاب شده یافت نشد");
+        } else if (error.response?.status === 400) {
+          throw new Error("پارامترهای ورودی نامعتبر هستند");
+        }
+
+        throw error;
+      }
+    },
+    enabled: enabled && !!year && !!month,
+    staleTime: 5 * 60 * 1000, // 5 دقیقه
+    retry: 1,
+    onError: (error) => {
+      toast.error(error.message || "خطا در دریافت اطلاعات", {
+        position: "top-center",
+        duration: 4000,
+        icon: "❌",
+        style: {
+          background: "#ef4444",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
+    },
+  });
+};
