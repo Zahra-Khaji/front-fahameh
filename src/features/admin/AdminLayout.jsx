@@ -33,15 +33,15 @@ function AdminLayout() {
         <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>فرم اطلاعات پایه</span>
       </CustomNavLink>
-      <CustomNavLink to="users">
+      {/* <CustomNavLink to="users">
         <HiUser className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>کاربران</span>
-      </CustomNavLink>
+      </CustomNavLink> */}
       {/* <Route path="/admin/rfi-report" element={<RFIReportTable />} /> */}
-      <CustomNavLink to="proposals">
+      {/* <CustomNavLink to="proposals">
         <HiCollection className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>درخواست ها</span>
-      </CustomNavLink>
+      </CustomNavLink> */}
     </AppLayout>
   );
 }
