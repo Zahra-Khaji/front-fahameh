@@ -1,4 +1,3 @@
-// src/components/ui/SearchableSelect.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 
@@ -15,9 +14,8 @@ const SearchableSelect = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredOptions, setFilteredOptions] = useState(options);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [inputValue, setInputValue] = useState(''); // مقدار مستقیم input
+  const [inputValue, setInputValue] = useState('');
   
-  // Refs
   const containerRef = useRef(null);
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -48,8 +46,6 @@ const SearchableSelect = ({
       setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
-          
-          // اگر searchTerm داریم، cursor را به انتها ببر
           if (searchTerm) {
             const length = inputRef.current.value.length;
             inputRef.current.setSelectionRange(length, length);
@@ -64,10 +60,10 @@ const SearchableSelect = ({
     const handleClickOutside = (event) => {
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setIsOpen(false);
-        // وقتی بسته می‌شود، مقدار input را به selected تنظیم کن
         const selected = options.find(opt => opt.value === value);
         setInputValue(selected?.label || '');
         setSearchTerm('');
+        setHighlightedIndex(-1);
       }
     };
 
@@ -125,10 +121,10 @@ const SearchableSelect = ({
         const selected = options.find(opt => opt.value === value);
         setInputValue(selected?.label || '');
         setSearchTerm('');
+        setHighlightedIndex(-1);
         break;
         
       default:
-        // برای حروف و اعداد
         if (/^[a-zA-Z0-9آ-ی]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete') {
           if (!isOpen) {
             setIsOpen(true);
@@ -158,6 +154,7 @@ const SearchableSelect = ({
   }, [highlightedIndex]);
 
   const handleSelect = (option) => {
+    console.log('🟢 SearchableSelect - handleSelect:', option);
     onChange(option.value);
     setInputValue(option.label);
     setSearchTerm('');
@@ -168,11 +165,16 @@ const SearchableSelect = ({
   const handleClear = (e) => {
     e.stopPropagation();
     e.preventDefault();
+    console.log('🟢 SearchableSelect - handleClear called');
+    
     onChange('');
     setInputValue('');
-    setSearchTerm('');
+    setSearchTerm('');  // مهم: پاک کردن searchTerm
     setIsOpen(false);
     setHighlightedIndex(-1);
+    
+    // بعد از پاک کردن، اگر dropdown باز بود بسته می‌شود
+    // کاربر برای دیدن لیست کامل باید دوباره روی فیلد کلیک کند
     
     if (inputRef.current) {
       inputRef.current.focus();
@@ -182,13 +184,16 @@ const SearchableSelect = ({
   const handleInputFocus = (e) => {
     if (disabled) return;
     
+    console.log('🟢 SearchableSelect - handleInputFocus, isOpen:', isOpen);
     e.preventDefault();
+    
     if (!isOpen) {
       setIsOpen(true);
-      setSearchTerm(inputValue);
+      // وقتی باز می‌شود، searchTerm را خالی کن تا همه گزینه‌ها نمایش داده شوند
+      setSearchTerm('');
+      setHighlightedIndex(filteredOptions.length > 0 ? 0 : -1);
     }
     
-    // cursor را به انتها ببر
     setTimeout(() => {
       if (inputRef.current) {
         const length = inputRef.current.value.length;
@@ -206,15 +211,17 @@ const SearchableSelect = ({
       setIsOpen(true);
     }
     
-    // highlightedIndex را ریست کن
     setHighlightedIndex(filteredOptions.length > 0 ? 0 : -1);
   };
 
   const handleInputClick = (e) => {
     e.stopPropagation();
+    console.log('🟢 SearchableSelect - handleInputClick, isOpen:', isOpen);
+    
     if (!isOpen && !disabled) {
       setIsOpen(true);
-      setSearchTerm(inputValue);
+      setSearchTerm('');
+      setHighlightedIndex(filteredOptions.length > 0 ? 0 : -1);
     }
   };
 
@@ -228,7 +235,6 @@ const SearchableSelect = ({
       className={`relative ${className}`}
       onKeyDown={handleKeyDown}
     >
-      {/* Input با قابلیت جستجو */}
       <div className="relative">
         <input
           ref={inputRef}
@@ -248,7 +254,6 @@ const SearchableSelect = ({
           aria-controls="searchable-select-dropdown"
         />
         
-        {/* آیکون‌های سمت چپ */}
         <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
           {value && !disabled && (
             <button
@@ -265,14 +270,12 @@ const SearchableSelect = ({
         </div>
       </div>
 
-      {/* Dropdown Menu */}
       {isOpen && !disabled && (
         <div 
           ref={dropdownRef}
           id="searchable-select-dropdown"
           className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
           role="listbox"
-          aria-labelledby="searchable-select-input"
         >
           {filteredOptions.length === 0 ? (
             <div className="px-3 py-2 text-sm text-gray-500 text-center">
@@ -294,7 +297,6 @@ const SearchableSelect = ({
                 }`}
                 role="option"
                 aria-selected={value === option.value}
-                data-index={index}
               >
                 {option.label}
               </div>
