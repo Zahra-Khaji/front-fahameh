@@ -3,15 +3,17 @@ import { FaDatabase, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import StepHeader from "../common/StepHeader";
 import FormSection from "../common/FormSection";
 import Button from "../ui/Button";
-import {  useProjects, useDeleteProject, useProject } from "../../hooks/useProjects";
+import { useProjects, useDeleteProject, useProject } from "../../hooks/useProjects";
 import { useInspectors, useDeleteInspector, useInspector } from "../../hooks/useInspectors";
-import { useVendors, useDeleteVendor, useVendor,useVendorDetailForEdit  } from "../../hooks/useVendors";
+import { useVendors, useDeleteVendor, useVendorDetailForEdit } from "../../hooks/useVendors";
 import { useProvinces, useDeleteProvince, useCities, useDeleteCity } from "../../hooks/useProvinces";
+import { useLocationPrices, useDeleteLocationPrice, useLocationPrice } from "../../hooks/useLocationPrice";
 import AddProjectModal from "./AddProjectModal";
 import AddInspectorModal from "./AddInspectorModal";
 import AddVendorModal from "./AddVendorModal";
 import AddProvinceModal from "./AddProvinceModal";
 import AddCityModal from "./AddCityModal";
+import AddLocationPriceModal from "./AddLocationPriceModal";
 import DataTable from "../common/DataTable";
 import ConfirmDeletePopover from "./ConfirmDeletePopover";
 import toast from 'react-hot-toast';
@@ -52,12 +54,13 @@ const BaseDataForm = () => {
   const [selectedProvinceForCity, setSelectedProvinceForCity] = useState("");
   const [selectedProvinceIdForModal, setSelectedProvinceIdForModal] = useState("");
 
+  // ========== State برای تعرفه مکانی ==========
+  const [editingLocationPrice, setEditingLocationPrice] = useState(null);
+  const [isEditModeLocationPrice, setIsEditModeLocationPrice] = useState(false);
+  const [locationPriceToDelete, setLocationPriceToDelete] = useState(null);
+  const [deleteLocationPricePopoverOpen, setDeleteLocationPricePopoverOpen] = useState(false);
+
   // ========== هوک‌های داده ==========
-  // const {
-  //   data: projects,
-  //   isLoading: projectsLoading,
-  //   error: projectsError,
-  // } = useProjects();
   const { data: projects, isLoading: projectsLoading, error: projectsError } = useProjects(false);
 
   const {
@@ -82,55 +85,35 @@ const BaseDataForm = () => {
     data: cities,
     isLoading: citiesLoading,
     error: citiesError,
-    refetch: refetchCities  // اضافه شده
+    refetch: refetchCities
   } = useCities(selectedProvinceForCity);
 
-  // ========== هوک برای گرفتن اطلاعات کامل بازرس (برای ویرایش) ==========
+  const {
+    data: locationPrices,
+    isLoading: locationPricesLoading,
+    error: locationPricesError
+  } = useLocationPrices();
+
+  // ========== هوک برای گرفتن اطلاعات کامل (برای ویرایش) ==========
+  const { 
+    data: projectDetails, 
+    isLoading: projectDetailsLoading
+  } = useProject(editingProject?.id);
+
   const { 
     data: inspectorDetails, 
     isLoading: inspectorDetailsLoading
   } = useInspector(editingInspector?.id);
 
-  // ========== هوک برای گرفتن اطلاعات کامل وندور (برای ویرایش) ==========
-  // const { 
-  //   data: vendorDetails, 
-  //   isLoading: vendorDetailsLoading
-  // } = useVendor(editingVendor?.id);
   const { 
     data: vendorDetails, 
     isLoading: vendorDetailsLoading
   } = useVendorDetailForEdit(editingVendor?.id);
 
-  // ========== اضافه کردن هوک useProject در بخش هوک‌ها (بعد از useProjects) ==========
-const { 
-  data: projectDetails, 
-  isLoading: projectDetailsLoading
-} = useProject(editingProject?.id);
-// ========== آپدیت editingProject با اطلاعات کامل از API ==========
-// ========== آپدیت editingProject با اطلاعات کامل از API ==========
-useEffect(() => {
-  if (projectDetails && projectDetails.IDP?.toString() === editingProject?.id && isEditModeProject) {
-    // console.log('🔵 BaseDataForm - projectDetails from API:', projectDetails);
-    // console.log('🔵 BaseDataForm - projectDetails.Status:', projectDetails.Status);
-    
-    setEditingProject(prev => ({
-      ...prev,
-      Title: projectDetails.Title || projectDetails.name,
-      name: projectDetails.Title || projectDetails.name,
-      project_code: projectDetails.project_code || "",
-      Abbreviation: projectDetails.Abbreviation || "",
-      SubProject: projectDetails.SubProject || "",
-      Material_Code: projectDetails.Material_Code || "",
-      Remark: projectDetails.Remark || "",
-      Status: projectDetails.Status || "active"  // <-- اضافه شد
-    }));
-    
-    // لاگ بعد از set
-    // setTimeout(() => {
-    //   console.log('🔵 BaseDataForm - editingProject after update:', editingProject);
-    // }, 100);
-  }
-}, [projectDetails]);
+  const { 
+    data: locationPriceDetails, 
+    isLoading: locationPriceDetailsLoading
+  } = useLocationPrice(editingLocationPrice?.id);
 
   // ========== هوک‌های عملیاتی ==========
   const { mutate: deleteProject, isLoading: isDeletingProject } = useDeleteProject();
@@ -138,6 +121,24 @@ useEffect(() => {
   const { mutate: deleteVendor, isLoading: isDeletingVendor } = useDeleteVendor();
   const { mutate: deleteProvince, isLoading: isDeletingProvince } = useDeleteProvince();
   const { mutate: deleteCity, isLoading: isDeletingCity } = useDeleteCity();
+  const { mutate: deleteLocationPrice, isLoading: isDeletingLocationPrice } = useDeleteLocationPrice();
+
+  // ========== آپدیت editingProject با اطلاعات کامل از API ==========
+  useEffect(() => {
+    if (projectDetails && projectDetails.IDP?.toString() === editingProject?.id && isEditModeProject) {
+      setEditingProject(prev => ({
+        ...prev,
+        Title: projectDetails.Title || projectDetails.name,
+        name: projectDetails.Title || projectDetails.name,
+        project_code: projectDetails.project_code || "",
+        Abbreviation: projectDetails.Abbreviation || "",
+        SubProject: projectDetails.SubProject || "",
+        Material_Code: projectDetails.Material_Code || "",
+        Remark: projectDetails.Remark || "",
+        Status: projectDetails.Status || "active"
+      }));
+    }
+  }, [projectDetails]);
 
   // ========== آپدیت editingInspector با اطلاعات کامل از API ==========
   useEffect(() => {
@@ -173,6 +174,23 @@ useEffect(() => {
     }
   }, [vendorDetails]);
 
+  // ========== آپدیت editingLocationPrice با اطلاعات کامل از API ==========
+  useEffect(() => {
+    if (locationPriceDetails && locationPriceDetails.ID?.toString() === editingLocationPrice?.id && isEditModeLocationPrice) {
+      setEditingLocationPrice(prev => ({
+        ...prev,
+        ID: locationPriceDetails.ID,
+        IDOM: locationPriceDetails.IDOM,
+        IDP: locationPriceDetails.IDP,
+        location: locationPriceDetails.location,
+        Overlocation: locationPriceDetails.Overlocation,
+        OverDome: locationPriceDetails.OverDome,
+        Price: locationPriceDetails.Price,
+        UnitPrice: locationPriceDetails.UnitPrice
+      }));
+    }
+  }, [locationPriceDetails]);
+
   // ========== توابع عمومی ==========
   const closeModal = () => {
     setEditingProject(null);
@@ -180,11 +198,13 @@ useEffect(() => {
     setEditingVendor(null);
     setEditingProvince(null);
     setEditingCity(null);
+    setEditingLocationPrice(null);
     setIsEditModeProject(false);
     setIsEditModeInspector(false);
     setIsEditModeVendor(false);
     setIsEditModeProvince(false);
     setIsEditModeCity(false);
+    setIsEditModeLocationPrice(false);
     setSelectedProvinceIdForModal("");
     setIsModalOpen(false);
   };
@@ -386,7 +406,7 @@ useEffect(() => {
       deleteCity(cityToDelete.id, {
         onSuccess: () => {
           closeDeleteCityPopover();
-          refetchCities();  // همیشه رفرش کن
+          refetchCities();
         },
         onError: () => {
           closeDeleteCityPopover();
@@ -395,18 +415,52 @@ useEffect(() => {
     }
   };
 
-  // const handleCitySuccess = () => {
-  //   closeModal();
-  // };
-  // ========== اصلاح handleCitySuccess ==========
-const handleCitySuccess = (newCity) => {
-  closeModal();
-  
-  // رفرش دستی جدول شهرها
-  if (selectedProvinceForCity === newCity?.province_id?.toString()) {
-    refetchCities();
-  }
-};
+  const handleCitySuccess = (newCity) => {
+    closeModal();
+    if (selectedProvinceForCity === newCity?.province_id?.toString()) {
+      refetchCities();
+    }
+  };
+
+  // ========== توابع تعرفه مکانی ==========
+  const openModalForAddLocationPrice = () => {
+    setEditingLocationPrice(null);
+    setIsEditModeLocationPrice(false);
+    setIsModalOpen(true);
+  };
+
+  const openModalForEditLocationPrice = (item) => {
+    setEditingLocationPrice(item);
+    setIsEditModeLocationPrice(true);
+    setIsModalOpen(true);
+  };
+
+  const openDeleteLocationPricePopover = (item) => {
+    setLocationPriceToDelete(item);
+    setDeleteLocationPricePopoverOpen(true);
+  };
+
+  const closeDeleteLocationPricePopover = () => {
+    setLocationPriceToDelete(null);
+    setDeleteLocationPricePopoverOpen(false);
+  };
+
+  const handleDeleteLocationPrice = () => {
+    if (locationPriceToDelete) {
+      deleteLocationPrice(locationPriceToDelete.id, {
+        onSuccess: () => {
+          closeDeleteLocationPricePopover();
+        },
+        onError: () => {
+          closeDeleteLocationPricePopover();
+        }
+      });
+    }
+  };
+
+  const handleLocationPriceSuccess = () => {
+    closeModal();
+  };
 
   // ========== تعریف ستون‌های جدول‌ها ==========
   
@@ -469,10 +523,6 @@ const handleCitySuccess = (newCity) => {
   // ستون‌های وندور
   const vendorColumns = [
     { key: "name", title: "نام وندور" },
-    // { key: "contact_person", title: "شخص رابط" },
-    // { key: "phone", title: "شماره تماس" },
-    // { key: "email", title: "ایمیل" },
-    // { key: "address", title: "آدرس" },
     {
       key: "actions",
       title: "عملیات",
@@ -554,6 +604,52 @@ const handleCitySuccess = (newCity) => {
     },
   ];
 
+// ستون‌های تعرفه مکانی
+const locationPriceColumns = [
+  { 
+    key: "projectName", 
+    title: "پروژه",
+    render: (row) => {
+      const project = projects?.find(p => parseInt(p.id) === row.IDP);
+      return project?.name || "-";
+    }
+  },
+  { key: "OverDome", title: "نوع" },
+  { key: "Overlocation", title: "Overlocation" },  // changed from "استان"
+  { key: "location", title: "location" },          // changed from "شهر"
+  { 
+    key: "Price", 
+    title: "قیمت",
+    render: (row) => (
+      <span>{new Intl.NumberFormat('fa-IR').format(row.Price)}</span>
+    )
+  },
+  { key: "UnitPrice", title: "واحد قیمت" },
+  {
+    key: "actions",
+    title: "عملیات",
+    align: "center",
+    render: (row) => (
+      <div className="flex justify-center gap-3">
+        <button 
+          onClick={() => openModalForEditLocationPrice(row)}
+          className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+          title="ویرایش تعرفه مکانی"
+        >
+          <FaEdit />
+        </button>
+        <button 
+          onClick={() => openDeleteLocationPricePopover(row)}
+          className="text-red-600 hover:text-red-800 transition-colors duration-200"
+          title="حذف تعرفه مکانی"
+        >
+          <FaTrash />
+        </button>
+      </div>
+    ),
+  },
+];
+
   // عنوان دکمه‌های افزودن
   const addButtonText = {
     project: "افزودن پروژه جدید",
@@ -584,6 +680,7 @@ const handleCitySuccess = (newCity) => {
               <option value="vendor">وندور</option>
               <option value="province">استان</option>
               <option value="city">شهر</option>
+              <option value="locationPrice">تعرفه مکانی</option>
             </select>
           </FormSection>
 
@@ -693,6 +790,25 @@ const handleCitySuccess = (newCity) => {
               />
             </FormSection>
           )}
+
+          {/* ========== جدول تعرفه مکانی ========== */}
+          {entityType === "locationPrice" && (
+            <FormSection title="لیست تعرفه‌های مکانی">
+              <div className="flex justify-between items-center mb-4">
+                <div></div>
+                <Button icon={FaPlus} onClick={openModalForAddLocationPrice} variant="primary">
+                  افزودن تعرفه مکانی جدید
+                </Button>
+              </div>
+
+              <DataTable
+                columns={locationPriceColumns}
+                data={locationPrices || []}
+                loading={locationPricesLoading}
+                error={locationPricesError}
+              />
+            </FormSection>
+          )}
         </div>
       </div>
 
@@ -752,6 +868,17 @@ const handleCitySuccess = (newCity) => {
           isEdit={isEditModeCity}
           provinces={provinces}
           selectedProvinceId={selectedProvinceIdForModal}
+        />
+      )}
+
+      {/* مودال تعرفه مکانی */}
+      {entityType === "locationPrice" && (
+        <AddLocationPriceModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onAddLocationPrice={handleLocationPriceSuccess}
+          initialData={editingLocationPrice}
+          isEdit={isEditModeLocationPrice}
         />
       )}
 
@@ -819,6 +946,19 @@ const handleCitySuccess = (newCity) => {
         confirmText="بله، حذف شود"
         cancelText="انصراف"
         isLoading={isDeletingCity}
+        type="danger"
+      />
+
+      {/* پاپ‌آپ حذف تعرفه مکانی */}
+      <ConfirmDeletePopover
+        isOpen={deleteLocationPricePopoverOpen}
+        onClose={closeDeleteLocationPricePopover}
+        onConfirm={handleDeleteLocationPrice}
+        title="حذف تعرفه مکانی"
+        message={`آیا از حذف تعرفه مکانی "${locationPriceToDelete?.location}" اطمینان دارید؟ این عمل غیرقابل بازگشت است.`}
+        confirmText="بله، حذف شود"
+        cancelText="انصراف"
+        isLoading={isDeletingLocationPrice}
         type="danger"
       />
     </div>
