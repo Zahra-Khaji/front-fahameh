@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { FaDatabase, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import StepHeader from "../common/StepHeader";
 import FormSection from "../common/FormSection";
@@ -93,6 +93,19 @@ const BaseDataForm = () => {
     isLoading: locationPricesLoading,
     error: locationPricesError
   } = useLocationPrices();
+
+  // ایجاد آرایه با projectName برای تعرفه مکانی
+  const locationPricesWithProjectName = useMemo(() => {
+    if (!locationPrices) return [];
+    
+    return locationPrices.map(item => {
+      const project = projects?.find(p => parseInt(p.id) === item.IDP);
+      return {
+        ...item,
+        projectName: project?.name || "-"
+      };
+    });
+  }, [locationPrices, projects]);
 
   // ========== هوک برای گرفتن اطلاعات کامل (برای ویرایش) ==========
   const { 
@@ -604,51 +617,44 @@ const BaseDataForm = () => {
     },
   ];
 
-// ستون‌های تعرفه مکانی
-const locationPriceColumns = [
-  { 
-    key: "projectName", 
-    title: "پروژه",
-    render: (row) => {
-      const project = projects?.find(p => parseInt(p.id) === row.IDP);
-      return project?.name || "-";
-    }
-  },
-  { key: "OverDome", title: "نوع" },
-  { key: "Overlocation", title: "Overlocation" },  // changed from "استان"
-  { key: "location", title: "location" },          // changed from "شهر"
-  { 
-    key: "Price", 
-    title: "قیمت",
-    render: (row) => (
-      <span>{new Intl.NumberFormat('fa-IR').format(row.Price)}</span>
-    )
-  },
-  { key: "UnitPrice", title: "واحد قیمت" },
-  {
-    key: "actions",
-    title: "عملیات",
-    align: "center",
-    render: (row) => (
-      <div className="flex justify-center gap-3">
-        <button 
-          onClick={() => openModalForEditLocationPrice(row)}
-          className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
-          title="ویرایش تعرفه مکانی"
-        >
-          <FaEdit />
-        </button>
-        <button 
-          onClick={() => openDeleteLocationPricePopover(row)}
-          className="text-red-600 hover:text-red-800 transition-colors duration-200"
-          title="حذف تعرفه مکانی"
-        >
-          <FaTrash />
-        </button>
-      </div>
-    ),
-  },
-];
+  // ستون‌های تعرفه مکانی
+  const locationPriceColumns = [
+    { key: "projectName", title: "پروژه" },
+    { key: "OverDome", title: "نوع" },
+    { key: "Overlocation", title: "Overlocation" },
+    { key: "location", title: "location" },
+    { 
+      key: "Price", 
+      title: "قیمت",
+      render: (row) => (
+        <span>{new Intl.NumberFormat('fa-IR').format(row.Price)}</span>
+      )
+    },
+    { key: "UnitPrice", title: "واحد قیمت" },
+    {
+      key: "actions",
+      title: "عملیات",
+      align: "center",
+      render: (row) => (
+        <div className="flex justify-center gap-3">
+          <button 
+            onClick={() => openModalForEditLocationPrice(row)}
+            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+            title="ویرایش تعرفه مکانی"
+          >
+            <FaEdit />
+          </button>
+          <button 
+            onClick={() => openDeleteLocationPricePopover(row)}
+            className="text-red-600 hover:text-red-800 transition-colors duration-200"
+            title="حذف تعرفه مکانی"
+          >
+            <FaTrash />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   // عنوان دکمه‌های افزودن
   const addButtonText = {
@@ -803,9 +809,11 @@ const locationPriceColumns = [
 
               <DataTable
                 columns={locationPriceColumns}
-                data={locationPrices || []}
+                data={locationPricesWithProjectName}
                 loading={locationPricesLoading}
                 error={locationPricesError}
+                searchableColumns={["projectName", "Overlocation", "location"]}
+                searchPlaceholder="جستجو در پروژه، استان و شهر..."
               />
             </FormSection>
           )}

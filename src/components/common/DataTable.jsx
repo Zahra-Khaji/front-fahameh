@@ -10,29 +10,38 @@ const DataTable = ({
   searchable = true,
   sortable = true,
   searchPlaceholder = "جستجو...",
+  searchableColumns = [], // آرایه از کلیدهای ستون‌هایی که باید در جستجو لحاظ شوند
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
 
-  // پیدا کردن کلید ستون اصلی (اولین ستون غیر عملیات)
-  const mainColumnKey = useMemo(() => {
+  // تعیین ستون‌های قابل جستجو
+  const getSearchableKeys = () => {
+    if (searchableColumns.length > 0) {
+      return searchableColumns;
+    }
+    // اگر مشخص نشده، از ستون اول غیر عملیات استفاده کن
     const mainColumn = columns.find(col => col.key !== "actions");
-    return mainColumn?.key || columns[0]?.key;
-  }, [columns]);
+    return mainColumn ? [mainColumn.key] : [];
+  };
+
+  const searchableKeys = getSearchableKeys();
 
   // فیلتر کردن داده‌ها بر اساس جستجو
   const filteredData = useMemo(() => {
-    if (!searchTerm.trim() || !mainColumnKey) {
+    if (!searchTerm.trim() || searchableKeys.length === 0) {
       return data;
     }
     
     const searchLower = searchTerm.trim().toLowerCase();
     return data.filter(row => {
-      const value = row[mainColumnKey];
-      if (!value) return false;
-      return String(value).toLowerCase().includes(searchLower);
+      return searchableKeys.some(key => {
+        const value = row[key];
+        if (!value) return false;
+        return String(value).toLowerCase().includes(searchLower);
+      });
     });
-  }, [data, searchTerm, mainColumnKey]);
+  }, [data, searchTerm, searchableKeys]);
 
   // مرتب‌سازی داده‌ها
   const sortedData = useMemo(() => {
@@ -78,15 +87,15 @@ const DataTable = ({
     if (columnKey === "actions" || !sortable) return null;
     
     if (sortConfig.key !== columnKey) {
-      return <FaSort className="text-gray-400 text-xs inline" />;
+      return <FaSort className="text-gray-400 text-xs mr-1 inline" />;
     }
     if (sortConfig.direction === "asc") {
-      return <FaSortUp className="text-blue-600 text-xs inline" />;
+      return <FaSortUp className="text-blue-600 text-xs mr-1 inline" />;
     }
     if (sortConfig.direction === "desc") {
-      return <FaSortDown className="text-blue-600 text-xs inline" />;
+      return <FaSortDown className="text-blue-600 text-xs mr-1 inline" />;
     }
-    return <FaSort className="text-gray-400 text-xs inline" />;
+    return <FaSort className="text-gray-400 text-xs mr-1 inline" />;
   };
 
   // پاک کردن جستجو
@@ -147,13 +156,10 @@ const DataTable = ({
                       col.align === "center" ? "text-center" : "text-right"
                     } ${!isActionColumn && sortable ? "cursor-pointer hover:bg-gray-200" : ""}`}
                     onClick={() => handleSort(col.key)}
-                    style={{ minWidth: isActionColumn ? "100px" : "auto" }}
                   >
                     {isActionColumn ? (
-                      // ستون عملیات - فقط عنوان
                       <span>{col.title}</span>
                     ) : (
-                      // ستون‌های دیگر - عنوان + آیکون سورت در کنار هم
                       <div className="inline-flex items-center gap-1">
                         <span>{col.title}</span>
                         {getSortIcon(col.key)}
