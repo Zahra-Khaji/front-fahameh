@@ -3,7 +3,6 @@ import {
   FaTrash, FaSort, FaSortUp, FaSortDown, 
   FaFilter, FaTimes, FaSearch, FaSave, FaEdit 
 } from 'react-icons/fa';
-import FinancialSaveConfirmationPopover from './FinancialSaveConfirmationPopover';
 import { toast } from 'react-hot-toast';
 
 // تعریف ستون‌های ثابت
@@ -30,7 +29,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
   const [openFilter, setOpenFilter] = useState(null);
   const [editingCell, setEditingCell] = useState(null);
   const [editedValue, setEditedValue] = useState('');
-  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [modifiedRows, setModifiedRows] = useState({});
   const [localData, setLocalData] = useState(data);
@@ -81,6 +79,28 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openFilter]);
+
+  // محاسبه "جمع کارکرد اعداد متغیر" = تعداد روز مورد تایید نهایی * قیمت بازرس نهایی
+  const calculateVariableSum = (finalDays, finalPrice) => {
+    const days = finalDays || 0;
+    const price = finalPrice || 0;
+    return days * price;
+  };
+
+  // به‌روزرسانی ستون "جمع کارکرد اعداد متغیر" بعد از تغییر
+  const updateVariableSum = (updatedData, rowIndex) => {
+    const row = updatedData[rowIndex];
+    const finalDays = row["تعداد روز مورد تایید نهایی"] || 0;
+    const finalPrice = row["قیمت بازرس نهایی"] || 0;
+    const variableSum = calculateVariableSum(finalDays, finalPrice);
+    
+    updatedData[rowIndex] = {
+      ...row,
+      "جمع کارکرد اعداد متغیر": variableSum
+    };
+    
+    return updatedData;
+  };
 
   const getUniqueValues = (columnName) => {
     if (!localData) return [];
@@ -259,29 +279,28 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     }
   };
 
-  const handleSaveClick = () => {
-    if (editedValue === '') return;
-    setShowSaveConfirmation(true);
-  };
-
-  const handleConfirmSave = () => {
-    if (!editingCell) return;
+  // ذخیره مستقیم بدون پاپ‌آپ تأیید
+  const handleDirectSave = () => {
+    if (!editingCell || editedValue === '') return;
     
     setIsSaving(true);
     
     setTimeout(() => {
       const { rowIndex, columnName } = editingCell;
-      const updatedData = [...localData];
-      const rowToUpdate = { ...updatedData[rowIndex] };
+      let updatedData = [...localData];
+      let rowToUpdate = { ...updatedData[rowIndex] };
       
       const numericValue = editedValue ? parseInt(editedValue, 10) : 0;
       rowToUpdate[columnName] = numericValue;
       updatedData[rowIndex] = rowToUpdate;
       
+      // بعد از تغییر، ستون "جمع کارکرد اعداد متغیر" را به‌روزرسانی کن
+      updatedData = updateVariableSum(updatedData, rowIndex);
+      
       setLocalData(updatedData);
       
       if (onEdit) {
-        onEdit(rowToUpdate);
+        onEdit(updatedData[rowIndex]);
       }
       
       setModifiedRows(prev => {
@@ -291,38 +310,24 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
       });
       
       setIsSaving(false);
-      setShowSaveConfirmation(false);
       setEditingCell(null);
       setEditedValue('');
       
       toast.success('تغییرات با موفقیت ذخیره شد!', {
         position: 'top-center',
-        duration: 3000,
+        duration: 2000,
         icon: '✅',
         style: {
           background: '#10b981',
           color: 'white',
           borderRadius: '10px',
-          padding: '16px',
+          padding: '12px',
           fontSize: '14px',
           direction: 'rtl',
           textAlign: 'right',
         },
       });
-    }, 250);
-  };
-
-  const handleClosePopover = () => {
-    setShowSaveConfirmation(false);
-    if (editingCell) {
-      setModifiedRows(prev => {
-        const newModifiedRows = { ...prev };
-        delete newModifiedRows[editingCell.rowIndex];
-        return newModifiedRows;
-      });
-    }
-    setEditingCell(null);
-    setEditedValue('');
+    }, 150);
   };
 
   const activeFiltersCount = Object.keys(activeFilters).length;
@@ -482,13 +487,17 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleSaveClick();
+                                      handleDirectSave();
                                     }}
                                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                                     title="ذخیره"
-                                    disabled={editedValue === ''}
+                                    disabled={editedValue === '' || isSaving}
                                   >
-                                    <FaSave size={12} />
+                                    {isSaving ? (
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-600"></div>
+                                    ) : (
+                                      <FaSave size={12} />
+                                    )}
                                   </button>
                                 </>
                               ) : (
@@ -545,15 +554,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
           </div>
         </div>
       )}
-
-      <FinancialSaveConfirmationPopover
-        isOpen={showSaveConfirmation}
-        onClose={handleClosePopover}
-        onConfirm={handleConfirmSave}
-        rowData={editingCell ? localData[editingCell.rowIndex] : null}
-        editedValues={editingCell ? { [editingCell.columnName]: editedValue } : {}}
-        isLoading={isSaving}
-      />
     </div>
   );
 };
