@@ -52,7 +52,7 @@ export const inspectionSchema = z.object({
     inspectorLocation: z.string().min(1, "موقعیت بازرس الزامی است"),
     phoneNumber: z.string().min(1, "شماره تماس الزامی است"),
     email: z.string().email("ایمیل معتبر نیست").min(1, "ایمیل الزامی است"),
-    expertise: z.string().min(1, "تخصص الزامی است"),
+    expertise: z.string().optional(), // تغییر: از min(1) به optional - دیگر اجباری نیست
     fee: z.string().min(1, "دستمزد الزامی است"),
   }),
 });

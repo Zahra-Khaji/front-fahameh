@@ -187,40 +187,45 @@ export const formatDatesSummary = (dates) => {
 
 // تابع helper برای تبدیل وضعیت انگلیسی به فارسی
 // تابع helper برای تبدیل وضعیت انگلیسی به فارسی
-export const getPersianStatus = (status) => {
-  if (!status) return "";
+// تابع برای دریافت رنگ وضعیت
+export const getStatusColor = (status) => {
+  const statusStr = String(status || "")
+    .toLowerCase()
+    .trim();
 
-  const statusStr = String(status).toLowerCase().trim();
-
-  if (statusStr.includes("done") || statusStr.includes("انجام")) {
-    return "انجام شده";
+  // پشتیبانی از مقادیر فارسی و انگلیسی
+  if (statusStr === "done" || statusStr === "انجام شده") {
+    return "bg-green-100 text-green-800 border-green-200";
   }
-  if (statusStr.includes("ongoing") || statusStr.includes("در حال")) {
-    return "در حال انجام";
+  if (statusStr === "ongoing" || statusStr === "در حال انجام") {
+    return "bg-yellow-100 text-yellow-800 border-yellow-200";
   }
-  if (statusStr.includes("cancel") || statusStr.includes("لغو")) {
-    return "لغو شده";
+  if (
+    statusStr === "cancel" ||
+    statusStr === "cancelled" ||
+    statusStr === "لغو شده"
+  ) {
+    return "bg-red-100 text-red-800 border-red-200";
   }
-
-  // اگر وضعیت ناشناخته بود، خودش را برگردان
-  return status;
+  return "bg-gray-100 text-gray-800 border-gray-200";
 };
 
-// تابع helper برای کلاس رنگ وضعیت
-export const getStatusColor = (status) => {
-  if (!status) return "bg-gray-100 text-gray-800";
+// تابع برای دریافت متن فارسی وضعیت
+export const getPersianStatus = (status) => {
+  const statusStr = String(status || "")
+    .toLowerCase()
+    .trim();
 
-  const statusLower = status.toLowerCase();
+  if (statusStr === "done") return "انجام شده";
+  if (statusStr === "ongoing") return "در حال انجام";
+  if (statusStr === "cancel" || statusStr === "cancelled") return "لغو شده";
 
-  if (statusLower === "done") {
-    return "bg-green-100 text-green-800";
-  } else if (statusLower === "ongoing") {
-    return "bg-yellow-100 text-yellow-800";
-  } else if (statusLower.includes("cancel")) {
-    return "bg-red-100 text-red-800";
-  }
+  // اگر خود مقدار فارسی بود، همان را برگردان
+  if (statusStr === "در حال انجام") return "در حال انجام";
+  if (statusStr === "انجام شده") return "انجام شده";
+  if (statusStr === "لغو شده") return "لغو شده";
 
-  return "bg-gray-100 text-gray-800";
+  return status || "نامشخص";
 };
 
 // تابع helper برای نمایش نوع پروژه (اگر نیاز دارید)

@@ -9,7 +9,6 @@ class ProjectService {
           only_active: onlyActive,
         },
       });
-      // console.log(`Projects API Response (only_active=${onlyActive}):`, response.data);
       return this.transformProjectsData(response.data);
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -21,7 +20,6 @@ class ProjectService {
   async getProjectById(id) {
     try {
       const response = await http.get(`/projects/${id}`);
-      // console.log('📦 getProjectById response:', response.data);
       return response.data;
     } catch (error) {
       console.error(`Error fetching project ${id}:`, error);
@@ -34,32 +32,31 @@ class ProjectService {
     try {
       const apiData = {
         Title: projectData.Title,
+        project_code: projectData.project_code || null, // <-- اضافه شد
         Abbreviation: projectData.Abbreviation || null,
         SubProject: projectData.SubProject || null,
         Material_Code: projectData.Material_Code || null,
         Remark: projectData.Remark || null,
-        Status: projectData.Status || "active", // <-- اضافه شد
+        Status: projectData.Status || "active",
       };
 
-      // console.log("📤 Creating project with data:", apiData);
+      console.log("📤 Creating project with data:", apiData);
 
       const response = await http.post("/projects/projects", apiData);
-      // console.log("✅ Project created successfully:", response.data);
+      console.log("✅ Project created successfully:", response.data);
 
       const apiResponse = response.data;
 
       const newProject = {
-        id:
-          apiResponse.data?.toString() ||
-          apiResponse.id ||
-          `temp-${Date.now()}`,
+        id: apiResponse.data?.toString() || apiResponse.id || `temp-${Date.now()}`,
         name: projectData.Title,
         Title: projectData.Title,
+        project_code: projectData.project_code, // <-- اضافه شد
         Abbreviation: projectData.Abbreviation,
         SubProject: projectData.SubProject,
         Material_Code: projectData.Material_Code,
         Remark: projectData.Remark,
-        Status: projectData.Status || "active", // <-- اضافه شد
+        Status: projectData.Status || "active",
         actualId: apiResponse.data || apiResponse.id,
         isTemp: false,
         isNew: true,
@@ -76,12 +73,11 @@ class ProjectService {
 
         if (status === 400 || status === 409) {
           if (data.detail) {
-            if (
-              data.detail.includes("already exists") ||
-              data.detail.includes("تکراری")
-            ) {
+            if (data.detail.includes("already exists") || data.detail.includes("تکراری")) {
               if (data.detail.includes("Title")) {
                 errorMessage = `نام پروژه "${projectData.Title}" تکراری است.`;
+              } else if (data.detail.includes("project_code")) {
+                errorMessage = `کد پروژه "${projectData.project_code}" تکراری است.`;
               } else {
                 errorMessage = data.detail;
               }
@@ -110,27 +106,29 @@ class ProjectService {
     try {
       const apiData = {
         Title: projectData.Title,
+        project_code: projectData.project_code || null, // <-- اضافه شد
         Abbreviation: projectData.Abbreviation || null,
         SubProject: projectData.SubProject || null,
         Material_Code: projectData.Material_Code || null,
         Remark: projectData.Remark || null,
-        Status: projectData.Status || "active", // <-- اضافه شد
+        Status: projectData.Status || "active",
       };
 
-      // console.log(`📤 Updating project ${id} with data:`, apiData);
+      console.log(`📤 Updating project ${id} with data:`, apiData);
 
       const response = await http.put(`/projects/projects/${id}`, apiData);
-      // console.log("✅ Project updated successfully:", response.data);
+      console.log("✅ Project updated successfully:", response.data);
 
       const updatedProject = {
         id: id,
         name: projectData.Title,
         Title: projectData.Title,
+        project_code: projectData.project_code, // <-- اضافه شد
         Abbreviation: projectData.Abbreviation,
         SubProject: projectData.SubProject,
         Material_Code: projectData.Material_Code,
         Remark: projectData.Remark,
-        Status: projectData.Status || "active", // <-- اضافه شد
+        Status: projectData.Status || "active",
         actualId: id,
         isTemp: false,
         isNew: false,
@@ -149,12 +147,11 @@ class ProjectService {
           if (data.detail) {
             if (data.detail.includes("not found")) {
               errorMessage = `پروژه با شناسه ${id} یافت نشد.`;
-            } else if (
-              data.detail.includes("already exists") ||
-              data.detail.includes("تکراری")
-            ) {
+            } else if (data.detail.includes("already exists") || data.detail.includes("تکراری")) {
               if (data.detail.includes("Title")) {
                 errorMessage = `نام پروژه "${projectData.Title}" تکراری است.`;
+              } else if (data.detail.includes("project_code")) {
+                errorMessage = `کد پروژه "${projectData.project_code}" تکراری است.`;
               } else {
                 errorMessage = data.detail;
               }
@@ -181,9 +178,7 @@ class ProjectService {
   // حذف پروژه
   async deleteProject(id) {
     try {
-      // console.log(`🗑️ Deleting project with ID: ${id}`);
       const response = await http.delete(`/projects/projects/${id}`);
-      // console.log("✅ Project deleted successfully:", response.data);
       return response.data;
     } catch (error) {
       console.error(`❌ Error deleting project ${id}:`, error);
@@ -240,11 +235,12 @@ class ProjectService {
             id: id.toString(),
             name: project.Title || project.name || "بدون نام",
             Title: project.Title || project.name || "بدون نام",
+            project_code: project.project_code || "", // <-- اضافه شد
             Abbreviation: project.Abbreviation || "",
             SubProject: project.SubProject || "",
             Material_Code: project.Material_Code || "",
             Remark: project.Remark || "",
-            Status: project.Status || "active", // <-- اضافه شد
+            Status: project.Status || "active",
             actualId: id.toString(),
             isTemp: false,
             isNew: false,
@@ -255,11 +251,12 @@ class ProjectService {
           id: id.toString(),
           name: project || "بدون نام",
           Title: project || "بدون نام",
+          project_code: "", // <-- اضافه شد
           Abbreviation: "",
           SubProject: "",
           Material_Code: "",
           Remark: "",
-          Status: "active", // <-- اضافه شد
+          Status: "active",
           actualId: id.toString(),
           isTemp: false,
           isNew: false,

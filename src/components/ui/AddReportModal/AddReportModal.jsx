@@ -1,5 +1,3 @@
-// src/components/ui/AddReportModal/AddReportModal.jsx
-
 import React, { useState, useEffect, useRef, useMemo } from "react"; 
 import {
   FaTimes,
@@ -41,6 +39,8 @@ import {
 } from "../../../hooks/useCreateReport";
 import DeleteConfirmationPopover from "./DeleteConfirmationPopover";
 import reportService from "../../../services/reportService";
+// import TableSearchableSelect from "../TableSearchableSelect";
+import TableSearchableSelect from "../TableSearchableSelect";
 
 // پاپ‌آپ تأیید مینیمال
 const ConfirmationPopover = ({
@@ -74,13 +74,8 @@ const ConfirmationPopover = ({
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black bg-opacity-30"
-        onClick={onClose}
-      />
-      <div
-        className={`relative ${styles.bgColor} ${styles.borderColor} border rounded-lg shadow-xl max-w-sm w-full`}
-      >
+      <div className="absolute inset-0 bg-black bg-opacity-30" onClick={onClose} />
+      <div className={`relative ${styles.bgColor} ${styles.borderColor} border rounded-lg shadow-xl max-w-sm w-full`}>
         <div className="p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">{styles.icon}</div>
@@ -90,20 +85,11 @@ const ConfirmationPopover = ({
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
-            <button
-              onClick={onClose}
-              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition duration-200 flex items-center gap-1"
-            >
+            <button onClick={onClose} className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition duration-200 flex items-center gap-1">
               <FaBan className="text-xs" />
               {cancelText}
             </button>
-            <button
-              onClick={() => {
-                onConfirm();
-                onClose();
-              }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition duration-200 flex items-center gap-1 ${styles.confirmBtn}`}
-            >
+            <button onClick={() => { onConfirm(); onClose(); }} className={`px-3 py-1.5 text-xs font-medium rounded-md transition duration-200 flex items-center gap-1 ${styles.confirmBtn}`}>
               <FaCheck className="text-xs" />
               {confirmText}
             </button>
@@ -119,49 +105,32 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     data: reportInfo,
     isLoading: isReportLoading,
     error,
-  } = useReportInfo(
-    rfiData?.RFI_Numbering,
-    rfiData?.Report_No
-  );
+  } = useReportInfo(rfiData?.RFI_Numbering, rfiData?.Report_No);
   const { mutate: updateReport, isLoading: isUpdating } = useUpdateReport();
   const { mutate: createReport, isLoading: isCreating } = useCreateNewReport();
   const { data: statusesData, isLoading: statusesLoading } = useReportStatuses();
   const { mutate: deleteReport, isLoading: isDeleting } = useDeleteReport();
   const { user } = useUser();
 
-  // ========== اضافه کردن هوک useVendors ==========
-  const {
-    data: vendors,
-    isLoading: vendorsLoading,
-    error: vendorsError
-  } = useVendors(false); // false برای وندورهای داخلی
+  const { data: vendors, isLoading: vendorsLoading } = useVendors(false);
 
-  // ========== ساخت vendorOptions ==========
   const vendorOptions = useMemo(() => {
-    return vendors?.map((vendor) => ({
-      label: vendor.name,
-      value: vendor.name,
-    })) || [];
+    return vendors?.map((vendor) => ({ value: vendor.name, label: vendor.name })) || [];
   }, [vendors]);
 
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedReportForDelete, setSelectedReportForDelete] = useState(null);
-  
   const [reportRows, setReportRows] = useState([]);
   const [newlyAddedRows, setNewlyAddedRows] = useState([]);
   const [rowsToUpdate, setRowsToUpdate] = useState([]);
   const [hasRowAddition, setHasRowAddition] = useState(false);
-  
   const initialDataRef = useRef(null);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const statusOptions = useMemo(() => {
-    return transformReportStatuses(statusesData);
-  }, [statusesData]);
+  const statusOptions = useMemo(() => transformReportStatuses(statusesData), [statusesData]);
 
-  // ========== تابع جدید اعمال منطق Rev/Multipart روی approvedDays (با ذخیره مقدار اصلی) ==========
   const applyRevTypeLogicWithDays = (rowId, newRevValue, currentRows) => {
     const currentIndex = currentRows.findIndex(row => row.id === rowId);
     if (currentIndex === -1) return currentRows;
@@ -169,10 +138,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     const updatedRows = [...currentRows];
     const currentRow = { ...updatedRows[currentIndex] };
     
-    // پیدا کردن آخرین سطر قبلی (غیر از سطر جاری)
     let previousRow = null;
     let previousIndex = -1;
-    
     for (let i = currentIndex - 1; i >= 0; i--) {
       const row = updatedRows[i];
       previousRow = row;
@@ -180,183 +147,106 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       break;
     }
     
-    // اگر سطر قبلی پیدا نشد، فقط مقدار نوع گزارش را تغییر بده
     if (!previousRow) {
       currentRow.revNumber = newRevValue;
       updatedRows[currentIndex] = currentRow;
       return updatedRows;
     }
     
-    // مقدار اصلی سطر قبلی را محاسبه کن
     let originalApprovedDays = previousRow.originalApprovedDays;
     if (originalApprovedDays === undefined) {
       originalApprovedDays = previousRow.approvedDays;
     }
     
     const previousApprovedDaysValue = originalApprovedDays !== undefined && originalApprovedDays !== ""
-      ? parseInt(originalApprovedDays) || 0
-      : 0;
+      ? parseInt(originalApprovedDays) || 0 : 0;
     
     if (newRevValue === 'multipart') {
-      // حالت Multipart:
-      // - سطر قبلی: مقدار اصلی خود را حفظ می‌کند (تغییر نمی‌کند)
-      // - سطر جدید: مقدار سطر قبلی را می‌گیرد
-      
       const previousRowUpdated = { ...previousRow };
-      // اگر قبلاً originalApprovedDays ذخیره شده بود، approvedDays را به آن برگردان
       if (previousRowUpdated.originalApprovedDays !== undefined) {
         previousRowUpdated.approvedDays = previousRowUpdated.originalApprovedDays;
       }
       previousRowUpdated.needsUpdate = true;
       updatedRows[previousIndex] = previousRowUpdated;
-      
       currentRow.approvedDays = previousApprovedDaysValue;
       currentRow.revNumber = newRevValue;
       updatedRows[currentIndex] = currentRow;
-      
     } else if (newRevValue === 'rev') {
-      // حالت Rev:
-      // - سطر قبلی: مقدارش صفر می‌شود (و مقدار اصلی ذخیره می‌شود)
-      // - سطر جدید: مقدار اصلی سطر قبلی را می‌گیرد
-      
       const previousRowUpdated = { ...previousRow };
-      
-      // ذخیره مقدار اصلی اگر قبلاً ذخیره نشده باشد
       if (previousRowUpdated.originalApprovedDays === undefined && previousRowUpdated.approvedDays !== undefined) {
         previousRowUpdated.originalApprovedDays = previousRowUpdated.approvedDays;
       }
-      
-      // مقدار سطر قبلی را صفر کن
       previousRowUpdated.approvedDays = 0;
       previousRowUpdated.needsUpdate = true;
       updatedRows[previousIndex] = previousRowUpdated;
-      
       currentRow.approvedDays = previousApprovedDaysValue;
       currentRow.revNumber = newRevValue;
       updatedRows[currentIndex] = currentRow;
-      
       if (!previousRow.isNew && !rowsToUpdate.includes(previousRow.id)) {
         setRowsToUpdate(prev => [...prev, previousRow.id]);
       }
     } else {
-      // اگر نوع گزارش خالی شد (یا مقدار دیگری)
-      // سطر قبلی را به مقدار اصلی برگردان
       if (previousRow.originalApprovedDays !== undefined) {
         const previousRowUpdated = { ...previousRow };
         previousRowUpdated.approvedDays = previousRowUpdated.originalApprovedDays;
         previousRowUpdated.needsUpdate = true;
         updatedRows[previousIndex] = previousRowUpdated;
       }
-      
       currentRow.revNumber = newRevValue;
       updatedRows[currentIndex] = currentRow;
     }
-    
     return updatedRows;
   };
 
   const convertToPersianDate = (dateString) => {
     if (!dateString) {
       const today = new Date();
-      return new DateObject({
-        date: today,
-        calendar: persian,
-        locale: persian_fa,
-      });
+      return new DateObject({ date: today, calendar: persian, locale: persian_fa });
     }
-
     try {
-      if (dateString instanceof DateObject) {
-        return dateString;
-      }
-
+      if (dateString instanceof DateObject) return dateString;
       if (typeof dateString === "string") {
         if (dateString.includes("/")) {
           const [year, month, day] = dateString.split("/").map(Number);
-          return new DateObject({
-            year: year,
-            month: month,
-            day: day,
-            calendar: persian,
-            locale: persian_fa,
-          });
+          return new DateObject({ year, month, day, calendar: persian, locale: persian_fa });
         } else if (dateString.includes("-")) {
           const date = new Date(dateString);
-          return new DateObject({
-            date: date,
-            calendar: persian,
-            locale: persian_fa,
-          });
+          return new DateObject({ date, calendar: persian, locale: persian_fa });
         }
       }
-
       if (dateString instanceof Date) {
-        return new DateObject({
-          date: dateString,
-          calendar: persian,
-          locale: persian_fa,
-        });
+        return new DateObject({ date: dateString, calendar: persian, locale: persian_fa });
       }
-
       const date = new Date(dateString);
-      return new DateObject({
-        date: date,
-        calendar: persian,
-        locale: persian_fa,
-      });
+      return new DateObject({ date, calendar: persian, locale: persian_fa });
     } catch (err) {
-      console.error("Error converting date:", err, "dateString:", dateString);
       const today = new Date();
-      return new DateObject({
-        date: today,
-        calendar: persian,
-        locale: persian_fa,
-      });
+      return new DateObject({ date: today, calendar: persian, locale: persian_fa });
     }
   };
 
   const formatDateForAPI = (dateObj) => {
     if (!dateObj) return "";
-
     try {
-      if (dateObj instanceof DateObject) {
-        return dateObj.format("YYYY/MM/DD");
-      }
-
-      if (typeof dateObj === "string") {
-        return dateObj;
-      }
-
+      if (dateObj instanceof DateObject) return dateObj.format("YYYY/MM/DD");
+      if (typeof dateObj === "string") return dateObj;
       if (dateObj instanceof Date) {
-        const date = new DateObject({
-          date: dateObj,
-          calendar: persian,
-          locale: persian_fa,
-        });
+        const date = new DateObject({ date: dateObj, calendar: persian, locale: persian_fa });
         return date.format("YYYY/MM/DD");
       }
-
       return "";
     } catch (err) {
-      console.error("Error formatting date:", err);
       return "";
     }
   };
 
   const convertToString = (value) => {
     if (value == null) return "";
-
-    if (value instanceof DateObject) {
-      return value.format("YYYY/MM/DD");
-    }
-
+    if (value instanceof DateObject) return value.format("YYYY/MM/DD");
     if (typeof value === "string" && value.includes("/")) {
       const parts = value.split("/");
-      if (parts.length === 3) {
-        return parts.map((p) => p.padStart(2, "0")).join("/");
-      }
+      if (parts.length === 3) return parts.map((p) => p.padStart(2, "0")).join("/");
     }
-
     return String(value).trim();
   };
 
@@ -368,20 +258,15 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     return str1 === str2;
   };
 
-  // ========== تابع جدید برای دریافت شماره گزارش پیشنهادی از بک‌اند ==========
   const fetchSuggestedReportNumber = async (rowId, revNoValue) => {
     if (!rfiData?.RFI_Numbering) {
-      console.error('❌ rfiNumbering موجود نیست');
       toast.error('❌ شماره RFI نامشخص است');
       return;
     }
-    
-    // پیدا کردن سطر قبلی برای گرفتن reportNo
     const currentRows = [...reportRows];
     const rowIndex = currentRows.findIndex(r => r.id === rowId);
     if (rowIndex === -1) return;
     
-    // پیدا کردن آخرین سطر غیر جدید (یا سطر قبلی) برای گرفتن reportNo پایه
     let baseReportNo = '';
     for (let i = rowIndex - 1; i >= 0; i--) {
       const prevRow = currentRows[i];
@@ -390,76 +275,29 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
         break;
       }
     }
-    
-    // اگر سطر قبلی پیدا نشد، از اولین سطر استفاده کن
-    if (!baseReportNo && currentRows.length > 0) {
-      baseReportNo = currentRows[0].reportNumber;
-    }
-    
+    if (!baseReportNo && currentRows.length > 0) baseReportNo = currentRows[0].reportNumber;
     if (!baseReportNo || baseReportNo.trim() === '') {
-      console.error('⚠️ reportNo پایه پیدا نشد');
       toast.error('❌ ابتدا یک شماره گزارش معتبر در سطرهای قبلی وجود داشته باشد');
       return;
     }
     
-    // نمایش لودینگ در همان سطر
-    setReportRows(prevRows => 
-      prevRows.map(row => 
-        row.id === rowId ? { ...row, _loading: true } : row
-      )
-    );
-    
+    setReportRows(prevRows => prevRows.map(row => row.id === rowId ? { ...row, _loading: true } : row));
     try {
-      const result = await reportService.getSuggestedReportNo(
-        rfiData.RFI_Numbering,
-        baseReportNo,
-        revNoValue
-      );
-      
-      // آپدیت سطر با شماره جدید
-      setReportRows(prevRows => 
-        prevRows.map(row => 
-          row.id === rowId 
-            ? { 
-                ...row, 
-                reportNumber: result, 
-                _loading: false,
-                revNumber: revNoValue
-              } 
-            : row
-        )
-      );
-      
-      toast.success(`شماره گزارش جدید دریافت شد`, {
-        duration: 3000,
-        position: 'top-center',
-        icon: '✅'
-      });
-      
+      const result = await reportService.getSuggestedReportNo(rfiData.RFI_Numbering, baseReportNo, revNoValue);
+      setReportRows(prevRows => prevRows.map(row => row.id === rowId ? { ...row, reportNumber: result, _loading: false, revNumber: revNoValue } : row));
+      toast.success(`شماره گزارش جدید دریافت شد`);
     } catch (error) {
-      console.error('❌ خطا در دریافت شماره گزارش:', error);
-      setReportRows(prevRows => 
-        prevRows.map(row => 
-          row.id === rowId ? { ...row, _loading: false, revNumber: '' } : row
-        )
-      );
-      toast.error('❌ خطا در دریافت شماره گزارش جدید', {
-        duration: 3000,
-        position: 'top-center'
-      });
+      setReportRows(prevRows => prevRows.map(row => row.id === rowId ? { ...row, _loading: false, revNumber: '' } : row));
+      toast.error('❌ خطا در دریافت شماره گزارش جدید');
     }
   };
 
-  // ========== تابع افزودن سطر جدید (بدون درخواست به بک‌اند) ==========
   const handleAddNewRow = () => {
     if (!rfiData?.RFI_Numbering) {
-      console.error('❌ rfiData یا RFI_Numbering موجود نیست');
       toast.error('❌ شماره RFI نامشخص است');
       return;
     }
-    
     const newId = reportRows.length > 0 ? Math.max(...reportRows.map(r => r.id)) + 1 : 1;
-    
     const newRow = {
       id: newId,
       reportNumber: '',
@@ -481,202 +319,100 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       _loading: false,
       originalApprovedDays: undefined
     };
-    
     setReportRows([...reportRows, newRow]);
     setHasRowAddition(true);
-    
-    toast.info('📝 سطر جدید اضافه شد. لطفاً نوع گزارش را انتخاب کنید', {
-      duration: 3000,
-      position: 'top-center'
-    });
+    toast.info('📝 سطر جدید اضافه شد. لطفاً نوع گزارش را انتخاب کنید');
   };
 
-  // ========== تابع کپی سطر (بدون درخواست به بک‌اند) ==========
   const handleCopyRow = (id) => {
     const rowToCopy = reportRows.find(row => row.id === id);
     if (!rowToCopy) {
       toast.error('❌ ردیف مورد نظر یافت نشد');
       return;
     }
-    
     if (!rfiData?.RFI_Numbering) {
       toast.error('❌ شماره RFI نامشخص است');
       return;
     }
-    
     const newId = Math.max(...reportRows.map(r => r.id), 0) + 1;
-    
-    const newRow = {
-      ...rowToCopy,
-      id: newId,
-      reportNumber: '',
-      revNumber: '',
-      isNew: true,
-      needsUpdate: false,
-      _loading: false,
-      _saved: false,
-      originalApprovedDays: undefined // ریست کردن مقدار اصلی برای سطر جدید
-    };
-    
+    const newRow = { ...rowToCopy, id: newId, reportNumber: '', revNumber: '', isNew: true, needsUpdate: false, _loading: false, _saved: false, originalApprovedDays: undefined };
     setReportRows([...reportRows, newRow]);
     setHasRowAddition(true);
-    
-    toast.info('📝 سطر کپی شد. لطفاً نوع گزارش را انتخاب کنید', {
-      duration: 3000,
-      position: 'top-center'
-    });
+    toast.info('📝 سطر کپی شد. لطفاً نوع گزارش را انتخاب کنید');
   };
 
   const handleDeleteRow = (id) => {
     const rowToDelete = reportRows.find((row) => row.id === id);
     const hasExistingReport = reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0;
-
     if (hasExistingReport) {
-      setSelectedReportForDelete({
-        reportNumber: reportInfo.Report_No,
-        rfiNumbering: reportInfo.RFI_Numbering || rfiData?.RFI_Numbering,
-        rowId: id,
-      });
+      setSelectedReportForDelete({ reportNumber: reportInfo.Report_No, rfiNumbering: reportInfo.RFI_Numbering || rfiData?.RFI_Numbering, rowId: id });
       setShowDeleteConfirm(true);
     } else {
       setReportRows(reportRows.filter((row) => row.id !== id));
-      if (reportRows.length === 1) {
-        setTimeout(() => {
-          onClose();
-        }, 100);
-      }
+      if (reportRows.length === 1) setTimeout(() => onClose(), 100);
     }
   };
 
   const handleConfirmDelete = () => {
     if (!selectedReportForDelete) return;
-
     deleteReport(selectedReportForDelete.reportNumber, {
-      onSuccess: () => {
-        setTimeout(() => {
-          onClose();
-        }, 300);
-        setSelectedReportForDelete(null);
-        setShowDeleteConfirm(false);
-      },
-      onError: (error) => {
-        console.error("❌ Failed to delete report:", error);
-        setSelectedReportForDelete(null);
-        setShowDeleteConfirm(false);
-      },
+      onSuccess: () => { setTimeout(() => onClose(), 300); setSelectedReportForDelete(null); setShowDeleteConfirm(false); },
+      onError: (error) => { setSelectedReportForDelete(null); setShowDeleteConfirm(false); }
     });
   };
 
-  // ========== تابع اصلاح شده handleRowChange با منطق جدید برای approvedDays ==========
   const handleRowChange = (id, field, value) => {
     if (field === "revNumber") {
-      // ابتدا مقدار revNumber را آپدیت کن
-      setReportRows(prevRows => 
-        prevRows.map(row => 
-          row.id === id ? { ...row, revNumber: value } : row
-        )
-      );
-      
-      // پیدا کردن سطر جاری
+      setReportRows(prevRows => prevRows.map(row => row.id === id ? { ...row, revNumber: value } : row));
       const targetRow = reportRows.find(row => row.id === id);
-      
       if (targetRow && targetRow.isNew) {
-        // برای سطرهای جدید: 
-        // 1. اعمال منطق Rev/Multipart روی approvedDays
-        // 2. درخواست شماره گزارش به بک‌اند
-        
         if (value && value !== '') {
-          // اعمال منطق روی approvedDays
           setReportRows(prevRows => applyRevTypeLogicWithDays(id, value, prevRows));
-          
-          // اگر در حال لودینگ نیست، درخواست شماره گزارش بفرست
-          if (!targetRow._loading) {
-            fetchSuggestedReportNumber(id, value);
-          }
+          if (!targetRow._loading) fetchSuggestedReportNumber(id, value);
         }
       } else if (targetRow && !targetRow.isNew) {
-        // برای سطرهای موجود، فقط منطق rev type را اعمال کن (بدون درخواست به بک‌اند)
         setReportRows(prevRows => applyRevTypeLogicWithDays(id, value, prevRows));
       }
     } else {
-      setReportRows(
-        reportRows.map((row) => {
-          if (row.id === id) {
-            if (field === "status") {
-              const selectedOption = statusOptions.find(
-                (opt) => opt.value === value
-              );
-              const englishStatus = selectedOption?.textValue || value;
-
-              return {
-                ...row,
-                [field]: value,
-                statusEnglish: englishStatus,
-                ...(englishStatus !== "Objection" && { corrections: "" }),
-              };
-            }
-
-            if (field === "approvedDays") {
-              if (value === "" || value === null || value === undefined) {
-                return { ...row, [field]: "" };
-              }
-              const numValue = parseInt(value, 10);
-              if (!isNaN(numValue) && numValue >= 0) {
-                return { ...row, [field]: numValue };
-              }
-              return row;
-            }
-            return { ...row, [field]: value };
+      setReportRows(reportRows.map((row) => {
+        if (row.id === id) {
+          if (field === "status") {
+            const selectedOption = statusOptions.find((opt) => opt.value === value);
+            const englishStatus = selectedOption?.textValue || value;
+            return { ...row, [field]: value, statusEnglish: englishStatus, ...(englishStatus !== "Objection" && { corrections: "" }) };
           }
-          return row;
-        })
-      );
+          if (field === "approvedDays") {
+            if (value === "" || value === null || value === undefined) return { ...row, [field]: "" };
+            const numValue = parseInt(value, 10);
+            if (!isNaN(numValue) && numValue >= 0) return { ...row, [field]: numValue };
+            return row;
+          }
+          return { ...row, [field]: value };
+        }
+        return row;
+      }));
     }
   };
 
   const checkForChanges = () => {
     if (!initialDataRef.current) return false;
-  
     const initial = initialDataRef.current;
-    const current = {
-      reportRows: reportRows.map((row) => ({
-        ...row,
-        receivedDate: row.receivedDate?.format?.() || row.receivedDate,
-      })),
-    };
-  
-    if (initial.reportRows.length !== current.reportRows.length) {
-      return true;
-    }
-  
+    const current = { reportRows: reportRows.map((row) => ({ ...row, receivedDate: row.receivedDate?.format?.() || row.receivedDate })) };
+    if (initial.reportRows.length !== current.reportRows.length) return true;
     for (let i = 0; i < initial.reportRows.length; i++) {
       const initialRow = initial.reportRows[i];
       const currentRow = current.reportRows[i];
-  
-      const fields = [
-        "reportNumber", "revNumber", "status", "corrections", "receivedDate",
-        "approvedDays", "unitNumber", "vendorName", "irn", "srn", "firstPrice", "rfiNumbering",
-      ];
-  
+      const fields = ["reportNumber", "revNumber", "status", "corrections", "receivedDate", "approvedDays", "unitNumber", "vendorName", "irn", "srn", "firstPrice", "rfiNumbering"];
       for (const field of fields) {
-        if (!areValuesEqual(initialRow[field], currentRow[field])) {
-          return true;
-        }
+        if (!areValuesEqual(initialRow[field], currentRow[field])) return true;
       }
     }
-  
-    if (hasRowAddition) {
-      return true;
-    }
-  
+    if (hasRowAddition) return true;
     return false;
   };
 
   useEffect(() => {
-    if (initialDataRef.current) {
-      const changed = checkForChanges();
-      setHasChanges(changed);
-    }
+    if (initialDataRef.current) setHasChanges(checkForChanges());
   }, [reportRows]);
 
   const prepareReportData = (row) => {
@@ -685,9 +421,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     const todayIsoDate = today.toISOString().split("T")[0];
     const todayPersian = convertToPersianDate(today);
     const todayShamsi = todayPersian.format("YYYY/MM/DD");
-
     const englishStatus = row.statusEnglish || getEnglishStatus(statusesData, row.status) || "approved";
-
     return {
       reportNumber: row.reportNumber.trim(),
       revNumber: row.revNumber || "",
@@ -708,187 +442,84 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   };
 
   const handleSuccess = () => {
-    initialDataRef.current = {
-      reportRows: reportRows.map((row) => ({
-        ...row,
-        receivedDate: row.receivedDate?.format?.() || row.receivedDate,
-        approvedDays: typeof row.approvedDays === "number" ? row.approvedDays.toString() : row.approvedDays,
-        isNew: false,
-        needsUpdate: false,
-        originalApprovedDays: undefined // پاک کردن مقدار اصلی بعد از ذخیره موفق
-      })),
-    };
-    
+    initialDataRef.current = { reportRows: reportRows.map((row) => ({ ...row, receivedDate: row.receivedDate?.format?.() || row.receivedDate, approvedDays: typeof row.approvedDays === "number" ? row.approvedDays.toString() : row.approvedDays, isNew: false, needsUpdate: false, originalApprovedDays: undefined })) };
     setHasRowAddition(false);
     setNewlyAddedRows([]);
     setRowsToUpdate([]);
     setHasChanges(false);
-    
-    setTimeout(() => {
-      onClose();
-    }, 750);
+    setTimeout(() => onClose(), 750);
   };
 
   const validateForm = () => {
-    if (reportRows.length === 0) {
-      toast.error("❌ حداقل یک ردیف گزارش باید وجود داشته باشد");
-      return false;
-    }
-
+    if (reportRows.length === 0) { toast.error("❌ حداقل یک ردیف گزارش باید وجود داشته باشد"); return false; }
     for (const row of reportRows) {
-      if (!row.reportNumber || !row.reportNumber.trim()) {
-        toast.error("❌ شماره گزارش الزامی است");
-        return false;
-      }
-
-      if (!row.status) {
-        handleRowChange(row.id, "status", "5");
-      }
-
-      if (row.statusEnglish === "Objection" && (!row.corrections || !row.corrections.trim())) {
-        toast.error('❌ برای وضعیت "نیاز به اصلاحات"، شرح نظرات الزامی است');
-        return false;
-      }
-
+      if (!row.reportNumber || !row.reportNumber.trim()) { toast.error("❌ شماره گزارش الزامی است"); return false; }
+      if (!row.status) handleRowChange(row.id, "status", "5");
+      if (row.statusEnglish === "Objection" && (!row.corrections || !row.corrections.trim())) { toast.error('❌ برای وضعیت "نیاز به اصلاحات"، شرح نظرات الزامی است'); return false; }
       if (row.approvedDays !== "" && row.approvedDays != null) {
         const daysValue = typeof row.approvedDays === "string" ? row.approvedDays.trim() : row.approvedDays.toString();
         if (daysValue !== "") {
           const days = parseInt(daysValue, 10);
-          if (isNaN(days) || days < 0) {
-            toast.error("❌ تعداد روز تأیید باید عدد مثبت باشد");
-            return false;
-          }
+          if (isNaN(days) || days < 0) { toast.error("❌ تعداد روز تأیید باید عدد مثبت باشد"); return false; }
         }
       }
     }
-
     return true;
   };
 
   const handleSubmitInternal = () => {
     if (!validateForm()) return;
-
     const validRows = reportRows.filter(row => row.reportNumber && row.reportNumber.trim() !== "");
-
-    if (validRows.length === 0) {
-      toast.error("❌ هیچ گزارش معتبری برای ذخیره وجود ندارد");
-      return;
-    }
-
+    if (validRows.length === 0) { toast.error("❌ هیچ گزارش معتبری برای ذخیره وجود ندارد"); return; }
     if (hasRowAddition && validRows.length > 1) {
       const lastIndex = validRows.length - 1;
       const secondLastRow = validRows[lastIndex - 1];
       const lastRow = validRows[lastIndex];
-      
       if (secondLastRow) {
         const secondLastRowData = prepareReportData(secondLastRow);
-        
-        updateReport(
-          {
-            reportData: { ...secondLastRowData, approvedDays: secondLastRow.approvedDays || 0 },
-            rfiNumbering: rfiData?.RFI_Numbering || secondLastRow.rfiNumbering,
-          },
-          {
-            onSuccess: () => {
-              const lastRowData = prepareReportData(lastRow);
-              createReport(
-                {
-                  reportData: { ...lastRowData, approvedDays: lastRow.approvedDays || "" },
-                  rfiNumbering: rfiData?.RFI_Numbering || lastRow.rfiNumbering,
-                },
-                {
-                  onSuccess: () => handleSuccess(),
-                  onError: (createError) => console.error('❌ Create failed:', createError),
-                }
-              );
-            },
-            onError: (updateError) => console.error('❌ Update failed:', updateError),
-          }
-        );
+        updateReport({ reportData: { ...secondLastRowData, approvedDays: secondLastRow.approvedDays || 0 }, rfiNumbering: rfiData?.RFI_Numbering || secondLastRow.rfiNumbering }, {
+          onSuccess: () => {
+            const lastRowData = prepareReportData(lastRow);
+            createReport({ reportData: { ...lastRowData, approvedDays: lastRow.approvedDays || "" }, rfiNumbering: rfiData?.RFI_Numbering || lastRow.rfiNumbering }, { onSuccess: () => handleSuccess(), onError: (createError) => console.error('❌ Create failed:', createError) });
+          }, onError: (updateError) => console.error('❌ Update failed:', updateError)
+        });
       }
     } else {
       const rowToSubmit = validRows[0];
       const reportData = prepareReportData(rowToSubmit);
-      
       const hasValidExistingReport = reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0;
-
       if (hasValidExistingReport) {
-        updateReport(
-          {
-            reportData: reportData,
-            rfiNumbering: rfiData?.RFI_Numbering || rowToSubmit.rfiNumbering,
-          },
-          {
-            onSuccess: () => handleSuccess(),
-            onError: (error) => console.error("❌ Update failed:", error),
-          }
-        );
+        updateReport({ reportData: reportData, rfiNumbering: rfiData?.RFI_Numbering || rowToSubmit.rfiNumbering }, { onSuccess: () => handleSuccess(), onError: (error) => console.error("❌ Update failed:", error) });
       } else {
-        createReport(
-          {
-            reportData: reportData,
-            rfiNumbering: rfiData?.RFI_Numbering || rowToSubmit.rfiNumbering,
-          },
-          {
-            onSuccess: () => handleSuccess(),
-            onError: (error) => console.error("❌ Create failed:", error),
-          }
-        );
+        createReport({ reportData: reportData, rfiNumbering: rfiData?.RFI_Numbering || rowToSubmit.rfiNumbering }, { onSuccess: () => handleSuccess(), onError: (error) => console.error("❌ Create failed:", error) });
       }
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (hasChanges) {
-      setShowSaveConfirm(true);
-    } else {
-      handleSubmitInternal();
-    }
-  };
-
-  const handleCancelInternal = () => {
-    onClose();
-  };
-
-  const handleCancel = () => {
-    if (hasChanges) {
-      setShowCancelConfirm(true);
-    } else {
-      onClose();
-    }
-  };
+  const handleSubmit = (e) => { e.preventDefault(); if (hasChanges) setShowSaveConfirm(true); else handleSubmitInternal(); };
+  const handleCancelInternal = () => onClose();
+  const handleCancel = () => { if (hasChanges) setShowCancelConfirm(true); else onClose(); };
 
   useEffect(() => {
     if (isOpen) {
       const reportSource = reportInfo || rfiData;
       const hasValidReport = reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0;
       const todayPersianDate = convertToPersianDate(new Date());
-
       if (hasValidReport) {
         const englishStatus = reportSource.Doc_Status || "Acc";
         let initialStatusValue = "Acc";
-
         if (statusesData && Object.values(statusesData).length > 0) {
           const exactMatch = Object.values(statusesData).find(status => status === englishStatus);
-          if (exactMatch) {
-            initialStatusValue = exactMatch;
-          } else {
-            const caseInsensitiveMatch = Object.values(statusesData).find(
-              status => status.toLowerCase() === englishStatus.toLowerCase()
-            );
-            if (caseInsensitiveMatch) {
-              initialStatusValue = caseInsensitiveMatch;
-            } else {
-              const partialMatch = Object.values(statusesData).find(
-                status => status.toLowerCase().includes(englishStatus.toLowerCase()) ||
-                          englishStatus.toLowerCase().includes(status.toLowerCase())
-              );
+          if (exactMatch) initialStatusValue = exactMatch;
+          else {
+            const caseInsensitiveMatch = Object.values(statusesData).find(status => status.toLowerCase() === englishStatus.toLowerCase());
+            if (caseInsensitiveMatch) initialStatusValue = caseInsensitiveMatch;
+            else {
+              const partialMatch = Object.values(statusesData).find(status => status.toLowerCase().includes(englishStatus.toLowerCase()) || englishStatus.toLowerCase().includes(status.toLowerCase()));
               initialStatusValue = partialMatch || Object.values(statusesData)[0];
             }
           }
         }
-
         const initialRow = {
           id: 1,
           reportNumber: reportSource.Report_No || "",
@@ -907,31 +538,10 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
           issueDate: reportSource.IssueDate || new Date().toISOString().split("T")[0],
           originalApprovedDays: undefined
         };
-
         setReportRows([initialRow]);
-        initialDataRef.current = {
-          reportRows: [{
-            reportNumber: initialRow.reportNumber || "",
-            revNumber: initialRow.revNumber || "",
-            status: initialRow.status || "Acc",
-            statusEnglish: initialRow.statusEnglish || "Acc",
-            corrections: initialRow.corrections || "",
-            receivedDate: convertToString(initialRow.receivedDate),
-            approvedDays: convertToString(initialRow.approvedDays),
-            unitNumber: initialRow.unitNumber || "",
-            vendorName: initialRow.vendorName || "",
-            irn: initialRow.irn || "",
-            srn: initialRow.srn || "",
-            firstPrice: convertToString(initialRow.firstPrice),
-            rfiNumbering: initialRow.rfiNumbering || "",
-            originalApprovedDays: undefined
-          }],
-        };
+        initialDataRef.current = { reportRows: [{ reportNumber: initialRow.reportNumber || "", revNumber: initialRow.revNumber || "", status: initialRow.status || "Acc", statusEnglish: initialRow.statusEnglish || "Acc", corrections: initialRow.corrections || "", receivedDate: convertToString(initialRow.receivedDate), approvedDays: convertToString(initialRow.approvedDays), unitNumber: initialRow.unitNumber || "", vendorName: initialRow.vendorName || "", irn: initialRow.irn || "", srn: initialRow.srn || "", firstPrice: convertToString(initialRow.firstPrice), rfiNumbering: initialRow.rfiNumbering || "", originalApprovedDays: undefined }] };
       } else {
-        const defaultStatus = statusesData && Object.values(statusesData).length > 0
-          ? Object.values(statusesData)[0]
-          : "Acc";
-
+        const defaultStatus = statusesData && Object.values(statusesData).length > 0 ? Object.values(statusesData)[0] : "Acc";
         const newRow = {
           id: 1,
           reportNumber: rfiData?.Report_No === "************" ? "" : rfiData?.Report_No || "",
@@ -943,76 +553,44 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
           approvedDays: "",
           unitNumber: "",
           vendorName: rfiData?.VendorName || "",
-          irn: "", 
-          srn: "",
+          irn: "", srn: "",
           firstPrice: "80000000",
           rfiNumbering: rfiData?.RFI_Numbering || "",
           issueDate: new Date().toISOString().split("T")[0],
           originalApprovedDays: undefined
         };
-
         setReportRows([newRow]);
-        initialDataRef.current = {
-          reportRows: [{
-            reportNumber: newRow.reportNumber || "",
-            revNumber: newRow.revNumber || "",
-            status: newRow.status || "Acc",
-            statusEnglish: newRow.statusEnglish || "Acc",
-            corrections: newRow.corrections || "",
-            receivedDate: convertToString(newRow.receivedDate),
-            approvedDays: convertToString(newRow.approvedDays),
-            unitNumber: newRow.unitNumber || "",
-            vendorName: newRow.vendorName || "",
-            irn: newRow.irn || "",
-            srn: newRow.srn || "",
-            firstPrice: convertToString(newRow.firstPrice),
-            rfiNumbering: newRow.rfiNumbering || "",
-            originalApprovedDays: undefined
-          }],
-        };
+        initialDataRef.current = { reportRows: [{ reportNumber: newRow.reportNumber || "", revNumber: newRow.revNumber || "", status: newRow.status || "Acc", statusEnglish: newRow.statusEnglish || "Acc", corrections: newRow.corrections || "", receivedDate: convertToString(newRow.receivedDate), approvedDays: convertToString(newRow.approvedDays), unitNumber: newRow.unitNumber || "", vendorName: newRow.vendorName || "", irn: newRow.irn || "", srn: newRow.srn || "", firstPrice: convertToString(newRow.firstPrice), rfiNumbering: newRow.rfiNumbering || "", originalApprovedDays: undefined }] };
       }
-
       setHasChanges(false);
     }
   }, [isOpen, rfiData, reportInfo, nextIRN, statusesData]);
 
   if (!isOpen) return null;
-
   const isLoading = isReportLoading || isUpdating || isCreating || statusesLoading;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="sticky top-0 bg-white z-10 flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <FaFileAlt className="text-blue-500 text-xl" />
               <div>
                 <h3 className="text-lg font-bold text-gray-800">
-                  {rfiData?.Report_No === "************" || !rfiData?.Report_No
-                    ? "📝 ثبت گزارش جدید"
-                    : "✏️ ویرایش گزارش"} - شماره {rfiData?.RFI_Numbering || "نامشخص"}
+                  {rfiData?.Report_No === "************" || !rfiData?.Report_No ? "📝 ثبت گزارش جدید" : "✏️ ویرایش گزارش"} - شماره {rfiData?.RFI_Numbering || "نامشخص"}
                 </h3>
               </div>
             </div>
           </div>
-          <button
-            onClick={handleCancel}
-            className="text-gray-400 hover:text-gray-600 transition duration-200"
-            title="بستن"
-            disabled={isLoading}
-          >
+          <button onClick={handleCancel} className="text-gray-400 hover:text-gray-600 transition duration-200" title="بستن" disabled={isLoading}>
             <FaTimes className="text-lg" />
           </button>
         </div>
 
         {error && error.response?.status !== 404 && (
           <div className="m-4 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-700 text-sm flex items-center gap-2">
-              <FaExclamationTriangle />
-              خطا در دریافت اطلاعات: {error.message}
-            </p>
+            <p className="text-red-700 text-sm flex items-center gap-2"><FaExclamationTriangle /> خطا در دریافت اطلاعات: {error.message}</p>
           </div>
         )}
 
@@ -1031,14 +609,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                 <h4 className="text-base font-bold text-gray-800">لیست گزارش‌ها</h4>
                 <span className="text-xs text-gray-500 bg-blue-100 px-2 py-1 rounded">{reportRows.length} مورد</span>
               </div>
-              <button
-                type="button"
-                onClick={handleAddNewRow}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isLoading}
-              >
-                <FaPlusCircle className="text-base" />
-                افزودن گزارش
+              <button type="button" onClick={handleAddNewRow} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" disabled={isLoading}>
+                <FaPlusCircle className="text-base" /> افزودن گزارش
               </button>
             </div>
 
@@ -1058,9 +630,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                       <th className="p-3 text-right font-bold text-white text-xs" style={{ width: "8%" }}>شماره واحد</th>
                       <th className="p-3 text-right font-bold text-white text-xs" style={{ width: "8%" }}>IRN</th>
                       <th className="p-3 text-right font-bold text-white text-xs" style={{ width: "8%" }}>SRN</th>
-                      {reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0 && (
-                        <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '6%' }}>عملیات</th>
-                      )}
+                      {reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0 && <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '6%' }}>عملیات</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -1068,159 +638,58 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                       <tr key={row.id} className={`border-b border-gray-200 transition duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50`}>
                         <td className="p-3 min-w-[180px]">
                           <div className="relative">
-                            <input
-                              type="text"
-                              value={row.reportNumber}
-                              onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)}
-                              className="w-full px-3 py-2 text-gray-800 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="مثال: FAH-INS-APGT-0766"
-                              disabled={isLoading || row._loading}
-                              required
-                            />
-                            {row._loading && (
-                              <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
-                                <FaSync className="animate-spin text-blue-500 text-xs" />
-                              </div>
-                            )}
+                            <input type="text" value={row.reportNumber} onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)} className="w-full px-3 py-2 text-gray-800 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="مثال: FAH-INS-APGT-0766" disabled={isLoading || row._loading} required />
+                            {row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}
                           </div>
                         </td>
                         <td className="p-3 min-w-[90px] text-gray-800">
-                          <select
-                            value={row.revNumber || ""}
-                            onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            disabled={isLoading || row._loading}
-                          >
+                          <select value={row.revNumber || ""} onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={isLoading || row._loading}>
                             <option value="">-</option>
                             <option value="rev">Rev</option>
                             <option value="multipart">Multipart</option>
                           </select>
                         </td>
                         <td className="p-3 min-w-[130px] text-gray-800">
-                          <select
-                            value={row.status}
-                            onChange={(e) => handleRowChange(row.id, "status", e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            disabled={isLoading}
-                          >
+                          <select value={row.status} onChange={(e) => handleRowChange(row.id, "status", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={isLoading}>
                             <option value="">انتخاب وضعیت</option>
-                            {statusOptions.map((option) => (
-                              <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
+                            {statusOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
                           </select>
                         </td>
                         <td className="p-3 min-w-[350px] align-middle text-gray-800">
-                          <textarea
-                            value={row.corrections}
-                            onChange={(e) => handleRowChange(row.id, "corrections", e.target.value)}
-                            className={`w-full px-3 py-2 text-xs border-gray-300 focus:ring-blue-500 border rounded-md focus:ring-2 focus:border-transparent resize-y overflow-auto
-                              ${row.statusEnglish === "Objection" ? "border-red-300 focus:ring-red-500 bg-red-50" : "border-gray-300 focus:ring-blue-500"}`}
-                            placeholder={row.statusEnglish === "Objection" ? "شرح نظرات الزامی است" : "شرح نظرات (اختیاری)"}
-                            disabled={isLoading}
-                            required={row.statusEnglish === "Objection"}
-                            rows="2"
-                            style={{ minHeight: "38px", maxHeight: "38px", whiteSpace: "pre-wrap", wordWrap: "break-word" }}
-                          />
+                          <textarea value={row.corrections} onChange={(e) => handleRowChange(row.id, "corrections", e.target.value)} className={`w-full px-3 py-2 text-xs border-gray-300 focus:ring-blue-500 border rounded-md focus:ring-2 focus:border-transparent resize-y overflow-auto ${row.statusEnglish === "Objection" ? "border-red-300 focus:ring-red-500 bg-red-50" : "border-gray-300 focus:ring-blue-500"}`} placeholder={row.statusEnglish === "Objection" ? "شرح نظرات الزامی است" : "شرح نظرات (اختیاری)"} disabled={isLoading} required={row.statusEnglish === "Objection"} rows="2" style={{ minHeight: "38px", maxHeight: "38px", whiteSpace: "pre-wrap", wordWrap: "break-word" }} />
                         </td>
                         <td className="p-3 min-w-[120px] text-gray-800">
-                          <DatePicker
-                            value={row.receivedDate}
-                            onChange={(date) => handleRowChange(row.id, "receivedDate", date)}
-                            calendar={persian}
-                            locale={persian_fa}
-                            format="YYYY/MM/DD"
-                            inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            disabled={isLoading}
-                          />
+                          <DatePicker value={row.receivedDate} onChange={(date) => handleRowChange(row.id, "receivedDate", date)} calendar={persian} locale={persian_fa} format="YYYY/MM/DD" inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={isLoading} />
                         </td>
-                        {/* ستون نام وندور - به صورت select از دیتابیس */}
+                        {/* <td className="p-3 min-w-[160px] text-gray-800">
+                          <TableSearchableSelect value={row.vendorName} onChange={(value) => handleRowChange(row.id, "vendorName", value)} options={vendorOptions} placeholder={vendorsLoading ? "در حال دریافت لیست وندورها..." : "جستجو و انتخاب وندور"} disabled={vendorsLoading || isLoading} />
+                        </td> */}
                         <td className="p-3 min-w-[160px] text-gray-800">
-                          <select
-                            value={row.vendorName}
-                            onChange={(e) => handleRowChange(row.id, "vendorName", e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            disabled={vendorsLoading || isLoading}
-                          >
-                            <option value="" disabled>انتخاب وندور</option>
-                            {vendorOptions.map((option) => (
-                              <option key={option.value} value={option.label}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
+  <TableSearchableSelect
+    value={row.vendorName}
+    onChange={(value) => handleRowChange(row.id, "vendorName", value)}
+    options={vendorOptions}
+    placeholder={vendorsLoading ? "در حال دریافت..." : "انتخاب وندور"}
+    disabled={vendorsLoading || isLoading}
+  />
+</td>
+                        <td className="p-3 text-gray-800" style={{ width: "8%" }}>
+                          <input type="number" value={row.approvedDays !== undefined && row.approvedDays !== "" ? row.approvedDays : ""} onChange={(e) => { const value = e.target.value; if (value === "") handleRowChange(row.id, "approvedDays", ""); else { const numValue = parseInt(value, 10); if (!isNaN(numValue) && numValue >= 0) handleRowChange(row.id, "approvedDays", numValue); } }} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="تعداد روز" min="0" disabled={isLoading} />
                         </td>
                         <td className="p-3 text-gray-800" style={{ width: "8%" }}>
-                          <input
-                            type="number"
-                            value={row.approvedDays !== undefined && row.approvedDays !== "" ? row.approvedDays : ""}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (value === "") {
-                                handleRowChange(row.id, "approvedDays", "");
-                              } else {
-                                const numValue = parseInt(value, 10);
-                                if (!isNaN(numValue) && numValue >= 0) {
-                                  handleRowChange(row.id, "approvedDays", numValue);
-                                }
-                              }
-                            }}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="تعداد روز"
-                            min="0"
-                            disabled={isLoading}
-                          />
+                          <input type="text" value={row.unitNumber} onChange={(e) => handleRowChange(row.id, "unitNumber", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="شماره واحد" disabled={isLoading} />
                         </td>
                         <td className="p-3 text-gray-800" style={{ width: "8%" }}>
-                          <input
-                            type="text"
-                            value={row.unitNumber}
-                            onChange={(e) => handleRowChange(row.id, "unitNumber", e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="شماره واحد"
-                            disabled={isLoading}
-                          />
+                          <input type="text" value={row.irn} onChange={(e) => handleRowChange(row.id, "irn", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="IRN" disabled={isLoading} />
                         </td>
                         <td className="p-3 text-gray-800" style={{ width: "8%" }}>
-                          <input
-                            type="text"
-                            value={row.irn}
-                            onChange={(e) => handleRowChange(row.id, "irn", e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="IRN"
-                            disabled={isLoading}
-                          />
-                        </td>
-                        <td className="p-3 text-gray-800" style={{ width: "8%" }}>
-                          <input
-                            type="text"
-                            value={row.srn}
-                            onChange={(e) => handleRowChange(row.id, "srn", e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="SRN"
-                            disabled={isLoading}
-                          />
+                          <input type="text" value={row.srn} onChange={(e) => handleRowChange(row.id, "srn", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="SRN" disabled={isLoading} />
                         </td>
                         {reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0 && (
                           <td className="p-3" style={{ width: '6%' }}>
                             <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleCopyRow(row.id)}
-                                className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200"
-                                title="کپی سطر"
-                                disabled={isLoading || row._loading}
-                              >
-                                <FaCopy className="text-xs" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteRow(row.id)}
-                                className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200"
-                                title="حذف سطر"
-                                disabled={isLoading || isDeleting}
-                              >
-                                <FaTrash className="text-xs" />
-                              </button>
+                              <button type="button" onClick={() => handleCopyRow(row.id)} className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200" title="کپی سطر" disabled={isLoading || row._loading}><FaCopy className="text-xs" /></button>
+                              <button type="button" onClick={() => handleDeleteRow(row.id)} className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200" title="حذف سطر" disabled={isLoading || isDeleting}><FaTrash className="text-xs" /></button>
                             </div>
                           </td>
                         )}
@@ -1236,258 +705,51 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
               {reportRows.map((row, index) => (
                 <div key={row.id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm">
                   <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-2">
-                      <FaFileAlt className="text-blue-500" />
-                      <span className="font-semibold">سطر #{index + 1}</span>
-                    </div>
+                    <div className="flex items-center gap-2"><FaFileAlt className="text-blue-500" /><span className="font-semibold">سطر #{index + 1}</span></div>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyRow(row.id)}
-                        className="text-blue-600 hover:text-blue-800 p-1"
-                        title="کپی"
-                        disabled={isLoading || row._loading}
-                      >
-                        <FaCopy className="text-sm" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteRow(row.id)}
-                        className="text-red-600 hover:text-red-800 p-1"
-                        title="حذف"
-                        disabled={isLoading || isDeleting}
-                      >
-                        <FaTrash className="text-sm" />
-                      </button>
+                      <button type="button" onClick={() => handleCopyRow(row.id)} className="text-blue-600 hover:text-blue-800 p-1" title="کپی" disabled={isLoading || row._loading}><FaCopy className="text-sm" /></button>
+                      <button type="button" onClick={() => handleDeleteRow(row.id)} className="text-red-600 hover:text-red-800 p-1" title="حذف" disabled={isLoading || isDeleting}><FaTrash className="text-sm" /></button>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-3 text-xs">
                     <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-gray-600 block mb-1">شماره گزارش *</span>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={row.reportNumber}
-                            onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                            placeholder="شماره گزارش"
-                            disabled={isLoading || row._loading}
-                            required
-                          />
-                          {row._loading && (
-                            <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
-                              <FaSync className="animate-spin text-blue-500 text-xs" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-gray-600 block mb-1">نوع گزارش (RevNO)</span>
-                        <select
-                          value={row.revNumber || ""}
-                          onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoading || row._loading}
-                        >
-                          <option value="">-</option>
-                          <option value="rev">Rev</option>
-                          <option value="multipart">Multipart</option>
-                        </select>
-                      </div>
+                      <div><span className="text-gray-600 block mb-1">شماره گزارش *</span><div className="relative"><input type="text" value={row.reportNumber} onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="شماره گزارش" disabled={isLoading || row._loading} required />{row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}</div></div>
+                      <div><span className="text-gray-600 block mb-1">نوع گزارش (RevNO)</span><select value={row.revNumber || ""} onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" disabled={isLoading || row._loading}><option value="">-</option><option value="rev">Rev</option><option value="multipart">Multipart</option></select></div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-gray-600 block mb-1">وضعیت</span>
-                        <select
-                          value={row.status}
-                          onChange={(e) => handleRowChange(row.id, "status", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoading}
-                        >
-                          <option value="">انتخاب وضعیت</option>
-                          {statusOptions.map((option) => (
-                            <option key={option.value} value={option.value}>{option.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <span className="text-gray-600 block mb-1">تاریخ دریافت</span>
-                        <DatePicker
-                          value={row.receivedDate}
-                          onChange={(date) => handleRowChange(row.id, "receivedDate", date)}
-                          calendar={persian}
-                          locale={persian_fa}
-                          format="YYYY/MM/DD"
-                          inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={isLoading}
-                        />
-                      </div>
+                      <div><span className="text-gray-600 block mb-1">وضعیت</span><select value={row.status} onChange={(e) => handleRowChange(row.id, "status", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" disabled={isLoading}><option value="">انتخاب وضعیت</option>{statusOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}</select></div>
+                      <div><span className="text-gray-600 block mb-1">تاریخ دریافت</span><DatePicker value={row.receivedDate} onChange={(date) => handleRowChange(row.id, "receivedDate", date)} calendar={persian} locale={persian_fa} format="YYYY/MM/DD" inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" disabled={isLoading} /></div>
                     </div>
-                    <div>
-                      <span className="text-gray-600 block mb-1">شرح نظرات</span>
-                      <input
-                        type="text"
-                        value={row.corrections}
-                        onChange={(e) => handleRowChange(row.id, "corrections", e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md text-xs ${row.statusEnglish === "Objection" ? "border-red-300 bg-red-50" : "border-gray-300"}`}
-                        placeholder={row.statusEnglish === "Objection" ? "شرح نظرات الزامی است" : "شرح نظرات (اختیاری)"}
-                        disabled={isLoading}
-                      />
+                    <div><span className="text-gray-600 block mb-1">شرح نظرات</span><input type="text" value={row.corrections} onChange={(e) => handleRowChange(row.id, "corrections", e.target.value)} className={`w-full px-3 py-2 border rounded-md text-xs ${row.statusEnglish === "Objection" ? "border-red-300 bg-red-50" : "border-gray-300"}`} placeholder={row.statusEnglish === "Objection" ? "شرح نظرات الزامی است" : "شرح نظرات (اختیاری)"} disabled={isLoading} /></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><span className="text-gray-600 block mb-1">نام وندور</span><TableSearchableSelect value={row.vendorName} onChange={(value) => handleRowChange(row.id, "vendorName", value)} options={vendorOptions} placeholder={vendorsLoading ? "در حال دریافت لیست وندورها..." : "جستجو و انتخاب وندور"} disabled={vendorsLoading || isLoading} /></div>
+                      <div><span className="text-gray-600 block mb-1">تعداد روز</span><input type="number" value={row.approvedDays !== undefined && row.approvedDays !== "" ? row.approvedDays : ""} onChange={(e) => { const value = e.target.value; if (value === "") handleRowChange(row.id, "approvedDays", ""); else { const numValue = parseInt(value, 10); if (!isNaN(numValue) && numValue >= 0) handleRowChange(row.id, "approvedDays", numValue); } }} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="تعداد روز" min="0" disabled={isLoading} /></div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-gray-600 block mb-1">نام وندور</span>
-                        <select
-                          value={row.vendorName}
-                          onChange={(e) => handleRowChange(row.id, "vendorName", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          disabled={vendorsLoading || isLoading}
-                        >
-                          <option value="" disabled>انتخاب وندور</option>
-                          {vendorOptions.map((option) => (
-                            <option key={option.value} value={option.label}>{option.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <span className="text-gray-600 block mb-1">تعداد روز</span>
-                        <input
-                          type="number"
-                          value={row.approvedDays !== undefined && row.approvedDays !== "" ? row.approvedDays : ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "") {
-                              handleRowChange(row.id, "approvedDays", "");
-                            } else {
-                              const numValue = parseInt(value, 10);
-                              if (!isNaN(numValue) && numValue >= 0) {
-                                handleRowChange(row.id, "approvedDays", numValue);
-                              }
-                            }
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          placeholder="تعداد روز"
-                          min="0"
-                          disabled={isLoading}
-                        />
-                      </div>
+                      <div><span className="text-gray-600 block mb-1">شماره واحد</span><input type="text" value={row.unitNumber} onChange={(e) => handleRowChange(row.id, "unitNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="شماره واحد" disabled={isLoading} /></div>
+                      <div><span className="text-gray-600 block mb-1">IRN</span><input type="text" value={row.irn} onChange={(e) => handleRowChange(row.id, "irn", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="IRN" disabled={isLoading} /></div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <span className="text-gray-600 block mb-1">شماره واحد</span>
-                        <input
-                          type="text"
-                          value={row.unitNumber}
-                          onChange={(e) => handleRowChange(row.id, "unitNumber", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          placeholder="شماره واحد"
-                          disabled={isLoading}
-                        />
-                      </div>
-                      <div>
-                        <span className="text-gray-600 block mb-1">IRN</span>
-                        <input
-                          type="text"
-                          value={row.irn}
-                          onChange={(e) => handleRowChange(row.id, "irn", e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                          placeholder="IRN"
-                          disabled={isLoading}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600 block mb-1">SRN</span>
-                      <input
-                        type="text"
-                        value={row.srn}
-                        onChange={(e) => handleRowChange(row.id, "srn", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs"
-                        placeholder="SRN"
-                        disabled={isLoading}
-                      />
-                    </div>
+                    <div><span className="text-gray-600 block mb-1">SRN</span><input type="text" value={row.srn} onChange={(e) => handleRowChange(row.id, "srn", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="SRN" disabled={isLoading} /></div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* دکمه‌های ثبت و انصراف */}
             <div className="flex gap-3 pt-6 border-t border-gray-200">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <>
-                    <FaSync className="animate-spin text-lg" />
-                    در حال ذخیره...
-                  </>
-                ) : reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0 ? (
-                  <>
-                    <FaCheckCircle className="text-lg" />
-                    بروزرسانی گزارش
-                  </>
-                ) : (
-                  <>
-                    <FaCheckCircle className="text-lg" />
-                    ثبت گزارش جدید
-                  </>
-                )}
+              <button type="submit" disabled={isLoading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                {isLoading ? <><FaSync className="animate-spin text-lg" /> در حال ذخیره...</> : (reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0 ? <><FaCheckCircle className="text-lg" /> بروزرسانی گزارش</> : <><FaCheckCircle className="text-lg" /> ثبت گزارش جدید</>)}
               </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={isLoading}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FaArrowRight className="text-lg transform rotate-180" />
-                انصراف
+              <button type="button" onClick={handleCancel} disabled={isLoading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                <FaArrowRight className="text-lg transform rotate-180" /> انصراف
               </button>
             </div>
           </form>
         )}
       </div>
 
-      <ConfirmationPopover
-        isOpen={showSaveConfirm}
-        onClose={() => setShowSaveConfirm(false)}
-        onConfirm={handleSubmitInternal}
-        title="تغییرات ذخیره نشده"
-        message="آیا از ذخیره‌سازی تغییرات ایجاد شده در گزارش اطمینان دارید؟"
-        type="warning"
-        confirmText="بله، ذخیره کن"
-        cancelText="انصراف"
-      />
-
-      <ConfirmationPopover
-        isOpen={showCancelConfirm}
-        onClose={() => setShowCancelConfirm(false)}
-        onConfirm={handleCancelInternal}
-        title="انصراف از تغییرات"
-        message="تغییرات ایجاد شده در گزارش ذخیره نشده‌اند. آیا مطمئن هستید که می‌خواهید انصراف دهید؟"
-        type="info"
-        confirmText="بله، انصراف بده"
-        cancelText="بازگشت"
-      />
-
-      <DeleteConfirmationPopover
-        isOpen={showDeleteConfirm}
-        onClose={() => {
-          setShowDeleteConfirm(false);
-          setSelectedReportForDelete(null);
-        }}
-        onConfirm={handleConfirmDelete}
-        reportNumber={selectedReportForDelete?.reportNumber || ""}
-        rfiNumbering={selectedReportForDelete?.rfiNumbering || ""}
-        title="حذف گزارش از سیستم"
-        message="این عمل گزارش را به طور کامل از سیستم حذف می‌کند و قابل بازگشت نیست. آیا مطمئن هستید؟"
-        confirmText={isDeleting ? "در حال حذف..." : "بله، حذف شود"}
-        cancelText="انصراف"
-        isLoading={isDeleting}
-      />
+      <ConfirmationPopover isOpen={showSaveConfirm} onClose={() => setShowSaveConfirm(false)} onConfirm={handleSubmitInternal} title="تغییرات ذخیره نشده" message="آیا از ذخیره‌سازی تغییرات ایجاد شده در گزارش اطمینان دارید؟" type="warning" confirmText="بله، ذخیره کن" cancelText="انصراف" />
+      <ConfirmationPopover isOpen={showCancelConfirm} onClose={() => setShowCancelConfirm(false)} onConfirm={handleCancelInternal} title="انصراف از تغییرات" message="تغییرات ایجاد شده در گزارش ذخیره نشده‌اند. آیا مطمئن هستید که می‌خواهید انصراف دهید؟" type="info" confirmText="بله، انصراف بده" cancelText="بازگشت" />
+      <DeleteConfirmationPopover isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false); setSelectedReportForDelete(null); }} onConfirm={handleConfirmDelete} reportNumber={selectedReportForDelete?.reportNumber || ""} rfiNumbering={selectedReportForDelete?.rfiNumbering || ""} title="حذف گزارش از سیستم" message="این عمل گزارش را به طور کامل از سیستم حذف می‌کند و قابل بازگشت نیست. آیا مطمئن هستید؟" confirmText={isDeleting ? "در حال حذف..." : "بله، حذف شود"} cancelText="انصراف" isLoading={isDeleting} />
     </div>
   );
 };

@@ -205,11 +205,14 @@ const StatusFilterDropdown = ({
     const statusStr = String(status).toLowerCase().trim();
     switch(statusStr) {
       case 'done':
+      case 'انجام شده':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'ongoing':
+      case 'در حال انجام':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'cancel':
       case 'cancelled':
+      case 'لغو شده':
         return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -486,6 +489,9 @@ const RFIReportTable = () => {
     Ongoing: false,
     Cancel: false,
     Cancelled: false,
+    "در حال انجام": false,  // اضافه شد
+    "انجام شده": false,     // اضافه شد
+    "لغو شده": false,       // اضافه شد
   });
   const statusFilterButtonRef = useRef(null);
   const projectTypeFilterButtonRef = useRef(null);
@@ -707,14 +713,19 @@ const RFIReportTable = () => {
 
   const uniqueStatuses = useMemo(() => {
     if (!tableData.length) return [];
-
+  
     const statuses = new Set();
     tableData.forEach((item) => {
       if (item.RFI_Status && item.RFI_Status.trim() !== "") {
-        statuses.add(item.RFI_Status.trim());
+        let normalizedStatus = item.RFI_Status.trim();
+        // عادی‌سازی مقادیر فارسی به انگلیسی برای یکسان‌سازی
+        if (normalizedStatus === "در حال انجام") normalizedStatus = "Ongoing";
+        if (normalizedStatus === "انجام شده") normalizedStatus = "Done";
+        if (normalizedStatus === "لغو شده") normalizedStatus = "Cancel";
+        statuses.add(normalizedStatus);
       }
     });
-
+  
     return Array.from(statuses).sort((a, b) => {
       const order = { 'Done': 1, 'Ongoing': 2, 'Cancel': 3, 'Cancelled': 4 };
       return (order[a] || 99) - (order[b] || 99);
@@ -934,9 +945,9 @@ const RFIReportTable = () => {
           const getStatusPriority = (status) => {
             if (!status) return 99;
             const statusStr = String(status).toLowerCase().trim();
-            if (statusStr === "done") return 1;
-            if (statusStr === "ongoing") return 2;
-            if (statusStr === "cancel" || statusStr === "cancelled") return 3;
+            if (statusStr === "done" || statusStr === "انجام شده") return 1;
+            if (statusStr === "ongoing" || statusStr === "در حال انجام") return 2;
+            if (statusStr === "cancel" || statusStr === "cancelled" || statusStr === "لغو شده") return 3;
             return 99;
           };
           aValue = getStatusPriority(a.RFI_Status);
