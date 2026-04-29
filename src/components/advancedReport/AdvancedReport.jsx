@@ -1,9 +1,8 @@
-// src/components/reports/AdvancedReport.jsx
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import DatePicker from "react-multi-date-picker";
 import persian from 'react-date-object/calendars/persian';
 import persian_fa from 'react-date-object/locales/persian_fa';
-import { FaSearch, FaCalendarAlt, FaChartBar, FaFileExcel } from 'react-icons/fa';
+import { FaSearch, FaCalendarAlt, FaChartBar, FaFileExcel, FaCheckDouble, FaSave } from 'react-icons/fa';
 import { useDailyReport, useFinancialSummary } from '../../hooks/useCreateReport';
 import Button from '../ui/Button';
 import FormSection from '../common/FormSection';
@@ -15,14 +14,17 @@ const AdvancedReport = () => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [searchParams, setSearchParams] = useState(null);
+  const [isEditingEnabled, setIsEditingEnabled] = useState(true); // وضعیت قابلیت ویرایش
+  const [initialCopyDone, setInitialCopyDone] = useState(false); // آیا کپی اولیه انجام شده؟
+  const tableRef = useRef(null);
   
   const { mutate: fetchDailyReport, isLoading: isFetching } = useDailyReport('excel');
   
-  // هوک دریافت اطلاعات مالی
   const { 
     data: financialData, 
     isLoading: isLoadingFinancial,
-    isFetching: isFetchingFinancial
+    isFetching: isFetchingFinancial,
+    refetch: refetchFinancialData
   } = useFinancialSummary(
     searchParams?.year,
     searchParams?.month,
@@ -30,70 +32,37 @@ const AdvancedReport = () => {
     !!searchParams
   );
   
-  // تبدیل به نام فارسی ماه
   const getPersianMonthName = (dateObject) => {
     if (!dateObject) return '';
-    
     if (dateObject.month && dateObject.month.name) {
       return dateObject.month.name;
     }
-    
     const monthNames = [
       'فروردین', 'اردیبهشت', 'خرداد',
       'تیر', 'مرداد', 'شهریور',
       'مهر', 'آبان', 'آذر',
       'دی', 'بهمن', 'اسفند'
     ];
-    
     const monthIndex = dateObject.month?.index || 0;
     return monthNames[monthIndex] || '';
   };
   
-  // هندلر دریافت اطلاعات
   const handleGetInfo = () => {
     if (!selectedYear || !selectedMonth) {
-      toast.error('لطفاً سال و ماه را انتخاب کنید', {
-        position: 'top-center',
-        duration: 3000,
-        icon: '❌',
-        style: {
-          background: '#ef4444',
-          color: 'white',
-          borderRadius: '10px',
-          padding: '16px',
-          fontSize: '14px',
-          direction: 'rtl',
-          textAlign: 'right',
-        },
-      });
+      toast.error('لطفاً سال و ماه را انتخاب کنید');
       return;
     }
-    
-    // گرفتن نام فارسی ماه
     const monthName = getPersianMonthName(selectedMonth.date);
-    
-    // console.log('🔍 دریافت اطلاعات با پارامترها:', {
-    //   year: selectedYear.year,
-    //   month: monthName
-    // });
-    
-    // ذخیره پارامترهای جستجو
-    setSearchParams({
-      year: selectedYear.year,
-      month: monthName
-    });
+    setSearchParams({ year: selectedYear.year, month: monthName });
+    setInitialCopyDone(false);
+    setIsEditingEnabled(true);
   };
   
-  // هندلر دانلود اکسل
   const handleDownloadExcel = () => {
     if (!searchParams) {
-      toast.error('لطفاً ابتدا اطلاعات را دریافت کنید', {
-        position: 'top-center',
-        duration: 3000,
-      });
+      toast.error('لطفاً ابتدا اطلاعات را دریافت کنید');
       return;
     }
-    
     fetchDailyReport({
       year: searchParams.year,
       month: searchParams.month,
@@ -101,50 +70,52 @@ const AdvancedReport = () => {
     });
   };
   
-  // هندلر تغییر سال
+  // هندلر تائید اولیه - کپی مقادیر
+  const handleInitialApproval = () => {
+    if (tableRef.current && tableRef.current.copyInitialToFinal) {
+      tableRef.current.copyInitialToFinal();
+      setInitialCopyDone(true);
+      toast.success('مقادیر اولیه با موفقیت کپی شدند', {
+        position: 'top-center',
+        duration: 3000,
+        icon: '✅',
+      });
+    }
+  };
+  
+  // هندلر ذخیره نهایی
+  const handleFinalSave = () => {
+    if (tableRef.current && tableRef.current.disableEditing) {
+      tableRef.current.disableEditing();
+      setIsEditingEnabled(false);
+      toast.success('تغییرات نهایی با موفقیت ذخیره شد', {
+        position: 'top-center',
+        duration: 3000,
+        icon: '✅',
+      });
+    }
+  };
+  
   const handleYearChange = (date) => {
-    if (date) {
-      setSelectedYear({
-        year: date.year,
-        date: date
-      });
-    } else {
-      setSelectedYear(null);
-    }
+    if (date) setSelectedYear({ year: date.year, date: date });
+    else setSelectedYear(null);
     setSearchParams(null);
+    setInitialCopyDone(false);
+    setIsEditingEnabled(true);
   };
   
-  // هندلر تغییر ماه
   const handleMonthChange = (date) => {
-    if (date) {
-      setSelectedMonth({
-        month: date.month,
-        year: date.year,
-        date: date
-      });
-    } else {
-      setSelectedMonth(null);
-    }
+    if (date) setSelectedMonth({ month: date.month, year: date.year, date: date });
+    else setSelectedMonth(null);
     setSearchParams(null);
+    setInitialCopyDone(false);
+    setIsEditingEnabled(true);
   };
   
-  // هندلر ویرایش (موقت)
-  const handleEdit = (item) => {
-    // console.log('ویرایش آیتم:', item);
-    // toast.info('ویرایش آیتم - در حال توسعه', {
-    //   position: 'top-center',
-    //   duration: 2000,
-    // });
-  };
-  
-  // هندلر حذف (موقت)
-  const handleDelete = (item) => {
-    // console.log('حذف آیتم:', item);
-    // toast.info('حذف آیتم - در حال توسعه', {
-    //   position: 'top-center',
-    //   duration: 2000,
-    // });
-  };
+  const handleEdit = (item) => {};
+  const handleDelete = (item) => {};
+
+  const showButtons = searchParams && financialData && financialData.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-2 sm:py-4 px-3 sm:px-4 lg:px-6" dir="rtl">
@@ -153,21 +124,13 @@ const AdvancedReport = () => {
         <StepHeader
           title="صورت وضعیت بازرسین(جزئیات)"
           description="مشاهده صورت وضعیت بازرسین بر اساس ماه و سال"
-
           icon={FaChartBar}
         />
 
         <div className="bg-white rounded-xl shadow-lg mb-3">
           <div className="p-3">
-            
-            <FormSection
-              title="فیلترهای گزارش"
-              icon={FaSearch}
-              className="mb-0"
-            >
+            <FormSection title="فیلترهای گزارش" icon={FaSearch} className="mb-0">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
-                
-                {/* فیلد سال - با لیبل کنار فیلد */}
                 <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-1 text-blue-600 min-w-fit">
                     <FaCalendarAlt className="text-xs" />
@@ -189,7 +152,6 @@ const AdvancedReport = () => {
                   </div>
                 </div>
                 
-                {/* فیلد ماه - با لیبل کنار فیلد */}
                 <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-1 text-blue-600 min-w-fit">
                     <FaCalendarAlt className="text-xs" />
@@ -211,7 +173,6 @@ const AdvancedReport = () => {
                   </div>
                 </div>
                 
-                {/* دکمه دریافت اطلاعات */}
                 <div>
                   <Button
                     type="button"
@@ -227,14 +188,6 @@ const AdvancedReport = () => {
                   </Button>
                 </div>
               </div>
-              
-              {/* نمایش سال و ماه انتخاب شده به صورت فشرده */}
-              {/* {(selectedYear || selectedMonth) && (
-                <div className="mt-1 text-xs text-gray-500 flex gap-2">
-                  {selectedYear && <span>سال: {selectedYear.year}</span>}
-                  {selectedMonth && <span>ماه: {getPersianMonthName(selectedMonth.date)}</span>}
-                </div>
-              )} */}
             </FormSection>
           </div>
         </div>
@@ -242,36 +195,66 @@ const AdvancedReport = () => {
         {/* نمایش جدول اطلاعات */}
         {searchParams && (
           <div className="bg-white rounded-xl shadow-lg p-3">
-            <div className="flex justify-between items-center mb-2">
-            <h3 className="text-sm font-semibold text-gray-700">
-  نتایج {searchParams.month} {searchParams.year}
-  {financialData && (
-    <span className="mr-2 text-xs text-gray-500">
-      ({financialData.length} رکورد)
-    </span>
-  )}
-</h3>
+            <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
+              <h3 className="text-sm font-semibold text-gray-700">
+                نتایج {searchParams.month} {searchParams.year}
+                {financialData && (
+                  <span className="mr-2 text-xs text-gray-500">
+                    ({financialData.length} رکورد)
+                  </span>
+                )}
+              </h3>
               
-              {/* دکمه دانلود اکسل */}
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={handleDownloadExcel}
-                disabled={isFetching || !financialData || financialData.length === 0}
-                isLoading={isFetching}
-                className="flex items-center gap-1 text-xs py-1 px-2"
-              >
-                <FaFileExcel className="text-green-600" />
-                {isFetching ? "در حال دانلود..." : "دانلود اکسل"}
-              </Button>
+              <div className="flex gap-2">
+                {/* دکمه تائید اولیه */}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleInitialApproval}
+                  disabled={!financialData || financialData.length === 0 || !isEditingEnabled || initialCopyDone}
+                  className="flex items-center gap-1 text-xs py-1 px-3 bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  <FaCheckDouble className="text-xs" />
+                  تائید اولیه
+                </Button>
+                
+                {/* دکمه ذخیره نهایی تغییرات */}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleFinalSave}
+                  disabled={!financialData || financialData.length === 0 || !isEditingEnabled}
+                  className="flex items-center gap-1 text-xs py-1 px-3 bg-green-500 hover:bg-green-600 text-white"
+                >
+                  <FaSave className="text-xs" />
+                  ذخیره نهایی تغییرات
+                </Button>
+                
+                {/* دکمه دانلود اکسل */}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleDownloadExcel}
+                  disabled={isFetching || !financialData || financialData.length === 0}
+                  isLoading={isFetching}
+                  className="flex items-center gap-1 text-xs py-1 px-2"
+                >
+                  <FaFileExcel className="text-green-600" />
+                  {isFetching ? "در حال دانلود..." : "دانلود اکسل"}
+                </Button>
+              </div>
             </div>
             
             <FinancialSummaryTable 
+              ref={tableRef}
               data={financialData || []}
               onEdit={handleEdit}
               onDelete={handleDelete}
               isLoading={isLoadingFinancial}
+              isEditingEnabled={isEditingEnabled}
             />
           </div>
         )}

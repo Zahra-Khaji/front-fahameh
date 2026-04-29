@@ -128,6 +128,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   const [hasRowAddition, setHasRowAddition] = useState(false);
   const initialDataRef = useRef(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [pendingFetchRow, setPendingFetchRow] = useState(null);
 
   const statusOptions = useMemo(() => transformReportStatuses(statusesData), [statusesData]);
 
@@ -297,16 +298,33 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       toast.error('❌ شماره RFI نامشخص است');
       return;
     }
+    
     const newId = reportRows.length > 0 ? Math.max(...reportRows.map(r => r.id)) + 1 : 1;
+    
+    // پیدا کردن آخرین سطر قبلی
+    let lastRevNumber = '';
+    let lastApprovedDays = '';
+    
+    if (reportRows.length > 0) {
+      const lastRow = reportRows[reportRows.length - 1];
+      // فقط اگر آخرین سطر multipart باشد، مقدار آن را برای سطر جدید نگه دار
+      if (lastRow.revNumber === 'multipart') {
+        lastRevNumber = 'multipart';
+        lastApprovedDays = lastRow.approvedDays || '';
+      } else {
+        lastRevNumber = ''; // برای rev یا هر مقدار دیگر، خالی باشد
+      }
+    }
+    
     const newRow = {
       id: newId,
       reportNumber: '',
-      revNumber: '',
+      revNumber: lastRevNumber,
       status: "5",
       statusEnglish: "approved",
       corrections: "",
       receivedDate: convertToPersianDate(new Date()),
-      approvedDays: "",
+      approvedDays: lastApprovedDays,
       unitNumber: "",
       vendorName: rfiData?.VendorName || "",
       irn: "",
@@ -319,8 +337,15 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       _loading: false,
       originalApprovedDays: undefined
     };
-    setReportRows([...reportRows, newRow]);
+    
+    setReportRows(prevRows => [...prevRows, newRow]);
     setHasRowAddition(true);
+    
+    // اگر سطر جدید multipart است، آن را برای دریافت شماره گزارش در صف قرار بده
+    if (lastRevNumber === 'multipart') {
+      setPendingFetchRow({ id: newId, revNumber: 'multipart' });
+    }
+    
     toast.info('📝 سطر جدید اضافه شد. لطفاً نوع گزارش را انتخاب کنید');
   };
 
@@ -334,12 +359,55 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       toast.error('❌ شماره RFI نامشخص است');
       return;
     }
+    
     const newId = Math.max(...reportRows.map(r => r.id), 0) + 1;
-    const newRow = { ...rowToCopy, id: newId, reportNumber: '', revNumber: '', isNew: true, needsUpdate: false, _loading: false, _saved: false, originalApprovedDays: undefined };
-    setReportRows([...reportRows, newRow]);
+    
+    // فقط اگر سطر مبدأ multipart باشد، مقدار آن را برای سطر جدید نگه دار
+    let newRevNumber = '';
+    let newApprovedDays = '';
+    
+    if (rowToCopy.revNumber === 'multipart') {
+      newRevNumber = 'multipart';
+      newApprovedDays = rowToCopy.approvedDays || '';
+    } else {
+      newRevNumber = ''; // برای rev یا هر مقدار دیگر، خالی باشد
+    }
+    
+    const newRow = { 
+      ...rowToCopy, 
+      id: newId, 
+      reportNumber: '', 
+      revNumber: newRevNumber,
+      approvedDays: newApprovedDays,
+      isNew: true, 
+      needsUpdate: false, 
+      _loading: false, 
+      _saved: false, 
+      originalApprovedDays: undefined 
+    };
+    
+    setReportRows(prevRows => [...prevRows, newRow]);
     setHasRowAddition(true);
+    
+    // اگر سطر جدید multipart است، آن را برای دریافت شماره گزارش در صف قرار بده
+    if (newRevNumber === 'multipart') {
+      setPendingFetchRow({ id: newId, revNumber: 'multipart' });
+    }
+    
     toast.info('📝 سطر کپی شد. لطفاً نوع گزارش را انتخاب کنید');
   };
+
+  useEffect(() => {
+    if (pendingFetchRow && pendingFetchRow.id) {
+      // اطمینان از اینکه سطر جدید به state اضافه شده
+      const timer = setTimeout(() => {
+        fetchSuggestedReportNumber(pendingFetchRow.id, pendingFetchRow.revNumber);
+        setPendingFetchRow(null);
+      }, 150);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [pendingFetchRow, reportRows.length]);
 
   const handleDeleteRow = (id) => {
     const rowToDelete = reportRows.find((row) => row.id === id);
@@ -505,6 +573,10 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       const reportSource = reportInfo || rfiData;
       const hasValidReport = reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0;
       const todayPersianDate = convertToPersianDate(new Date());
+      
+      console.log('🔍 reportSource:', reportSource);
+      console.log('🔍 RevNO value:', reportSource?.RevNO);
+      
       if (hasValidReport) {
         const englishStatus = reportSource.Doc_Status || "Acc";
         let initialStatusValue = "Acc";
@@ -512,18 +584,32 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
           const exactMatch = Object.values(statusesData).find(status => status === englishStatus);
           if (exactMatch) initialStatusValue = exactMatch;
           else {
-            const caseInsensitiveMatch = Object.values(statusesData).find(status => status.toLowerCase() === englishStatus.toLowerCase());
+            const caseInsensitiveMatch = Object.values(statusesData).find(
+              status => status.toLowerCase() === englishStatus.toLowerCase()
+            );
             if (caseInsensitiveMatch) initialStatusValue = caseInsensitiveMatch;
             else {
-              const partialMatch = Object.values(statusesData).find(status => status.toLowerCase().includes(englishStatus.toLowerCase()) || englishStatus.toLowerCase().includes(status.toLowerCase()));
+              const partialMatch = Object.values(statusesData).find(
+                status => status.toLowerCase().includes(englishStatus.toLowerCase()) ||
+                          englishStatus.toLowerCase().includes(status.toLowerCase())
+              );
               initialStatusValue = partialMatch || Object.values(statusesData)[0];
             }
           }
         }
+        
+        // گرفتن مقدار RevNO - می‌تواند "Rev" یا "multipart" یا "" باشد
+        let revNoValue = reportSource.RevNO || "";
+        // اگر RevNO مقدار "Rev" یا "multipart" داشت، با حروف کوچک یکسان می‌کنیم
+        if (revNoValue === "Rev") revNoValue = "rev";
+        if (revNoValue === "Multipart") revNoValue = "multipart";
+        
+        console.log('🔍 Final revNoValue:', revNoValue);
+        
         const initialRow = {
           id: 1,
           reportNumber: reportSource.Report_No || "",
-          revNumber: reportSource.RevNO || "",
+          revNumber: revNoValue,  // <-- استفاده از revNoValue اصلاح شده
           status: initialStatusValue,
           statusEnglish: initialStatusValue,
           corrections: reportSource.Remark || "",
@@ -538,10 +624,33 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
           issueDate: reportSource.IssueDate || new Date().toISOString().split("T")[0],
           originalApprovedDays: undefined
         };
+        
+        console.log('🔍 initialRow.revNumber:', initialRow.revNumber);
+        
         setReportRows([initialRow]);
-        initialDataRef.current = { reportRows: [{ reportNumber: initialRow.reportNumber || "", revNumber: initialRow.revNumber || "", status: initialRow.status || "Acc", statusEnglish: initialRow.statusEnglish || "Acc", corrections: initialRow.corrections || "", receivedDate: convertToString(initialRow.receivedDate), approvedDays: convertToString(initialRow.approvedDays), unitNumber: initialRow.unitNumber || "", vendorName: initialRow.vendorName || "", irn: initialRow.irn || "", srn: initialRow.srn || "", firstPrice: convertToString(initialRow.firstPrice), rfiNumbering: initialRow.rfiNumbering || "", originalApprovedDays: undefined }] };
+        initialDataRef.current = {
+          reportRows: [{
+            reportNumber: initialRow.reportNumber || "",
+            revNumber: initialRow.revNumber || "",
+            status: initialRow.status || "Acc",
+            statusEnglish: initialRow.statusEnglish || "Acc",
+            corrections: initialRow.corrections || "",
+            receivedDate: convertToString(initialRow.receivedDate),
+            approvedDays: convertToString(initialRow.approvedDays),
+            unitNumber: initialRow.unitNumber || "",
+            vendorName: initialRow.vendorName || "",
+            irn: initialRow.irn || "",
+            srn: initialRow.srn || "",
+            firstPrice: convertToString(initialRow.firstPrice),
+            rfiNumbering: initialRow.rfiNumbering || "",
+            originalApprovedDays: undefined
+          }],
+        };
       } else {
-        const defaultStatus = statusesData && Object.values(statusesData).length > 0 ? Object.values(statusesData)[0] : "Acc";
+        const defaultStatus = statusesData && Object.values(statusesData).length > 0
+          ? Object.values(statusesData)[0]
+          : "Acc";
+  
         const newRow = {
           id: 1,
           reportNumber: rfiData?.Report_No === "************" ? "" : rfiData?.Report_No || "",
@@ -553,14 +662,33 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
           approvedDays: "",
           unitNumber: "",
           vendorName: rfiData?.VendorName || "",
-          irn: "", srn: "",
+          irn: "", 
+          srn: "",
           firstPrice: "80000000",
           rfiNumbering: rfiData?.RFI_Numbering || "",
           issueDate: new Date().toISOString().split("T")[0],
           originalApprovedDays: undefined
         };
+  
         setReportRows([newRow]);
-        initialDataRef.current = { reportRows: [{ reportNumber: newRow.reportNumber || "", revNumber: newRow.revNumber || "", status: newRow.status || "Acc", statusEnglish: newRow.statusEnglish || "Acc", corrections: newRow.corrections || "", receivedDate: convertToString(newRow.receivedDate), approvedDays: convertToString(newRow.approvedDays), unitNumber: newRow.unitNumber || "", vendorName: newRow.vendorName || "", irn: newRow.irn || "", srn: newRow.srn || "", firstPrice: convertToString(newRow.firstPrice), rfiNumbering: newRow.rfiNumbering || "", originalApprovedDays: undefined }] };
+        initialDataRef.current = {
+          reportRows: [{
+            reportNumber: newRow.reportNumber || "",
+            revNumber: newRow.revNumber || "",
+            status: newRow.status || "Acc",
+            statusEnglish: newRow.statusEnglish || "Acc",
+            corrections: newRow.corrections || "",
+            receivedDate: convertToString(newRow.receivedDate),
+            approvedDays: convertToString(newRow.approvedDays),
+            unitNumber: newRow.unitNumber || "",
+            vendorName: newRow.vendorName || "",
+            irn: newRow.irn || "",
+            srn: newRow.srn || "",
+            firstPrice: convertToString(newRow.firstPrice),
+            rfiNumbering: newRow.rfiNumbering || "",
+            originalApprovedDays: undefined
+          }],
+        };
       }
       setHasChanges(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { 
   FaTrash, FaSort, FaSortUp, FaSortDown, 
   FaFilter, FaTimes, FaSearch, FaSave, FaEdit 
@@ -14,14 +14,14 @@ const FIXED_COLUMNS = [
   { key: "تاریخ شمسی", title: "تاریخ شمسی", type: "string", sortable: true, filterable: false },
   { key: "تعداد روز مورد تایید", title: "تعداد روز مورد تایید", type: "number", sortable: true, filterable: false },
   { key: "قیمت بازرسی", title: "قیمت بازرسی", type: "number", sortable: true, filterable: false },
-  { key: "جمع کارکرد اعداد ثابت", title: "جمع کارکرد اعداد ثابت", type: "number", sortable: true, filterable: false, editable: false },
+  { key: "جمع کارکرد اعداد ثابت", title: "جمع کارکرد اعداد ثابت", type: "number", sortable: true, filterable: false },
   { key: "تعداد روز مورد تایید نهایی", title: "تعداد روز مورد تایید نهایی", type: "number", sortable: true, filterable: false, editable: true },
   { key: "قیمت بازرس نهایی", title: "قیمت بازرس نهایی", type: "number", sortable: true, filterable: false, editable: true },
   { key: "جمع کارکرد اعداد متغیر", title: "جمع کارکرد اعداد متغیر", type: "number", sortable: true, filterable: false },
   { key: "توضیحات", title: "توضیحات", type: "string", sortable: true, filterable: true },
 ];
 
-const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
+const FinancialSummaryTable = forwardRef(({ data, onDelete, onEdit, isLoading, isEditingEnabled = true }, ref) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [isTableReady, setIsTableReady] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -32,11 +32,37 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [modifiedRows, setModifiedRows] = useState({});
   const [localData, setLocalData] = useState(data);
+  const [isEditModeActive, setIsEditModeActive] = useState(false);
   
   const scrollContainerRef = useRef(null);
   const tableWrapperRef = useRef(null);
   const filterRefs = useRef({});
   const inputRefs = useRef({});
+
+  useImperativeHandle(ref, () => ({
+    copyInitialToFinal: () => {
+      const updatedData = localData.map(row => {
+        const initialDays = row["تعداد روز مورد تایید"] || 0;
+        const initialPrice = row["قیمت بازرسی"] || 0;
+        const finalDays = initialDays;
+        const finalPrice = initialPrice;
+        const variableSum = finalDays * finalPrice;
+        return {
+          ...row,
+          "تعداد روز مورد تایید نهایی": finalDays,
+          "قیمت بازرس نهایی": finalPrice,
+          "جمع کارکرد اعداد متغیر": variableSum
+        };
+      });
+      setLocalData(updatedData);
+      setModifiedRows({});
+      setIsEditModeActive(true);
+    },
+    disableEditing: () => {
+      setIsEditModeActive(false);
+      setModifiedRows({}); // ریست رنگ نارنجی بعد از ذخیره نهایی
+    }
+  }));
 
   useEffect(() => {
     setLocalData(data);
@@ -80,28 +106,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openFilter]);
 
-  // محاسبه "جمع کارکرد اعداد متغیر" = تعداد روز مورد تایید نهایی * قیمت بازرس نهایی
-  const calculateVariableSum = (finalDays, finalPrice) => {
-    const days = finalDays || 0;
-    const price = finalPrice || 0;
-    return days * price;
-  };
-
-  // به‌روزرسانی ستون "جمع کارکرد اعداد متغیر" بعد از تغییر
-  const updateVariableSum = (updatedData, rowIndex) => {
-    const row = updatedData[rowIndex];
-    const finalDays = row["تعداد روز مورد تایید نهایی"] || 0;
-    const finalPrice = row["قیمت بازرس نهایی"] || 0;
-    const variableSum = calculateVariableSum(finalDays, finalPrice);
-    
-    updatedData[rowIndex] = {
-      ...row,
-      "جمع کارکرد اعداد متغیر": variableSum
-    };
-    
-    return updatedData;
-  };
-
   const getUniqueValues = (columnName) => {
     if (!localData) return [];
     const values = [...new Set(localData.map(item => item[columnName]).filter(Boolean))];
@@ -111,7 +115,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
   const handleSort = (key) => {
     const column = FIXED_COLUMNS.find(col => col.key === key);
     if (!column?.sortable) return;
-    
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
@@ -125,7 +128,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
 
   const getSortIcon = (columnKey, sortable) => {
     if (!sortable) return null;
-    
     if (sortConfig.key !== columnKey) {
       return <FaSort className="text-white/60 mr-1 text-xs" />;
     }
@@ -155,7 +157,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
   const toggleItem = (columnName, itemValue) => {
     const currentFilter = activeFilters[columnName];
     let newValues;
-    
     if (currentFilter?.type === 'checkbox') {
       if (currentFilter.value.includes(itemValue)) {
         newValues = currentFilter.value.filter(v => v !== itemValue);
@@ -165,7 +166,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     } else {
       newValues = [itemValue];
     }
-    
     if (newValues.length === 0) {
       const newFilters = { ...activeFilters };
       delete newFilters[columnName];
@@ -204,7 +204,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
   const filteredAndSortedData = useMemo(() => {
     if (!localData) return [];
     let result = [...localData];
-    
     Object.entries(activeFilters).forEach(([columnName, filter]) => {
       if (filter.type === 'checkbox' && filter.value.length > 0) {
         result = result.filter(item => filter.value.includes(item[columnName]));
@@ -214,29 +213,23 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
         );
       }
     });
-    
     if (sortConfig.key) {
       const column = FIXED_COLUMNS.find(col => col.key === sortConfig.key);
       if (column && column.sortable) {
         result.sort((a, b) => {
           let aVal = a[sortConfig.key];
           let bVal = b[sortConfig.key];
-          
           if (column.type === 'number') {
             aVal = aVal || 0;
             bVal = bVal || 0;
             return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
           }
-          
           aVal = String(aVal || '');
           bVal = String(bVal || '');
-          return sortConfig.direction === 'asc' 
-            ? aVal.localeCompare(bVal, 'fa')
-            : bVal.localeCompare(aVal, 'fa');
+          return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal, 'fa') : bVal.localeCompare(aVal, 'fa');
         });
       }
     }
-    
     return result;
   }, [localData, sortConfig, activeFilters]);
 
@@ -257,7 +250,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
 
   const isEditableColumn = (columnName) => {
     const column = FIXED_COLUMNS.find(col => col.key === columnName);
-    return column?.editable === true;
+    return column?.editable === true && isEditModeActive;
   };
 
   const handleCellClick = (rowIndex, columnName, currentValue) => {
@@ -270,7 +263,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
   const handleInputChange = (e) => {
     const value = e.target.value.replace(/[^0-9]/g, '');
     setEditedValue(value);
-    
     if (editingCell && value !== localData[editingCell.rowIndex][editingCell.columnName]?.toString()) {
       setModifiedRows(prev => ({
         ...prev,
@@ -279,54 +271,36 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
     }
   };
 
-  // ذخیره مستقیم بدون پاپ‌آپ تأیید
+  const updateVariableSum = (updatedData, rowIndex) => {
+    const row = updatedData[rowIndex];
+    const finalDays = row["تعداد روز مورد تایید نهایی"] || 0;
+    const finalPrice = row["قیمت بازرس نهایی"] || 0;
+    updatedData[rowIndex] = {
+      ...row,
+      "جمع کارکرد اعداد متغیر": finalDays * finalPrice
+    };
+    return updatedData;
+  };
+
   const handleDirectSave = () => {
     if (!editingCell || editedValue === '') return;
-    
     setIsSaving(true);
-    
     setTimeout(() => {
       const { rowIndex, columnName } = editingCell;
       let updatedData = [...localData];
       let rowToUpdate = { ...updatedData[rowIndex] };
-      
       const numericValue = editedValue ? parseInt(editedValue, 10) : 0;
       rowToUpdate[columnName] = numericValue;
       updatedData[rowIndex] = rowToUpdate;
-      
-      // بعد از تغییر، ستون "جمع کارکرد اعداد متغیر" را به‌روزرسانی کن
       updatedData = updateVariableSum(updatedData, rowIndex);
-      
       setLocalData(updatedData);
-      
       if (onEdit) {
         onEdit(updatedData[rowIndex]);
       }
-      
-      setModifiedRows(prev => {
-        const newModifiedRows = { ...prev };
-        delete newModifiedRows[rowIndex];
-        return newModifiedRows;
-      });
-      
       setIsSaving(false);
       setEditingCell(null);
       setEditedValue('');
-      
-      toast.success('تغییرات با موفقیت ذخیره شد!', {
-        position: 'top-center',
-        duration: 2000,
-        icon: '✅',
-        style: {
-          background: '#10b981',
-          color: 'white',
-          borderRadius: '10px',
-          padding: '12px',
-          fontSize: '14px',
-          direction: 'rtl',
-          textAlign: 'right',
-        },
-      });
+      toast.success('تغییرات با موفقیت ذخیره شد!');
     }, 150);
   };
 
@@ -363,12 +337,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
           </div>
         )}
         
-        <div 
-          ref={scrollContainerRef}
-          dir="ltr" 
-          className="absolute inset-0 overflow-auto" 
-          style={{ visibility: isTableReady ? 'visible' : 'hidden' }}
-        >
+        <div ref={scrollContainerRef} dir="ltr" className="absolute inset-0 overflow-auto" style={{ visibility: isTableReady ? 'visible' : 'hidden' }}>
           <div dir="rtl" className="min-w-full inline-block align-middle">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-blue-600 to-blue-500 sticky top-0 z-10 shadow-sm">
@@ -391,14 +360,9 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                             <div className="relative" ref={el => filterRefs.current[column.key] = el}>
                               <button
                                 onClick={() => setOpenFilter(openFilter === column.key ? null : column.key)}
-                                className={`p-1 rounded transition-colors duration-200 ${
-                                  isFilterActive ? 'bg-blue-700 text-yellow-300' : 'hover:bg-blue-700 text-white'
-                                }`}
+                                className={`p-1 rounded transition-colors duration-200 ${isFilterActive ? 'bg-blue-700 text-yellow-300' : 'hover:bg-blue-700 text-white'}`}
                               >
-                                {column.type === 'string' && uniqueValues.length <= 20 ? 
-                                  <FaFilter className="text-xs" /> : 
-                                  <FaSearch className="text-xs" />
-                                }
+                                {column.type === 'string' && uniqueValues.length <= 20 ? <FaFilter className="text-xs" /> : <FaSearch className="text-xs" />}
                               </button>
                               
                               {openFilter === column.key && (
@@ -454,7 +418,6 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredAndSortedData.map((item, index) => {
                   const isModified = modifiedRows[index] === true;
-                  
                   return (
                     <tr key={index} className={`hover:bg-gray-50 transition-colors duration-300 ${isModified ? 'bg-amber-100' : ''}`}>
                       <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900" style={{ paddingRight: '24px' }}>
@@ -465,6 +428,7 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                         const isEditing = editingCell && editingCell.rowIndex === index && editingCell.columnName === column.key;
                         const inputKey = `${index}-${column.key}`;
                         const cellValue = item[column.key];
+                        const isEditable = isEditableColumn(column.key);
                         
                         return (
                           <td 
@@ -485,27 +449,18 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
                                     onClick={(e) => e.stopPropagation()}
                                   />
                                   <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDirectSave();
-                                    }}
+                                    onClick={(e) => { e.stopPropagation(); handleDirectSave(); }}
                                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                                     title="ذخیره"
                                     disabled={editedValue === '' || isSaving}
                                   >
-                                    {isSaving ? (
-                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-600"></div>
-                                    ) : (
-                                      <FaSave size={12} />
-                                    )}
+                                    {isSaving ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-600"></div> : <FaSave size={12} />}
                                   </button>
                                 </>
                               ) : (
                                 <>
                                   {formatCellValue(cellValue, column.type)}
-                                  {isEditableColumn(column.key) && (
-                                    <FaEdit className="text-gray-400 text-[10px] mr-1" />
-                                  )}
+                                  {isEditable && <FaEdit className="text-gray-400 text-[10px] mr-1" />}
                                 </>
                               )}
                             </div>
@@ -556,6 +511,8 @@ const FinancialSummaryTable = ({ data, onDelete, onEdit, isLoading }) => {
       )}
     </div>
   );
-};
+});
+
+FinancialSummaryTable.displayName = 'FinancialSummaryTable';
 
 export default FinancialSummaryTable;
