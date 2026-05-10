@@ -346,7 +346,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       setPendingFetchRow({ id: newId, revNumber: 'multipart' });
     }
     
-    toast.info('📝 سطر جدید اضافه شد. لطفاً نوع گزارش را انتخاب کنید');
+    // toast('📝 سطر جدید اضافه شد. لطفاً نوع گزارش را انتخاب کنید');
   };
 
   const handleCopyRow = (id) => {
@@ -394,7 +394,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       setPendingFetchRow({ id: newId, revNumber: 'multipart' });
     }
     
-    toast.info('📝 سطر کپی شد. لطفاً نوع گزارش را انتخاب کنید');
+    // toast('📝 سطر کپی شد. لطفاً نوع گزارش را انتخاب کنید');
   };
 
   useEffect(() => {
@@ -535,36 +535,271 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     return true;
   };
 
+  const isSubmittingRef = useRef(false);
+
   const handleSubmitInternal = () => {
+    if (isSubmittingRef.current) {
+      console.log('⏳ در حال حاضر در حال ذخیره‌سازی هستیم، صرف نظر می‌شود');
+      return;
+    }
+    
     if (!validateForm()) return;
-    const validRows = reportRows.filter(row => row.reportNumber && row.reportNumber.trim() !== "");
-    if (validRows.length === 0) { toast.error("❌ هیچ گزارش معتبری برای ذخیره وجود ندارد"); return; }
-    if (hasRowAddition && validRows.length > 1) {
-      const lastIndex = validRows.length - 1;
-      const secondLastRow = validRows[lastIndex - 1];
-      const lastRow = validRows[lastIndex];
-      if (secondLastRow) {
-        const secondLastRowData = prepareReportData(secondLastRow);
-        updateReport({ reportData: { ...secondLastRowData, approvedDays: secondLastRow.approvedDays || 0 }, rfiNumbering: rfiData?.RFI_Numbering || secondLastRow.rfiNumbering }, {
-          onSuccess: () => {
-            const lastRowData = prepareReportData(lastRow);
-            createReport({ reportData: { ...lastRowData, approvedDays: lastRow.approvedDays || "" }, rfiNumbering: rfiData?.RFI_Numbering || lastRow.rfiNumbering }, { onSuccess: () => handleSuccess(), onError: (createError) => console.error('❌ Create failed:', createError) });
-          }, onError: (updateError) => console.error('❌ Update failed:', updateError)
-        });
+    
+    isSubmittingRef.current = true;
+    
+    // تابع کمکی برای مقایسه امن مقادیر
+    const isValueChanged = (oldVal, newVal) => {
+      const normalize = (val) => {
+        if (val === null || val === undefined) return "";
+        if (typeof val === "number") return val.toString();
+        return String(val).trim();
+      };
+      return normalize(oldVal) !== normalize(newVal);
+    };
+    
+    const newRows = [];     // سطرهایی که باید POST شوند
+    const changedRows = []; // سطرهایی که باید PUT شوند
+    
+    console.log('🔍 شروع دسته‌بندی سطرها برای ذخیره...');
+    
+    for (const row of reportRows) {
+      // پیدا کردن سطر اصلی در initialDataRef
+      const initialRow = initialDataRef.current?.reportRows?.find(r => 
+        r.id === row.id || r.reportNumber === row.reportNumber
+      );
+      
+      const isNewRow = row.isNew === true;
+      const isPlaceholderReport = row.reportNumber === "************";
+      const hasNoReportNumber = !row.reportNumber || row.reportNumber.trim() === "";
+      
+      // بررسی اینکه آیا شماره گزارش از ************ به مقدار واقعی تغییر کرده
+      const wasPlaceholder = initialRow?.reportNumber === "************";
+      const nowHasRealNumber = !isPlaceholderReport && row.reportNumber && row.reportNumber.trim() !== "";
+      
+      console.log(`🔍 بررسی سطر ${row.id}:`, {
+        reportNumber: row.reportNumber,
+        isNewRow,
+        isPlaceholderReport,
+        wasPlaceholder,
+        nowHasRealNumber,
+        hasInitialRow: !!initialRow
+      });
+      
+      // شرط برای سطرهای جدید (باید POST شوند)
+      if (isNewRow || isPlaceholderReport || hasNoReportNumber || (wasPlaceholder && nowHasRealNumber)) {
+        console.log(`✅ سطر ${row.id} -> دسته: NEW (POST)`);
+        newRows.push(row);
+        continue;
       }
-    } else {
-      const rowToSubmit = validRows[0];
-      const reportData = prepareReportData(rowToSubmit);
-      const hasValidExistingReport = reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0;
-      if (hasValidExistingReport) {
-        updateReport({ reportData: reportData, rfiNumbering: rfiData?.RFI_Numbering || rowToSubmit.rfiNumbering }, { onSuccess: () => handleSuccess(), onError: (error) => console.error("❌ Update failed:", error) });
+      
+      // اگر سطر در initialData وجود ندارد، به عنوان جدید در نظر بگیر
+      if (!initialRow) {
+        console.log(`✅ سطر ${row.id} -> دسته: NEW (POST) - no initial row`);
+        newRows.push(row);
+        continue;
+      }
+      
+      // بررسی تغییرات در سطرهای موجود
+      const hasChanges = 
+        isValueChanged(initialRow.reportNumber, row.reportNumber) ||
+        isValueChanged(initialRow.revNumber, row.revNumber) ||
+        isValueChanged(initialRow.status, row.status) ||
+        isValueChanged(initialRow.corrections, row.corrections) ||
+        !areValuesEqual(initialRow.receivedDate, row.receivedDate) ||
+        isValueChanged(initialRow.approvedDays, row.approvedDays) ||
+        isValueChanged(initialRow.unitNumber, row.unitNumber) ||
+        isValueChanged(initialRow.vendorName, row.vendorName) ||
+        isValueChanged(initialRow.irn, row.irn) ||
+        isValueChanged(initialRow.srn, row.srn);
+      
+      console.log(`🔍 سطر ${row.id} hasChanges:`, hasChanges, {
+        reportNumber: { old: initialRow.reportNumber, new: row.reportNumber },
+        revNumber: { old: initialRow.revNumber, new: row.revNumber },
+        approvedDays: { old: initialRow.approvedDays, new: row.approvedDays }
+      });
+      
+      if (hasChanges) {
+        console.log(`✅ سطر ${row.id} -> دسته: CHANGED (PUT)`);
+        changedRows.push(row);
       } else {
-        createReport({ reportData: reportData, rfiNumbering: rfiData?.RFI_Numbering || rowToSubmit.rfiNumbering }, { onSuccess: () => handleSuccess(), onError: (error) => console.error("❌ Create failed:", error) });
+        console.log(`✅ سطر ${row.id} -> دسته: UNCHANGED (SKIP)`);
       }
+    }
+    
+    const totalOperations = newRows.length + changedRows.length;
+    
+    console.log('📊 نتیجه نایی:', {
+      newRows: newRows.length,
+      changedRows: changedRows.length,
+      totalOperations
+    });
+    
+    if (totalOperations === 0) {
+      toast('هیچ تغییری برای ذخیره وجود ندارد', {
+        position: 'top-center',
+        duration: 3000,
+        icon: 'ℹ️',
+        style: {
+          background: '#3b82f6',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '12px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+      });
+      isSubmittingRef.current = false;
+      return;
+    }
+    
+    // شمارنده برای追踪 عملیات
+    let completedCount = 0;
+    let hasError = false;
+    
+    const onComplete = () => {
+      completedCount++;
+      console.log(`📊 پیشرفت: ${completedCount}/${totalOperations} عملیات تکمیل شد`);
+      
+      if (completedCount === totalOperations) {
+        if (hasError) {
+          toast.error('برخی از عملیات با خطا مواجه شدند', {
+            position: 'top-center',
+            duration: 4000,
+            icon: '❌',
+          });
+        } else {
+          setTimeout(() => {
+            handleSuccess();
+            // toast.success(`${totalOperations} سطر با موفقیت ذخیره شد`, {
+            //   position: 'top-center',
+            //   duration: 3000,
+            //   icon: '✅',
+            // });
+          }, 500);
+        }
+        isSubmittingRef.current = false;
+      }
+    };
+    
+    const onError = (error, rowId, method) => {
+      console.error(`❌ ${method} سطر ${rowId} خطا:`, error);
+      hasError = true;
+      onComplete();
+    };
+    
+    // ثبت سطرهای جدید (POST)
+    for (const row of newRows) {
+      const reportData = prepareReportData(row);
+      console.log(`📤 POST سطر ${row.id}:`, { reportNumber: reportData.reportNumber, revNumber: reportData.revNumber });
+      
+      createReport(
+        { reportData: reportData, rfiNumbering: rfiData?.RFI_Numbering || row.rfiNumbering },
+        {
+          onSuccess: () => onComplete(),
+          onError: (error) => onError(error, row.id, 'POST')
+        }
+      );
+    }
+    
+    // بروزرسانی سطرهای تغییر کرده (PUT)
+    for (const row of changedRows) {
+      const reportData = prepareReportData(row);
+      console.log(`📤 PUT سطر ${row.id}:`, { reportNumber: reportData.reportNumber, revNumber: reportData.revNumber });
+      
+      updateReport(
+        { reportData: reportData, rfiNumbering: rfiData?.RFI_Numbering || row.rfiNumbering },
+        {
+          onSuccess: () => onComplete(),
+          onError: (error) => onError(error, row.id, 'PUT')
+        }
+      );
     }
   };
 
-  const handleSubmit = (e) => { e.preventDefault(); if (hasChanges) setShowSaveConfirm(true); else handleSubmitInternal(); };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // بررسی اینکه آیا سطر جدیدی اضافه شده یا تغییری در سطرهای موجود وجود دارد
+    let hasAnyChange = hasRowAddition;
+    
+    if (!hasAnyChange && initialDataRef.current) {
+      for (const row of reportRows) {
+        // سطرهای جدید
+        if (row.isNew) {
+          hasAnyChange = true;
+          break;
+        }
+        
+        // پیدا کردن سطر اصلی در initialDataRef
+        const initialRow = initialDataRef.current.reportRows?.find(r => 
+          r.reportNumber === row.reportNumber || 
+          (row.reportNumber !== "************" && r.reportNumber === "************")
+        );
+        
+        if (initialRow) {
+          // مقایسه همه فیلدها از جمله reportNumber
+          if (
+            initialRow.reportNumber !== row.reportNumber ||  // <-- اضافه شد: بررسی تغییر شماره گزارش
+            initialRow.revNumber !== row.revNumber ||
+            initialRow.status !== row.status ||
+            initialRow.corrections !== row.corrections ||
+            !areValuesEqual(initialRow.receivedDate, row.receivedDate) ||
+            initialRow.approvedDays !== row.approvedDays ||
+            initialRow.unitNumber !== row.unitNumber ||
+            initialRow.vendorName !== row.vendorName ||
+            initialRow.irn !== row.irn ||
+            initialRow.srn !== row.srn
+          ) {
+            hasAnyChange = true;
+            break;
+          }
+        } else if (row.reportNumber && row.reportNumber !== "************") {
+          // اگر سطری در initialDataRef وجود ندارد و شماره گزارش معتبر دارد
+          hasAnyChange = true;
+          break;
+        }
+      }
+    }
+    
+    // همچنین بررسی سطرهایی که شماره شان از ************ به یک شماره واقعی تغییر کرده
+    if (!hasAnyChange && initialDataRef.current) {
+      for (const initialRow of initialDataRef.current.reportRows) {
+        if (initialRow.reportNumber === "************") {
+          const currentRow = reportRows.find(r => r.id === initialRow.id);
+          if (currentRow && currentRow.reportNumber !== "************") {
+            hasAnyChange = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (!hasAnyChange) {
+      toast('هیچ تغییری برای ذخیره وجود ندارد', {
+        position: 'top-center',
+        duration: 3000,
+        icon: 'ℹ️',
+        style: {
+          background: '#3b82f6',
+          color: 'white',
+          borderRadius: '10px',
+          padding: '12px',
+          fontSize: '14px',
+          direction: 'rtl',
+          textAlign: 'right',
+        },
+      });
+      return;
+    }
+    
+    if (hasChanges) {
+      setShowSaveConfirm(true);
+    } else {
+      handleSubmitInternal();
+    }
+  };
   const handleCancelInternal = () => onClose();
   const handleCancel = () => { if (hasChanges) setShowCancelConfirm(true); else onClose(); };
 
