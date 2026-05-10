@@ -5,20 +5,20 @@ import {
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 
-// تعریف ستون‌های ثابت
+// تعریف ستون‌های ثابت - کلیدها لاتین (از API)، عنوان‌ها فارسی (برای نمایش)
 const FIXED_COLUMNS = [
-  { key: "نام پروژه", title: "نام پروژه", type: "string", sortable: true, filterable: true },
-  { key: "نام بازرس", title: "نام بازرس", type: "string", sortable: true, filterable: true },
-  { key: "کد پرسنلی", title: "کد پرسنلی", type: "string", sortable: true, filterable: true },
-  { key: "تاریخ شروع بازرسی", title: "تاریخ شروع بازرسی", type: "date", sortable: true, filterable: false },
-  { key: "تاریخ شمسی", title: "تاریخ شمسی", type: "string", sortable: true, filterable: false },
-  { key: "تعداد روز مورد تایید", title: "تعداد روز مورد تایید", type: "number", sortable: true, filterable: false },
-  { key: "قیمت بازرسی", title: "قیمت بازرسی", type: "number", sortable: true, filterable: false },
-  { key: "جمع کارکرد اعداد ثابت", title: "جمع کارکرد اعداد ثابت", type: "number", sortable: true, filterable: false },
-  { key: "تعداد روز مورد تایید نهایی", title: "تعداد روز مورد تایید نهایی", type: "number", sortable: true, filterable: false, editable: true },
-  { key: "قیمت بازرس نهایی", title: "قیمت بازرس نهایی", type: "number", sortable: true, filterable: false, editable: true },
-  { key: "جمع کارکرد اعداد متغیر", title: "جمع کارکرد اعداد متغیر", type: "number", sortable: true, filterable: false },
-  { key: "توضیحات", title: "توضیحات", type: "string", sortable: true, filterable: true },
+  { key: "title", title: "نام پروژه", type: "string", sortable: true, filterable: true },
+  { key: "inspector_name", title: "نام بازرس", type: "string", sortable: true, filterable: true },
+  { key: "personnel_code", title: "کد پرسنلی", type: "string", sortable: true, filterable: true },
+  { key: "rfi_date", title: "تاریخ شروع بازرسی", type: "date", sortable: true, filterable: false },
+  { key: "date_shamsi", title: "تاریخ شمسی", type: "string", sortable: true, filterable: false },
+  { key: "approve_manday", title: "تعداد روز مورد تایید", type: "number", sortable: true, filterable: false },
+  { key: "inspector_price", title: "قیمت بازرسی", type: "number", sortable: true, filterable: false },
+  { key: "fix_total_price", title: "جمع کارکرد اعداد ثابت", type: "number", sortable: true, filterable: false },
+  { key: "appman", title: "تعداد روز مورد تایید نهایی", type: "number", sortable: true, filterable: false, editable: true },
+  { key: "final_price", title: "قیمت بازرس نهایی", type: "number", sortable: true, filterable: false, editable: true },
+  { key: "total_price", title: "جمع کارکرد اعداد متغیر", type: "number", sortable: true, filterable: false },
+  { key: "remark", title: "توضیحات", type: "string", sortable: true, filterable: true },
 ];
 
 const FinancialSummaryTable = forwardRef(({ data, onDelete, onEdit, isLoading, isEditingEnabled = true }, ref) => {
@@ -42,16 +42,17 @@ const FinancialSummaryTable = forwardRef(({ data, onDelete, onEdit, isLoading, i
   useImperativeHandle(ref, () => ({
     copyInitialToFinal: () => {
       const updatedData = localData.map(row => {
-        const initialDays = row["تعداد روز مورد تایید"] || 0;
-        const initialPrice = row["قیمت بازرسی"] || 0;
+        if (row.is_submit === true) return row;
+        const initialDays = row.approve_manday || 0;
+        const initialPrice = row.inspector_price || 0;
         const finalDays = initialDays;
         const finalPrice = initialPrice;
         const variableSum = finalDays * finalPrice;
         return {
           ...row,
-          "تعداد روز مورد تایید نهایی": finalDays,
-          "قیمت بازرس نهایی": finalPrice,
-          "جمع کارکرد اعداد متغیر": variableSum
+          appman: finalDays,
+          final_price: finalPrice,
+          total_price: variableSum
         };
       });
       setLocalData(updatedData);
@@ -60,7 +61,15 @@ const FinancialSummaryTable = forwardRef(({ data, onDelete, onEdit, isLoading, i
     },
     disableEditing: () => {
       setIsEditModeActive(false);
-      setModifiedRows({}); // ریست رنگ نارنجی بعد از ذخیره نهایی
+      setModifiedRows({});
+    },
+    getModifiedRows: () => {
+      // ارسال تمام سطرها با سه فیلد مورد نیاز
+      return localData.map(row => ({
+        idrd: row.rfi_id,
+        approve_manday1: row.appman,
+        final_price: row.final_price
+      }));
     }
   }));
 
@@ -248,13 +257,15 @@ const FinancialSummaryTable = forwardRef(({ data, onDelete, onEdit, isLoading, i
     return columnType === 'number' ? 'text-left' : 'text-right';
   };
 
-  const isEditableColumn = (columnName) => {
+  const isRowEditable = (row) => isEditModeActive && row.is_submit === false;
+
+  const isEditableColumn = (columnName, row) => {
     const column = FIXED_COLUMNS.find(col => col.key === columnName);
-    return column?.editable === true && isEditModeActive;
+    return column?.editable === true && isRowEditable(row);
   };
 
-  const handleCellClick = (rowIndex, columnName, currentValue) => {
-    if (isEditableColumn(columnName)) {
+  const handleCellClick = (rowIndex, columnName, currentValue, row) => {
+    if (isEditableColumn(columnName, row)) {
       setEditingCell({ rowIndex, columnName });
       setEditedValue(currentValue?.toString() || '');
     }
@@ -264,21 +275,15 @@ const FinancialSummaryTable = forwardRef(({ data, onDelete, onEdit, isLoading, i
     const value = e.target.value.replace(/[^0-9]/g, '');
     setEditedValue(value);
     if (editingCell && value !== localData[editingCell.rowIndex][editingCell.columnName]?.toString()) {
-      setModifiedRows(prev => ({
-        ...prev,
-        [editingCell.rowIndex]: true
-      }));
+      setModifiedRows(prev => ({ ...prev, [editingCell.rowIndex]: true }));
     }
   };
 
   const updateVariableSum = (updatedData, rowIndex) => {
     const row = updatedData[rowIndex];
-    const finalDays = row["تعداد روز مورد تایید نهایی"] || 0;
-    const finalPrice = row["قیمت بازرس نهایی"] || 0;
-    updatedData[rowIndex] = {
-      ...row,
-      "جمع کارکرد اعداد متغیر": finalDays * finalPrice
-    };
+    const finalDays = row.appman || 0;
+    const finalPrice = row.final_price || 0;
+    updatedData[rowIndex] = { ...row, total_price: finalDays * finalPrice };
     return updatedData;
   };
 
@@ -294,9 +299,7 @@ const FinancialSummaryTable = forwardRef(({ data, onDelete, onEdit, isLoading, i
       updatedData[rowIndex] = rowToUpdate;
       updatedData = updateVariableSum(updatedData, rowIndex);
       setLocalData(updatedData);
-      if (onEdit) {
-        onEdit(updatedData[rowIndex]);
-      }
+      if (onEdit) onEdit(updatedData[rowIndex]);
       setIsSaving(false);
       setEditingCell(null);
       setEditedValue('');
@@ -342,120 +345,70 @@ const FinancialSummaryTable = forwardRef(({ data, onDelete, onEdit, isLoading, i
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-blue-600 to-blue-500 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap" style={{ paddingRight: '24px' }}>
-                    <span>ردیف</span>
-                  </th>
-                  
+                  <th className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap" style={{ paddingRight: '24px' }}><span>ردیف</span></th>
                   {FIXED_COLUMNS.map((column) => {
                     const uniqueValues = column.filterable ? getUniqueValues(column.key) : [];
                     const activeFilter = activeFilters[column.key];
                     const isFilterActive = activeFilter !== undefined;
-                    
                     return (
                       <th key={column.key} className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap relative">
                         <div className="flex items-center gap-1">
                           <span>{column.title}</span>
-                          
                           {column.filterable && (
                             <div className="relative" ref={el => filterRefs.current[column.key] = el}>
-                              <button
-                                onClick={() => setOpenFilter(openFilter === column.key ? null : column.key)}
-                                className={`p-1 rounded transition-colors duration-200 ${isFilterActive ? 'bg-blue-700 text-yellow-300' : 'hover:bg-blue-700 text-white'}`}
-                              >
+                              <button onClick={() => setOpenFilter(openFilter === column.key ? null : column.key)} className={`p-1 rounded ${isFilterActive ? 'bg-blue-700 text-yellow-300' : 'hover:bg-blue-700 text-white'}`}>
                                 {column.type === 'string' && uniqueValues.length <= 20 ? <FaFilter className="text-xs" /> : <FaSearch className="text-xs" />}
                               </button>
-                              
                               {openFilter === column.key && (
                                 <div className="absolute top-full right-0 mt-1 z-50 bg-white rounded-lg shadow-xl border border-gray-200 min-w-[250px] max-h-[300px] overflow-y-auto">
                                   <div className="p-2 border-b border-gray-200">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="text-xs font-semibold text-gray-700">جستجو در {column.title}</span>
-                                      <button onClick={() => setOpenFilter(null)} className="text-gray-500 hover:text-gray-700">
-                                        <FaTimes className="text-xs" />
-                                      </button>
-                                    </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex justify-between mb-2"><span className="text-xs font-semibold">جستجو در {column.title}</span><button onClick={() => setOpenFilter(null)} className="text-gray-500 hover:text-gray-700">
+  <FaTimes className="text-xs text-gray-500" />
+</button></div>
+                                    <div className="flex gap-2">
+                                      {/* <input type="text" value={activeFilter?.type === 'text' ? activeFilter.value : ''} onChange={(e) => handleTextFilterChange(column.key, e.target.value)} placeholder={`جستجوی ${column.title}...`} className="w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-right" autoFocus /> */}
                                       <input
-                                        type="text"
-                                        value={activeFilter?.type === 'text' ? activeFilter.value : ''}
-                                        onChange={(e) => handleTextFilterChange(column.key, e.target.value)}
-                                        placeholder={`جستجوی ${column.title}...`}
-                                        className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white text-right"
-                                        autoFocus
-                                      />
-                                      {isFilterActive && (
-                                        <button onClick={() => clearColumnFilter(column.key)} className="text-red-600 hover:text-red-800 text-xs whitespace-nowrap">
-                                          پاک کردن
-                                        </button>
-                                      )}
+  type="text"
+  value={activeFilter?.type === 'text' ? activeFilter.value : ''}
+  onChange={(e) => handleTextFilterChange(column.key, e.target.value)}
+  placeholder={`جستجوی ${column.title}...`}
+  className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-right text-gray-900 bg-white"
+  autoFocus
+/>
+                                      {isFilterActive && <button onClick={() => clearColumnFilter(column.key)} className="text-red-600 text-xs">پاک کردن</button>}
                                     </div>
                                   </div>
                                 </div>
                               )}
                             </div>
                           )}
-                          
-                          <button onClick={() => handleSort(column.key)} className="p-1 rounded hover:bg-blue-700 transition-colors">
-                            {getSortIcon(column.key, column.sortable)}
-                          </button>
+                          <button onClick={() => handleSort(column.key)} className="p-1 rounded hover:bg-blue-700">{getSortIcon(column.key, column.sortable)}</button>
                         </div>
-                        
-                        {isFilterActive && (
-                          <div className="text-[10px] text-yellow-300 mt-0.5">
-                            {activeFilter.type === 'checkbox' && `${activeFilter.value.length} انتخاب`}
-                            {activeFilter.type === 'text' && `شامل: ${activeFilter.value}`}
-                          </div>
-                        )}
+                        {isFilterActive && <div className="text-[10px] text-yellow-300 mt-0.5">{activeFilter.type === 'checkbox' ? `${activeFilter.value.length} انتخاب` : `شامل: ${activeFilter.value}`}</div>}
                       </th>
                     );
                   })}
-                  
-                  <th className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap">
-                    <span>حذف</span>
-                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-white uppercase tracking-wider whitespace-nowrap"><span>حذف</span></th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredAndSortedData.map((item, index) => {
                   const isModified = modifiedRows[index] === true;
+                  const isEditableRow = isRowEditable(item);
                   return (
-                    <tr key={index} className={`hover:bg-gray-50 transition-colors duration-300 ${isModified ? 'bg-amber-100' : ''}`}>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900" style={{ paddingRight: '24px' }}>
-                        {index + 1}
-                      </td>
-                      
+                    <tr key={index} className={`hover:bg-gray-50 ${isModified ? 'bg-amber-100' : ''}`}>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900" style={{ paddingRight: '24px' }}>{index + 1}</td>
                       {FIXED_COLUMNS.map((column) => {
                         const isEditing = editingCell && editingCell.rowIndex === index && editingCell.columnName === column.key;
-                        const inputKey = `${index}-${column.key}`;
                         const cellValue = item[column.key];
-                        const isEditable = isEditableColumn(column.key);
-                        
+                        const isEditable = isEditableColumn(column.key, item);
                         return (
-                          <td 
-                            key={column.key}
-                            className={`px-3 py-2 whitespace-nowrap text-xs text-gray-900 ${getCellAlignment(column.type)}`}
-                            onClick={() => handleCellClick(index, column.key, cellValue)}
-                          >
+                          <td key={column.key} className={`px-3 py-2 whitespace-nowrap text-xs text-gray-900 ${column.type === 'number' ? 'text-left' : 'text-right'}`} onClick={() => handleCellClick(index, column.key, cellValue, item)}>
                             <div className="flex items-center gap-1">
                               {isEditing ? (
                                 <>
-                                  <input
-                                    ref={el => inputRefs.current[inputKey] = el}
-                                    type="text"
-                                    value={editedValue}
-                                    onChange={handleInputChange}
-                                    className="w-24 px-1 py-0.5 text-xs border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
-                                    placeholder="عدد"
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); handleDirectSave(); }}
-                                    className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
-                                    title="ذخیره"
-                                    disabled={editedValue === '' || isSaving}
-                                  >
-                                    {isSaving ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-600"></div> : <FaSave size={12} />}
-                                  </button>
+                                  <input ref={el => inputRefs.current[`${index}-${column.key}`] = el} type="text" value={editedValue} onChange={handleInputChange} className="w-24 px-1 py-0.5 text-xs border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-right" placeholder="عدد" onClick={(e) => e.stopPropagation()} />
+                                  <button onClick={(e) => { e.stopPropagation(); handleDirectSave(); }} className="text-green-600 p-1 rounded hover:bg-green-50" disabled={editedValue === '' || isSaving}>{isSaving ? <div className="animate-spin h-3 w-3 border-2 border-green-600 rounded-full border-t-transparent"></div> : <FaSave size={12} />}</button>
                                 </>
                               ) : (
                                 <>
@@ -467,17 +420,8 @@ const FinancialSummaryTable = forwardRef(({ data, onDelete, onEdit, isLoading, i
                           </td>
                         );
                       })}
-                      
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
-                        <div className="flex items-center justify-center">
-                          <button
-                            onClick={() => onDelete(item)}
-                            className="text-red-600 hover:text-red-800 transition-colors p-1 rounded hover:bg-red-50"
-                            title="حذف"
-                          >
-                            <FaTrash size={14} />
-                          </button>
-                        </div>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900 text-center">
+                        <button onClick={() => onDelete(item)} className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50" disabled={item.is_submit === true}><FaTrash size={14} /></button>
                       </td>
                     </tr>
                   );
@@ -492,20 +436,13 @@ const FinancialSummaryTable = forwardRef(({ data, onDelete, onEdit, isLoading, i
         <div className="bg-gray-50 px-3 py-2 border-t border-gray-200">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-blue-600 font-semibold">فیلترهای فعال:</span>
-            <div className="flex gap-1 flex-wrap">
-              {Object.entries(activeFilters).map(([columnName, filter]) => (
-                <span key={columnName} className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs flex items-center gap-1">
-                  {columnName}: {filter.type === 'checkbox' ? `${filter.value.length} مورد` : filter.value}
-                  <button onClick={() => clearColumnFilter(columnName)} className="text-blue-600 hover:text-blue-800">
-                    <FaTimes className="text-[10px]" />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <button onClick={clearAllFilters} className="text-red-600 hover:text-red-800 text-xs flex items-center gap-1 mr-2">
-              <FaTimes className="text-xs" />
-              حذف همه
-            </button>
+            {Object.entries(activeFilters).map(([columnName, filter]) => (
+              <span key={columnName} className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs flex items-center gap-1">
+                {FIXED_COLUMNS.find(col => col.key === columnName)?.title || columnName}: {filter.type === 'checkbox' ? `${filter.value.length} مورد` : filter.value}
+                <button onClick={() => clearColumnFilter(columnName)} className="text-blue-600"><FaTimes className="text-[10px]" /></button>
+              </span>
+            ))}
+            <button onClick={clearAllFilters} className="text-red-600 text-xs flex items-center gap-1"><FaTimes className="text-xs" /> حذف همه</button>
           </div>
         </div>
       )}

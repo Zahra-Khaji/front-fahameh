@@ -136,6 +136,34 @@ class ReportService {
     }
   }
 
+  // اضافه کردن این متد به کلاس ReportService
+
+  // متد برای ذخیره نهایی تغییرات مالی
+  async updateFinalFinancial(financialData) {
+    try {
+      console.log(
+        "📊 ReportService.updateFinalFinancial - داده‌های دریافتی:",
+        financialData
+      );
+
+      const response = await http.put(
+        "/manager/update-final-financial",
+        financialData
+      );
+
+      console.log("✅ پاسخ از سرور:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ ReportService.updateFinalFinancial - خطا:", error);
+      console.error("❌ جزئیات خطا:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      throw error;
+    }
+  }
+
   // در src/services/reportService.js - متد getDailyReportPDF را اصلاح کنید:
 
   async getDailyReport(year, month, overDomestic, fileType = "excel") {

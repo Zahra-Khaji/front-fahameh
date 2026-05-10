@@ -29,9 +29,11 @@ export const useReportInfo = (rfiNumbering, reportNumber = null) => {
     queryFn: () => reportService.getReportInfo(rfiNumbering, reportNumber),
     // **اصلاح شده: حتی اگر reportNumber "************" باشه، فعال باشه**
     enabled: !!(
-      rfiNumbering && // حتماً rfiNumbering داشته باشیم
-      reportNumber && // reportNumber خالی نباشه
-      reportNumber.trim() !== "" // و رشته خالی نباشه
+      (
+        rfiNumbering && // حتماً rfiNumbering داشته باشیم
+        reportNumber && // reportNumber خالی نباشه
+        reportNumber.trim() !== ""
+      ) // و رشته خالی نباشه
     ),
     staleTime: 5 * 60 * 1000,
     retry: 1,
@@ -625,6 +627,84 @@ export const useSuggestedReportNo = (
   });
 };
 
+// اضافه کردن این هوک به انتهای فایل useCreateReport.js (بعد از useInspectorFinancialSummary)
+
+// هوک برای ذخیره نهایی تغییرات مالی (تائید نهایی)
+export const useUpdateFinalFinancial = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (financialData) => {
+      console.log("📤 ارسال داده‌های نهایی به API:", financialData);
+
+      // تبدیل داده‌ها به فرمت مورد نیاز API
+      const apiData = financialData.map((item) => ({
+        idrd: item.idrd,
+        approve_manday1: item.approve_manday1,
+        final_price: item.final_price,
+      }));
+
+      console.log("📤 داده‌های تبدیل شده برای API:", apiData);
+
+      const result = await reportService.updateFinalFinancial(apiData);
+      return result;
+    },
+    onSuccess: (data) => {
+      console.log("✅ ذخیره نهایی با موفقیت انجام شد:", data);
+
+      toast.success("✅ تغییرات نهایی با موفقیت ذخیره شد", {
+        position: "top-center",
+        duration: 4000,
+        icon: "✅",
+        style: {
+          background: "#10b981",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
+
+      // اینوالیدیت query مالی برای دریافت داده‌های تازه
+      queryClient.invalidateQueries({
+        queryKey: ["financial-summary"],
+      });
+
+      // اینوالیدیت query صورت وضعیت بازرسین
+      queryClient.invalidateQueries({
+        queryKey: ["inspector-financial-summary"],
+      });
+    },
+    onError: (error) => {
+      console.error("❌ خطا در ذخیره نهایی:", error);
+
+      toast.error(
+        `❌ خطا در ذخیره تغییرات نهایی: ${
+          error.response?.data?.message ||
+          error.message ||
+          "لطفا مجدد تلاش کنید"
+        }`,
+        {
+          position: "top-center",
+          duration: 4000,
+          icon: "❌",
+          style: {
+            background: "#ef4444",
+            color: "white",
+            borderRadius: "10px",
+            padding: "16px",
+            fontSize: "14px",
+            direction: "rtl",
+            textAlign: "right",
+          },
+        }
+      );
+    },
+  });
+};
+
 // اضافه کردن این هوک به انتهای فایل useCreateReport.js
 
 // هوک برای دریافت صورت وضعیت بازرسین (خلاصه مالی بازرسان)
@@ -637,10 +717,16 @@ export const useInspectorFinancialSummary = (year, month, enabled = false) => {
       }
 
       try {
-        const result = await reportService.getInspectorFinancialSummary(year, month);
+        const result = await reportService.getInspectorFinancialSummary(
+          year,
+          month
+        );
         return result;
       } catch (error) {
-        console.error("❌ useInspectorFinancialSummary: خطا در دریافت اطلاعات:", error);
+        console.error(
+          "❌ useInspectorFinancialSummary: خطا در دریافت اطلاعات:",
+          error
+        );
 
         if (error.response?.status === 404) {
           throw new Error("اطلاعاتی برای تاریخ انتخاب شده یافت نشد");

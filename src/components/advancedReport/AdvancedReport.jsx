@@ -3,7 +3,7 @@ import DatePicker from "react-multi-date-picker";
 import persian from 'react-date-object/calendars/persian';
 import persian_fa from 'react-date-object/locales/persian_fa';
 import { FaSearch, FaCalendarAlt, FaChartBar, FaFileExcel, FaCheckDouble, FaSave } from 'react-icons/fa';
-import { useDailyReport, useFinancialSummary } from '../../hooks/useCreateReport';
+import { useDailyReport, useFinancialSummary, useUpdateFinalFinancial } from '../../hooks/useCreateReport';
 import Button from '../ui/Button';
 import FormSection from '../common/FormSection';
 import StepHeader from '../common/StepHeader';
@@ -14,11 +14,12 @@ const AdvancedReport = () => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [searchParams, setSearchParams] = useState(null);
-  const [isEditingEnabled, setIsEditingEnabled] = useState(true); // وضعیت قابلیت ویرایش
-  const [initialCopyDone, setInitialCopyDone] = useState(false); // آیا کپی اولیه انجام شده؟
+  const [isEditingEnabled, setIsEditingEnabled] = useState(true);
+  const [initialCopyDone, setInitialCopyDone] = useState(false);
   const tableRef = useRef(null);
   
   const { mutate: fetchDailyReport, isLoading: isFetching } = useDailyReport('excel');
+  const { mutate: updateFinalFinancial, isLoading: isUpdatingFinal } = useUpdateFinalFinancial();
   
   const { 
     data: financialData, 
@@ -83,15 +84,46 @@ const AdvancedReport = () => {
     }
   };
   
-  // هندلر ذخیره نهایی
+  // هندلر ذخیره نهایی - ارسال به API
   const handleFinalSave = () => {
-    if (tableRef.current && tableRef.current.disableEditing) {
-      tableRef.current.disableEditing();
-      setIsEditingEnabled(false);
-      toast.success('تغییرات نهایی با موفقیت ذخیره شد', {
-        position: 'top-center',
-        duration: 3000,
-        icon: '✅',
+    if (tableRef.current && tableRef.current.getModifiedRows) {
+      const modifiedRows = tableRef.current.getModifiedRows();
+      
+      if (modifiedRows.length === 0) {
+        toast('هیچ تغییری برای ذخیره وجود ندارد', {
+          position: 'top-center',
+          duration: 3000,
+          icon: '⚠️',
+          style: {
+            background: '#f59e0b',
+            color: 'white',
+            borderRadius: '10px',
+            padding: '16px',
+            fontSize: '14px',
+            direction: 'rtl',
+            textAlign: 'right',
+          },
+        });
+        return;
+      }
+      
+      console.log('📤 ارسال به API:', modifiedRows);
+      
+      updateFinalFinancial(modifiedRows, {
+        onSuccess: () => {
+          if (tableRef.current && tableRef.current.disableEditing) {
+            tableRef.current.disableEditing();
+          }
+          setIsEditingEnabled(false);
+          
+          // رفرش داده‌ها برای دریافت مقادیر به‌روز شده
+          setTimeout(() => {
+            refetchFinancialData();
+          }, 500);
+        },
+        onError: (error) => {
+          console.error('خطا در ذخیره نهایی:', error);
+        }
       });
     }
   };
@@ -114,8 +146,6 @@ const AdvancedReport = () => {
   
   const handleEdit = (item) => {};
   const handleDelete = (item) => {};
-
-  const showButtons = searchParams && financialData && financialData.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-2 sm:py-4 px-3 sm:px-4 lg:px-6" dir="rtl">
@@ -225,11 +255,12 @@ const AdvancedReport = () => {
                   variant="secondary"
                   size="sm"
                   onClick={handleFinalSave}
-                  disabled={!financialData || financialData.length === 0 || !isEditingEnabled}
+                  disabled={!financialData || financialData.length === 0 || !isEditingEnabled || isUpdatingFinal}
+                  isLoading={isUpdatingFinal}
                   className="flex items-center gap-1 text-xs py-1 px-3 bg-green-500 hover:bg-green-600 text-white"
                 >
                   <FaSave className="text-xs" />
-                  ذخیره نهایی تغییرات
+                  {isUpdatingFinal ? "در حال ذخیره..." : "ذخیره نهایی تغییرات"}
                 </Button>
                 
                 {/* دکمه دانلود اکسل */}
