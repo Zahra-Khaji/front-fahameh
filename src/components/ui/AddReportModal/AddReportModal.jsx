@@ -39,10 +39,8 @@ import {
 } from "../../../hooks/useCreateReport";
 import DeleteConfirmationPopover from "./DeleteConfirmationPopover";
 import reportService from "../../../services/reportService";
-// import TableSearchableSelect from "../TableSearchableSelect";
 import TableSearchableSelect from "../TableSearchableSelect";
 
-// پاپ‌آپ تأیید مینیمال
 const ConfirmationPopover = ({
   isOpen,
   onClose,
@@ -128,7 +126,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   const [hasRowAddition, setHasRowAddition] = useState(false);
   const initialDataRef = useRef(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [pendingFetchRow, setPendingFetchRow] = useState(null);
+  
+  const [duplicateReportNumbers, setDuplicateReportNumbers] = useState({});
 
   const statusOptions = useMemo(() => transformReportStatuses(statusesData), [statusesData]);
 
@@ -259,38 +258,45 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     return str1 === str2;
   };
 
-  const fetchSuggestedReportNumber = async (rowId, revNoValue) => {
-    if (!rfiData?.RFI_Numbering) {
-      toast.error('❌ شماره RFI نامشخص است');
-      return;
-    }
-    const currentRows = [...reportRows];
-    const rowIndex = currentRows.findIndex(r => r.id === rowId);
-    if (rowIndex === -1) return;
+  const checkDuplicateReportNumbers = (rows) => {
+    const duplicates = {};
+    const reportNumberCount = {};
     
-    let baseReportNo = '';
-    for (let i = rowIndex - 1; i >= 0; i--) {
-      const prevRow = currentRows[i];
-      if (prevRow.reportNumber && prevRow.reportNumber.trim() !== '') {
-        baseReportNo = prevRow.reportNumber;
-        break;
+    rows.forEach(row => {
+      const reportNumber = row.reportNumber?.trim();
+      if (reportNumber && reportNumber !== "************" && reportNumber !== "") {
+        if (!reportNumberCount[reportNumber]) {
+          reportNumberCount[reportNumber] = [];
+        }
+        reportNumberCount[reportNumber].push(row.id);
+      }
+    });
+    
+    Object.entries(reportNumberCount).forEach(([number, ids]) => {
+      if (ids.length > 1) {
+        ids.forEach(id => {
+          duplicates[id] = true;
+        });
+      }
+    });
+    
+    return duplicates;
+  };
+
+  const updateDuplicateStatus = (rows) => {
+    const duplicates = checkDuplicateReportNumbers(rows);
+    setDuplicateReportNumbers(duplicates);
+    return duplicates;
+  };
+
+  const getLastReportNumber = () => {
+    for (let i = reportRows.length - 1; i >= 0; i--) {
+      const row = reportRows[i];
+      if (!row.isNew && row.reportNumber && row.reportNumber !== "************" && row.reportNumber.trim() !== "") {
+        return row.reportNumber;
       }
     }
-    if (!baseReportNo && currentRows.length > 0) baseReportNo = currentRows[0].reportNumber;
-    if (!baseReportNo || baseReportNo.trim() === '') {
-      toast.error('❌ ابتدا یک شماره گزارش معتبر در سطرهای قبلی وجود داشته باشد');
-      return;
-    }
-    
-    setReportRows(prevRows => prevRows.map(row => row.id === rowId ? { ...row, _loading: true } : row));
-    try {
-      const result = await reportService.getSuggestedReportNo(rfiData.RFI_Numbering, baseReportNo, revNoValue);
-      setReportRows(prevRows => prevRows.map(row => row.id === rowId ? { ...row, reportNumber: result, _loading: false, revNumber: revNoValue } : row));
-      toast.success(`شماره گزارش جدید دریافت شد`);
-    } catch (error) {
-      setReportRows(prevRows => prevRows.map(row => row.id === rowId ? { ...row, _loading: false, revNumber: '' } : row));
-      toast.error('❌ خطا در دریافت شماره گزارش جدید');
-    }
+    return "";
   };
 
   const handleAddNewRow = () => {
@@ -301,24 +307,24 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     
     const newId = reportRows.length > 0 ? Math.max(...reportRows.map(r => r.id)) + 1 : 1;
     
-    // پیدا کردن آخرین سطر قبلی
     let lastRevNumber = '';
     let lastApprovedDays = '';
+    let lastReportNumber = '';
     
     if (reportRows.length > 0) {
       const lastRow = reportRows[reportRows.length - 1];
-      // فقط اگر آخرین سطر multipart باشد، مقدار آن را برای سطر جدید نگه دار
       if (lastRow.revNumber === 'multipart') {
         lastRevNumber = 'multipart';
         lastApprovedDays = lastRow.approvedDays || '';
       } else {
-        lastRevNumber = ''; // برای rev یا هر مقدار دیگر، خالی باشد
+        lastRevNumber = '';
       }
+      lastReportNumber = lastRow.reportNumber || '';
     }
     
     const newRow = {
       id: newId,
-      reportNumber: '',
+      reportNumber: lastReportNumber,
       revNumber: lastRevNumber,
       status: "5",
       statusEnglish: "approved",
@@ -338,15 +344,12 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       originalApprovedDays: undefined
     };
     
-    setReportRows(prevRows => [...prevRows, newRow]);
+    const newRows = [...reportRows, newRow];
+    setReportRows(newRows);
     setHasRowAddition(true);
+    updateDuplicateStatus(newRows);
     
-    // اگر سطر جدید multipart است، آن را برای دریافت شماره گزارش در صف قرار بده
-    if (lastRevNumber === 'multipart') {
-      setPendingFetchRow({ id: newId, revNumber: 'multipart' });
-    }
-    
-    // toast('📝 سطر جدید اضافه شد. لطفاً نوع گزارش را انتخاب کنید');
+    toast.info('📝 سطر جدید اضافه شد. لطفاً شماره گزارش را ویرایش کنید');
   };
 
   const handleCopyRow = (id) => {
@@ -362,7 +365,6 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     
     const newId = Math.max(...reportRows.map(r => r.id), 0) + 1;
     
-    // فقط اگر سطر مبدأ multipart باشد، مقدار آن را برای سطر جدید نگه دار
     let newRevNumber = '';
     let newApprovedDays = '';
     
@@ -370,13 +372,13 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       newRevNumber = 'multipart';
       newApprovedDays = rowToCopy.approvedDays || '';
     } else {
-      newRevNumber = ''; // برای rev یا هر مقدار دیگر، خالی باشد
+      newRevNumber = '';
     }
     
     const newRow = { 
       ...rowToCopy, 
       id: newId, 
-      reportNumber: '', 
+      reportNumber: rowToCopy.reportNumber,
       revNumber: newRevNumber,
       approvedDays: newApprovedDays,
       isNew: true, 
@@ -386,28 +388,13 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       originalApprovedDays: undefined 
     };
     
-    setReportRows(prevRows => [...prevRows, newRow]);
+    const newRows = [...reportRows, newRow];
+    setReportRows(newRows);
     setHasRowAddition(true);
+    updateDuplicateStatus(newRows);
     
-    // اگر سطر جدید multipart است، آن را برای دریافت شماره گزارش در صف قرار بده
-    if (newRevNumber === 'multipart') {
-      setPendingFetchRow({ id: newId, revNumber: 'multipart' });
-    }
-    
-    // toast('📝 سطر کپی شد. لطفاً نوع گزارش را انتخاب کنید');
+    toast.info('📝 سطر کپی شد. لطفاً شماره گزارش را ویرایش کنید');
   };
-
-  useEffect(() => {
-    if (pendingFetchRow && pendingFetchRow.id) {
-      // اطمینان از اینکه سطر جدید به state اضافه شده
-      const timer = setTimeout(() => {
-        fetchSuggestedReportNumber(pendingFetchRow.id, pendingFetchRow.revNumber);
-        setPendingFetchRow(null);
-      }, 150);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [pendingFetchRow, reportRows.length]);
 
   const handleDeleteRow = (id) => {
     const rowToDelete = reportRows.find((row) => row.id === id);
@@ -416,8 +403,10 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       setSelectedReportForDelete({ reportNumber: reportInfo.Report_No, rfiNumbering: reportInfo.RFI_Numbering || rfiData?.RFI_Numbering, rowId: id });
       setShowDeleteConfirm(true);
     } else {
-      setReportRows(reportRows.filter((row) => row.id !== id));
+      const newRows = reportRows.filter((row) => row.id !== id);
+      setReportRows(newRows);
       if (reportRows.length === 1) setTimeout(() => onClose(), 100);
+      updateDuplicateStatus(newRows);
     }
   };
 
@@ -436,29 +425,38 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       if (targetRow && targetRow.isNew) {
         if (value && value !== '') {
           setReportRows(prevRows => applyRevTypeLogicWithDays(id, value, prevRows));
-          if (!targetRow._loading) fetchSuggestedReportNumber(id, value);
         }
       } else if (targetRow && !targetRow.isNew) {
         setReportRows(prevRows => applyRevTypeLogicWithDays(id, value, prevRows));
       }
     } else {
-      setReportRows(reportRows.map((row) => {
-        if (row.id === id) {
-          if (field === "status") {
-            const selectedOption = statusOptions.find((opt) => opt.value === value);
-            const englishStatus = selectedOption?.textValue || value;
-            return { ...row, [field]: value, statusEnglish: englishStatus, ...(englishStatus !== "Objection" && { corrections: "" }) };
+      setReportRows(prevRows => {
+        const updatedRows = prevRows.map((row) => {
+          if (row.id === id) {
+            if (field === "status") {
+              const selectedOption = statusOptions.find((opt) => opt.value === value);
+              const englishStatus = selectedOption?.textValue || value;
+              return { ...row, [field]: value, statusEnglish: englishStatus, ...(englishStatus !== "Objection" && { corrections: "" }) };
+            }
+            if (field === "approvedDays") {
+              if (value === "" || value === null || value === undefined) return { ...row, [field]: "" };
+              const numValue = parseInt(value, 10);
+              if (!isNaN(numValue) && numValue >= 0) return { ...row, [field]: numValue };
+              return row;
+            }
+            return { ...row, [field]: value };
           }
-          if (field === "approvedDays") {
-            if (value === "" || value === null || value === undefined) return { ...row, [field]: "" };
-            const numValue = parseInt(value, 10);
-            if (!isNaN(numValue) && numValue >= 0) return { ...row, [field]: numValue };
-            return row;
-          }
-          return { ...row, [field]: value };
+          return row;
+        });
+        
+        if (field === "reportNumber") {
+          setTimeout(() => {
+            updateDuplicateStatus(updatedRows);
+          }, 0);
         }
-        return row;
-      }));
+        
+        return updatedRows;
+      });
     }
   };
 
@@ -519,6 +517,12 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   };
 
   const validateForm = () => {
+    const hasDuplicate = Object.keys(duplicateReportNumbers).length > 0;
+    if (hasDuplicate) {
+      toast.error("❌ شماره گزارش تکراری است. لطفاً شماره‌های تکراری را اصلاح کنید");
+      return false;
+    }
+    
     if (reportRows.length === 0) { toast.error("❌ حداقل یک ردیف گزارش باید وجود داشته باشد"); return false; }
     for (const row of reportRows) {
       if (!row.reportNumber || !row.reportNumber.trim()) { toast.error("❌ شماره گزارش الزامی است"); return false; }
@@ -547,7 +551,6 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     
     isSubmittingRef.current = true;
     
-    // تابع کمکی برای مقایسه امن مقادیر
     const isValueChanged = (oldVal, newVal) => {
       const normalize = (val) => {
         if (val === null || val === undefined) return "";
@@ -557,13 +560,10 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       return normalize(oldVal) !== normalize(newVal);
     };
     
-    const newRows = [];     // سطرهایی که باید POST شوند
-    const changedRows = []; // سطرهایی که باید PUT شوند
-    
-    console.log('🔍 شروع دسته‌بندی سطرها برای ذخیره...');
+    const newRows = [];
+    const changedRows = [];
     
     for (const row of reportRows) {
-      // پیدا کردن سطر اصلی در initialDataRef
       const initialRow = initialDataRef.current?.reportRows?.find(r => 
         r.id === row.id || r.reportNumber === row.reportNumber
       );
@@ -571,35 +571,19 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       const isNewRow = row.isNew === true;
       const isPlaceholderReport = row.reportNumber === "************";
       const hasNoReportNumber = !row.reportNumber || row.reportNumber.trim() === "";
-      
-      // بررسی اینکه آیا شماره گزارش از ************ به مقدار واقعی تغییر کرده
       const wasPlaceholder = initialRow?.reportNumber === "************";
       const nowHasRealNumber = !isPlaceholderReport && row.reportNumber && row.reportNumber.trim() !== "";
       
-      console.log(`🔍 بررسی سطر ${row.id}:`, {
-        reportNumber: row.reportNumber,
-        isNewRow,
-        isPlaceholderReport,
-        wasPlaceholder,
-        nowHasRealNumber,
-        hasInitialRow: !!initialRow
-      });
-      
-      // شرط برای سطرهای جدید (باید POST شوند)
       if (isNewRow || isPlaceholderReport || hasNoReportNumber || (wasPlaceholder && nowHasRealNumber)) {
-        console.log(`✅ سطر ${row.id} -> دسته: NEW (POST)`);
         newRows.push(row);
         continue;
       }
       
-      // اگر سطر در initialData وجود ندارد، به عنوان جدید در نظر بگیر
       if (!initialRow) {
-        console.log(`✅ سطر ${row.id} -> دسته: NEW (POST) - no initial row`);
         newRows.push(row);
         continue;
       }
       
-      // بررسی تغییرات در سطرهای موجود
       const hasChanges = 
         isValueChanged(initialRow.reportNumber, row.reportNumber) ||
         isValueChanged(initialRow.revNumber, row.revNumber) ||
@@ -612,71 +596,29 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
         isValueChanged(initialRow.irn, row.irn) ||
         isValueChanged(initialRow.srn, row.srn);
       
-      console.log(`🔍 سطر ${row.id} hasChanges:`, hasChanges, {
-        reportNumber: { old: initialRow.reportNumber, new: row.reportNumber },
-        revNumber: { old: initialRow.revNumber, new: row.revNumber },
-        approvedDays: { old: initialRow.approvedDays, new: row.approvedDays }
-      });
-      
       if (hasChanges) {
-        console.log(`✅ سطر ${row.id} -> دسته: CHANGED (PUT)`);
         changedRows.push(row);
-      } else {
-        console.log(`✅ سطر ${row.id} -> دسته: UNCHANGED (SKIP)`);
       }
     }
     
     const totalOperations = newRows.length + changedRows.length;
     
-    console.log('📊 نتیجه نایی:', {
-      newRows: newRows.length,
-      changedRows: changedRows.length,
-      totalOperations
-    });
-    
     if (totalOperations === 0) {
-      toast('هیچ تغییری برای ذخیره وجود ندارد', {
-        position: 'top-center',
-        duration: 3000,
-        icon: 'ℹ️',
-        style: {
-          background: '#3b82f6',
-          color: 'white',
-          borderRadius: '10px',
-          padding: '12px',
-          fontSize: '14px',
-          direction: 'rtl',
-          textAlign: 'right',
-        },
-      });
+      toast('هیچ تغییری برای ذخیره وجود ندارد', { position: 'top-center', duration: 3000, icon: 'ℹ️' });
       isSubmittingRef.current = false;
       return;
     }
     
-    // شمارنده برای追踪 عملیات
     let completedCount = 0;
     let hasError = false;
     
     const onComplete = () => {
       completedCount++;
-      console.log(`📊 پیشرفت: ${completedCount}/${totalOperations} عملیات تکمیل شد`);
-      
       if (completedCount === totalOperations) {
         if (hasError) {
-          toast.error('برخی از عملیات با خطا مواجه شدند', {
-            position: 'top-center',
-            duration: 4000,
-            icon: '❌',
-          });
+          toast.error('برخی از عملیات با خطا مواجه شدند');
         } else {
-          setTimeout(() => {
-            handleSuccess();
-            // toast.success(`${totalOperations} سطر با موفقیت ذخیره شد`, {
-            //   position: 'top-center',
-            //   duration: 3000,
-            //   icon: '✅',
-            // });
-          }, 500);
+          setTimeout(() => handleSuccess(), 500);
         }
         isSubmittingRef.current = false;
       }
@@ -688,31 +630,19 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       onComplete();
     };
     
-    // ثبت سطرهای جدید (POST)
     for (const row of newRows) {
       const reportData = prepareReportData(row);
-      console.log(`📤 POST سطر ${row.id}:`, { reportNumber: reportData.reportNumber, revNumber: reportData.revNumber });
-      
       createReport(
         { reportData: reportData, rfiNumbering: rfiData?.RFI_Numbering || row.rfiNumbering },
-        {
-          onSuccess: () => onComplete(),
-          onError: (error) => onError(error, row.id, 'POST')
-        }
+        { onSuccess: () => onComplete(), onError: (error) => onError(error, row.id, 'POST') }
       );
     }
     
-    // بروزرسانی سطرهای تغییر کرده (PUT)
     for (const row of changedRows) {
       const reportData = prepareReportData(row);
-      console.log(`📤 PUT سطر ${row.id}:`, { reportNumber: reportData.reportNumber, revNumber: reportData.revNumber });
-      
       updateReport(
         { reportData: reportData, rfiNumbering: rfiData?.RFI_Numbering || row.rfiNumbering },
-        {
-          onSuccess: () => onComplete(),
-          onError: (error) => onError(error, row.id, 'PUT')
-        }
+        { onSuccess: () => onComplete(), onError: (error) => onError(error, row.id, 'PUT') }
       );
     }
   };
@@ -721,27 +651,29 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // بررسی اینکه آیا سطر جدیدی اضافه شده یا تغییری در سطرهای موجود وجود دارد
+    const duplicates = checkDuplicateReportNumbers(reportRows);
+    if (Object.keys(duplicates).length > 0) {
+      toast.error("❌ شماره گزارش تکراری است. لطفاً شماره‌های تکراری را اصلاح کنید");
+      return;
+    }
+    
     let hasAnyChange = hasRowAddition;
     
     if (!hasAnyChange && initialDataRef.current) {
       for (const row of reportRows) {
-        // سطرهای جدید
         if (row.isNew) {
           hasAnyChange = true;
           break;
         }
         
-        // پیدا کردن سطر اصلی در initialDataRef
         const initialRow = initialDataRef.current.reportRows?.find(r => 
           r.reportNumber === row.reportNumber || 
           (row.reportNumber !== "************" && r.reportNumber === "************")
         );
         
         if (initialRow) {
-          // مقایسه همه فیلدها از جمله reportNumber
           if (
-            initialRow.reportNumber !== row.reportNumber ||  // <-- اضافه شد: بررسی تغییر شماره گزارش
+            initialRow.reportNumber !== row.reportNumber ||
             initialRow.revNumber !== row.revNumber ||
             initialRow.status !== row.status ||
             initialRow.corrections !== row.corrections ||
@@ -756,14 +688,12 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
             break;
           }
         } else if (row.reportNumber && row.reportNumber !== "************") {
-          // اگر سطری در initialDataRef وجود ندارد و شماره گزارش معتبر دارد
           hasAnyChange = true;
           break;
         }
       }
     }
     
-    // همچنین بررسی سطرهایی که شماره شان از ************ به یک شماره واقعی تغییر کرده
     if (!hasAnyChange && initialDataRef.current) {
       for (const initialRow of initialDataRef.current.reportRows) {
         if (initialRow.reportNumber === "************") {
@@ -777,20 +707,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     }
     
     if (!hasAnyChange) {
-      toast('هیچ تغییری برای ذخیره وجود ندارد', {
-        position: 'top-center',
-        duration: 3000,
-        icon: 'ℹ️',
-        style: {
-          background: '#3b82f6',
-          color: 'white',
-          borderRadius: '10px',
-          padding: '12px',
-          fontSize: '14px',
-          direction: 'rtl',
-          textAlign: 'right',
-        },
-      });
+      toast('هیچ تغییری برای ذخیره وجود ندارد', { position: 'top-center', duration: 3000, icon: 'ℹ️' });
       return;
     }
     
@@ -800,6 +717,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       handleSubmitInternal();
     }
   };
+  
   const handleCancelInternal = () => onClose();
   const handleCancel = () => { if (hasChanges) setShowCancelConfirm(true); else onClose(); };
 
@@ -808,9 +726,6 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       const reportSource = reportInfo || rfiData;
       const hasValidReport = reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0;
       const todayPersianDate = convertToPersianDate(new Date());
-      
-      console.log('🔍 reportSource:', reportSource);
-      console.log('🔍 RevNO value:', reportSource?.RevNO);
       
       if (hasValidReport) {
         const englishStatus = reportSource.Doc_Status || "Acc";
@@ -833,18 +748,14 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
           }
         }
         
-        // گرفتن مقدار RevNO - می‌تواند "Rev" یا "multipart" یا "" باشد
         let revNoValue = reportSource.RevNO || "";
-        // اگر RevNO مقدار "Rev" یا "multipart" داشت، با حروف کوچک یکسان می‌کنیم
         if (revNoValue === "Rev") revNoValue = "rev";
         if (revNoValue === "Multipart") revNoValue = "multipart";
-        
-        console.log('🔍 Final revNoValue:', revNoValue);
         
         const initialRow = {
           id: 1,
           reportNumber: reportSource.Report_No || "",
-          revNumber: revNoValue,  // <-- استفاده از revNoValue اصلاح شده
+          revNumber: revNoValue,
           status: initialStatusValue,
           statusEnglish: initialStatusValue,
           corrections: reportSource.Remark || "",
@@ -859,8 +770,6 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
           issueDate: reportSource.IssueDate || new Date().toISOString().split("T")[0],
           originalApprovedDays: undefined
         };
-        
-        console.log('🔍 initialRow.revNumber:', initialRow.revNumber);
         
         setReportRows([initialRow]);
         initialDataRef.current = {
@@ -926,11 +835,28 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
         };
       }
       setHasChanges(false);
+      
+      setTimeout(() => {
+        updateDuplicateStatus(reportRows);
+      }, 100);
     }
   }, [isOpen, rfiData, reportInfo, nextIRN, statusesData]);
 
   if (!isOpen) return null;
   const isLoading = isReportLoading || isUpdating || isCreating || statusesLoading;
+
+  const isReportNumberDuplicate = (rowId) => duplicateReportNumbers[rowId] === true;
+
+  const shouldShowOrangeBorder = (row) => {
+    if (!row.isNew) return false;
+    const isDuplicate = isReportNumberDuplicate(row.id);
+    const lastReportNumber = getLastReportNumber();
+    if (isDuplicate) return true;
+    if (lastReportNumber === row.reportNumber && row.isNew && row.reportNumber && row.reportNumber !== "************") {
+      return true;
+    }
+    return false;
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -983,7 +909,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
-                      <th className="p-3 text-right font-bold text-white text-xs min-w-[180px]">شماره گزارش *</th>
+                      {/* <th className="p-3 text-right font-bold text-white text-xs min-w-[180px]">شماره گزارش *</th> */}
+                      <th className="p-3 text-right font-bold text-white text-xs min-w-[200px] w-[200px]">شماره گزارش *</th>
                       <th className="p-3 text-right font-bold text-white text-xs min-w-[90px]">نوع گزارش</th>
                       <th className="p-3 text-right font-bold text-white text-xs min-w-[130px]">وضعیت</th>
                       <th className="p-3 text-right font-bold text-white text-xs min-w-[350px]">نظرات <span className="text-yellow-300 text-xs">*</span></th>
@@ -997,67 +924,78 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {reportRows.map((row, index) => (
-                      <tr key={row.id} className={`border-b border-gray-200 transition duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50`}>
-                        <td className="p-3 min-w-[180px]">
-                          <div className="relative">
-                            <input type="text" value={row.reportNumber} onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)} className="w-full px-3 py-2 text-gray-800 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="مثال: FAH-INS-APGT-0766" disabled={isLoading || row._loading} required />
-                            {row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}
-                          </div>
-                        </td>
-                        <td className="p-3 min-w-[90px] text-gray-800">
-                          <select value={row.revNumber || ""} onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={isLoading || row._loading}>
-                            <option value="">-</option>
-                            <option value="rev">Rev</option>
-                            <option value="multipart">Multipart</option>
-                          </select>
-                        </td>
-                        <td className="p-3 min-w-[130px] text-gray-800">
-                          <select value={row.status} onChange={(e) => handleRowChange(row.id, "status", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={isLoading}>
-                            <option value="">انتخاب وضعیت</option>
-                            {statusOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
-                          </select>
-                        </td>
-                        <td className="p-3 min-w-[350px] align-middle text-gray-800">
-                          <textarea value={row.corrections} onChange={(e) => handleRowChange(row.id, "corrections", e.target.value)} className={`w-full px-3 py-2 text-xs border-gray-300 focus:ring-blue-500 border rounded-md focus:ring-2 focus:border-transparent resize-y overflow-auto ${row.statusEnglish === "Objection" ? "border-red-300 focus:ring-red-500 bg-red-50" : "border-gray-300 focus:ring-blue-500"}`} placeholder={row.statusEnglish === "Objection" ? "شرح نظرات الزامی است" : "شرح نظرات (اختیاری)"} disabled={isLoading} required={row.statusEnglish === "Objection"} rows="2" style={{ minHeight: "38px", maxHeight: "38px", whiteSpace: "pre-wrap", wordWrap: "break-word" }} />
-                        </td>
-                        <td className="p-3 min-w-[120px] text-gray-800">
-                          <DatePicker value={row.receivedDate} onChange={(date) => handleRowChange(row.id, "receivedDate", date)} calendar={persian} locale={persian_fa} format="YYYY/MM/DD" inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={isLoading} />
-                        </td>
-                        {/* <td className="p-3 min-w-[160px] text-gray-800">
-                          <TableSearchableSelect value={row.vendorName} onChange={(value) => handleRowChange(row.id, "vendorName", value)} options={vendorOptions} placeholder={vendorsLoading ? "در حال دریافت لیست وندورها..." : "جستجو و انتخاب وندور"} disabled={vendorsLoading || isLoading} />
-                        </td> */}
-                        <td className="p-3 min-w-[160px] text-gray-800">
-  <TableSearchableSelect
-    value={row.vendorName}
-    onChange={(value) => handleRowChange(row.id, "vendorName", value)}
-    options={vendorOptions}
-    placeholder={vendorsLoading ? "در حال دریافت..." : "انتخاب وندور"}
-    disabled={vendorsLoading || isLoading}
-  />
+                    {reportRows.map((row, index) => {
+                      const showOrangeBorder = shouldShowOrangeBorder(row);
+                      const isDuplicate = isReportNumberDuplicate(row.id);
+                      return (
+                        <tr key={row.id} className={`border-b border-gray-200 transition duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50`}>
+<td className="p-3 min-w-[200px] w-[200px]">
+  <div className="relative">
+    <input 
+      type="text" 
+      value={row.reportNumber} 
+      onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)} 
+      className={`w-full px-3 py-2 text-gray-800 text-xs border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+        showOrangeBorder ? 'border-orange-400 bg-orange-50 ring-1 ring-orange-300' : 'border-gray-300'
+      }`}
+      placeholder="مثال: FAH-INS-APGT-0766" 
+      disabled={isLoading || row._loading} 
+      required 
+    />
+    {row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}
+    {showOrangeBorder && (
+      <div className="absolute left-0 -ml-5 top-1/2 transform -translate-y-1/2 text-orange-500 text-xs" title="نیاز به ویرایش شماره گزارش">
+        ⚠️
+      </div>
+    )}
+  </div>
 </td>
-                        <td className="p-3 text-gray-800" style={{ width: "8%" }}>
-                          <input type="number" value={row.approvedDays !== undefined && row.approvedDays !== "" ? row.approvedDays : ""} onChange={(e) => { const value = e.target.value; if (value === "") handleRowChange(row.id, "approvedDays", ""); else { const numValue = parseInt(value, 10); if (!isNaN(numValue) && numValue >= 0) handleRowChange(row.id, "approvedDays", numValue); } }} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="تعداد روز" min="0" disabled={isLoading} />
-                        </td>
-                        <td className="p-3 text-gray-800" style={{ width: "8%" }}>
-                          <input type="text" value={row.unitNumber} onChange={(e) => handleRowChange(row.id, "unitNumber", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="شماره واحد" disabled={isLoading} />
-                        </td>
-                        <td className="p-3 text-gray-800" style={{ width: "8%" }}>
-                          <input type="text" value={row.irn} onChange={(e) => handleRowChange(row.id, "irn", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="IRN" disabled={isLoading} />
-                        </td>
-                        <td className="p-3 text-gray-800" style={{ width: "8%" }}>
-                          <input type="text" value={row.srn} onChange={(e) => handleRowChange(row.id, "srn", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="SRN" disabled={isLoading} />
-                        </td>
-                        {reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0 && (
-                          <td className="p-3" style={{ width: '6%' }}>
-                            <div className="flex items-center gap-1">
-                              <button type="button" onClick={() => handleCopyRow(row.id)} className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200" title="کپی سطر" disabled={isLoading || row._loading}><FaCopy className="text-xs" /></button>
-                              <button type="button" onClick={() => handleDeleteRow(row.id)} className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200" title="حذف سطر" disabled={isLoading || isDeleting}><FaTrash className="text-xs" /></button>
-                            </div>
+
+                          <td className="p-3 min-w-[90px] text-gray-800">
+                            <select value={row.revNumber || ""} onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={isLoading || row._loading}>
+                              <option value="">-</option>
+                              <option value="rev">Rev</option>
+                              <option value="multipart">Multipart</option>
+                            </select>
                           </td>
-                        )}
-                      </tr>
-                    ))}
+                          <td className="p-3 min-w-[130px] text-gray-800">
+                            <select value={row.status} onChange={(e) => handleRowChange(row.id, "status", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={isLoading}>
+                              <option value="">انتخاب وضعیت</option>
+                              {statusOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+                            </select>
+                          </td>
+                          <td className="p-3 min-w-[350px] align-middle text-gray-800">
+                            <textarea value={row.corrections} onChange={(e) => handleRowChange(row.id, "corrections", e.target.value)} className="w-full px-3 py-2 text-xs border-gray-300 focus:ring-blue-500 border rounded-md focus:ring-2 focus:border-transparent resize-y overflow-auto" placeholder="شرح نظرات (اختیاری)" disabled={isLoading} rows="2" />
+                          </td>
+                          <td className="p-3 min-w-[120px] text-gray-800">
+                            <DatePicker value={row.receivedDate} onChange={(date) => handleRowChange(row.id, "receivedDate", date)} calendar={persian} locale={persian_fa} format="YYYY/MM/DD" inputClass="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={isLoading} />
+                          </td>
+                          <td className="p-3 min-w-[160px] text-gray-800">
+                            <TableSearchableSelect value={row.vendorName} onChange={(value) => handleRowChange(row.id, "vendorName", value)} options={vendorOptions} placeholder={vendorsLoading ? "در حال دریافت..." : "انتخاب وندور"} disabled={vendorsLoading || isLoading} />
+                          </td>
+                          <td className="p-3 text-gray-800" style={{ width: "8%" }}>
+                            <input type="number" value={row.approvedDays !== undefined && row.approvedDays !== "" ? row.approvedDays : ""} onChange={(e) => { const value = e.target.value; if (value === "") handleRowChange(row.id, "approvedDays", ""); else { const numValue = parseInt(value, 10); if (!isNaN(numValue) && numValue >= 0) handleRowChange(row.id, "approvedDays", numValue); } }} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="تعداد روز" min="0" disabled={isLoading} />
+                          </td>
+                          <td className="p-3 text-gray-800" style={{ width: "8%" }}>
+                            <input type="text" value={row.unitNumber} onChange={(e) => handleRowChange(row.id, "unitNumber", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="شماره واحد" disabled={isLoading} />
+                          </td>
+                          <td className="p-3 text-gray-800" style={{ width: "8%" }}>
+                            <input type="text" value={row.irn} onChange={(e) => handleRowChange(row.id, "irn", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="IRN" disabled={isLoading} />
+                          </td>
+                          <td className="p-3 text-gray-800" style={{ width: "8%" }}>
+                            <input type="text" value={row.srn} onChange={(e) => handleRowChange(row.id, "srn", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="SRN" disabled={isLoading} />
+                          </td>
+                          {reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0 && (
+                            <td className="p-3" style={{ width: '6%' }}>
+                              <div className="flex items-center gap-1">
+                                <button type="button" onClick={() => handleCopyRow(row.id)} className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200" title="کپی سطر" disabled={isLoading || row._loading}><FaCopy className="text-xs" /></button>
+                                <button type="button" onClick={() => handleDeleteRow(row.id)} className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200" title="حذف سطر" disabled={isLoading || isDeleting}><FaTrash className="text-xs" /></button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1065,37 +1003,63 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
 
             {/* Mobile View */}
             <div className="md:hidden space-y-4 mb-6">
-              {reportRows.map((row, index) => (
-                <div key={row.id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 shadow-sm">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center gap-2"><FaFileAlt className="text-blue-500" /><span className="font-semibold">سطر #{index + 1}</span></div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => handleCopyRow(row.id)} className="text-blue-600 hover:text-blue-800 p-1" title="کپی" disabled={isLoading || row._loading}><FaCopy className="text-sm" /></button>
-                      <button type="button" onClick={() => handleDeleteRow(row.id)} className="text-red-600 hover:text-red-800 p-1" title="حذف" disabled={isLoading || isDeleting}><FaTrash className="text-sm" /></button>
+              {reportRows.map((row, index) => {
+                const showOrangeBorder = shouldShowOrangeBorder(row);
+                const isDuplicate = isReportNumberDuplicate(row.id);
+                return (
+                  <div key={row.id} className={`bg-gray-50 rounded-lg border p-4 shadow-sm ${showOrangeBorder ? 'border-orange-400 bg-orange-50' : isDuplicate ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-2"><FaFileAlt className="text-blue-500" /><span className="font-semibold">سطر #{index + 1}</span></div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => handleCopyRow(row.id)} className="text-blue-600 hover:text-blue-800 p-1" title="کپی" disabled={isLoading || row._loading}><FaCopy className="text-sm" /></button>
+                        <button type="button" onClick={() => handleDeleteRow(row.id)} className="text-red-600 hover:text-red-800 p-1" title="حذف" disabled={isLoading || isDeleting}><FaTrash className="text-sm" /></button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 text-xs">
+                   
+                    <div>
+  <span className="text-gray-600 block mb-1">شماره گزارش *</span>
+  <div className="relative">
+    <input 
+      type="text" 
+      value={row.reportNumber} 
+      onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)} 
+      className={`w-full px-3 py-2 border rounded-md text-xs ${
+        showOrangeBorder ? 'border-orange-400 bg-orange-50' : 'border-gray-300'
+      }`}
+      placeholder="شماره گزارش" 
+      disabled={isLoading || row._loading} 
+      required 
+    />
+    {row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}
+    {showOrangeBorder && (
+      <div className="absolute -left-5 top-1/2 transform -translate-y-1/2 text-orange-500 text-sm" title="نیاز به ویرایش شماره گزارش">
+        ⚠️
+      </div>
+    )}
+  </div>
+</div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-gray-600 block mb-1">نوع گزارش</span><select value={row.revNumber || ""} onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" disabled={isLoading || row._loading}><option value="">-</option><option value="rev">Rev</option><option value="multipart">Multipart</option></select></div>
+                        <div><span className="text-gray-600 block mb-1">وضعیت</span><select value={row.status} onChange={(e) => handleRowChange(row.id, "status", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" disabled={isLoading}><option value="">انتخاب وضعیت</option>{statusOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}</select></div>
+                      </div>
+                      <div><span className="text-gray-600 block mb-1">شرح نظرات</span><input type="text" value={row.corrections} onChange={(e) => handleRowChange(row.id, "corrections", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="شرح نظرات" disabled={isLoading} /></div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-gray-600 block mb-1">تاریخ دریافت</span><DatePicker value={row.receivedDate} onChange={(date) => handleRowChange(row.id, "receivedDate", date)} calendar={persian} locale={persian_fa} format="YYYY/MM/DD" inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" disabled={isLoading} /></div>
+                        <div><span className="text-gray-600 block mb-1">نام وندور</span><TableSearchableSelect value={row.vendorName} onChange={(value) => handleRowChange(row.id, "vendorName", value)} options={vendorOptions} placeholder={vendorsLoading ? "در حال دریافت..." : "انتخاب وندور"} disabled={vendorsLoading || isLoading} /></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-gray-600 block mb-1">تعداد روز</span><input type="number" value={row.approvedDays !== undefined && row.approvedDays !== "" ? row.approvedDays : ""} onChange={(e) => { const value = e.target.value; if (value === "") handleRowChange(row.id, "approvedDays", ""); else { const numValue = parseInt(value, 10); if (!isNaN(numValue) && numValue >= 0) handleRowChange(row.id, "approvedDays", numValue); } }} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="تعداد روز" min="0" disabled={isLoading} /></div>
+                        <div><span className="text-gray-600 block mb-1">شماره واحد</span><input type="text" value={row.unitNumber} onChange={(e) => handleRowChange(row.id, "unitNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="شماره واحد" disabled={isLoading} /></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-gray-600 block mb-1">IRN</span><input type="text" value={row.irn} onChange={(e) => handleRowChange(row.id, "irn", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="IRN" disabled={isLoading} /></div>
+                        <div><span className="text-gray-600 block mb-1">SRN</span><input type="text" value={row.srn} onChange={(e) => handleRowChange(row.id, "srn", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="SRN" disabled={isLoading} /></div>
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 gap-3 text-xs">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><span className="text-gray-600 block mb-1">شماره گزارش *</span><div className="relative"><input type="text" value={row.reportNumber} onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="شماره گزارش" disabled={isLoading || row._loading} required />{row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}</div></div>
-                      <div><span className="text-gray-600 block mb-1">نوع گزارش (RevNO)</span><select value={row.revNumber || ""} onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" disabled={isLoading || row._loading}><option value="">-</option><option value="rev">Rev</option><option value="multipart">Multipart</option></select></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><span className="text-gray-600 block mb-1">وضعیت</span><select value={row.status} onChange={(e) => handleRowChange(row.id, "status", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" disabled={isLoading}><option value="">انتخاب وضعیت</option>{statusOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}</select></div>
-                      <div><span className="text-gray-600 block mb-1">تاریخ دریافت</span><DatePicker value={row.receivedDate} onChange={(date) => handleRowChange(row.id, "receivedDate", date)} calendar={persian} locale={persian_fa} format="YYYY/MM/DD" inputClass="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" disabled={isLoading} /></div>
-                    </div>
-                    <div><span className="text-gray-600 block mb-1">شرح نظرات</span><input type="text" value={row.corrections} onChange={(e) => handleRowChange(row.id, "corrections", e.target.value)} className={`w-full px-3 py-2 border rounded-md text-xs ${row.statusEnglish === "Objection" ? "border-red-300 bg-red-50" : "border-gray-300"}`} placeholder={row.statusEnglish === "Objection" ? "شرح نظرات الزامی است" : "شرح نظرات (اختیاری)"} disabled={isLoading} /></div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><span className="text-gray-600 block mb-1">نام وندور</span><TableSearchableSelect value={row.vendorName} onChange={(value) => handleRowChange(row.id, "vendorName", value)} options={vendorOptions} placeholder={vendorsLoading ? "در حال دریافت لیست وندورها..." : "جستجو و انتخاب وندور"} disabled={vendorsLoading || isLoading} /></div>
-                      <div><span className="text-gray-600 block mb-1">تعداد روز</span><input type="number" value={row.approvedDays !== undefined && row.approvedDays !== "" ? row.approvedDays : ""} onChange={(e) => { const value = e.target.value; if (value === "") handleRowChange(row.id, "approvedDays", ""); else { const numValue = parseInt(value, 10); if (!isNaN(numValue) && numValue >= 0) handleRowChange(row.id, "approvedDays", numValue); } }} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="تعداد روز" min="0" disabled={isLoading} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><span className="text-gray-600 block mb-1">شماره واحد</span><input type="text" value={row.unitNumber} onChange={(e) => handleRowChange(row.id, "unitNumber", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="شماره واحد" disabled={isLoading} /></div>
-                      <div><span className="text-gray-600 block mb-1">IRN</span><input type="text" value={row.irn} onChange={(e) => handleRowChange(row.id, "irn", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="IRN" disabled={isLoading} /></div>
-                    </div>
-                    <div><span className="text-gray-600 block mb-1">SRN</span><input type="text" value={row.srn} onChange={(e) => handleRowChange(row.id, "srn", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs" placeholder="SRN" disabled={isLoading} /></div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="flex gap-3 pt-6 border-t border-gray-200">
