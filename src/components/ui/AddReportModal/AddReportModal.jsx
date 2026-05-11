@@ -616,7 +616,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       completedCount++;
       if (completedCount === totalOperations) {
         if (hasError) {
-          toast.error('برخی از عملیات با خطا مواجه شدند');
+          // toast.error('برخی از عملیات با خطا مواجه شدند');
         } else {
           setTimeout(() => handleSuccess(), 500);
         }
