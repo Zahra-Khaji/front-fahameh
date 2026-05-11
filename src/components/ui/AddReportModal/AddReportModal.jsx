@@ -931,20 +931,21 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                         <tr key={row.id} className={`border-b border-gray-200 transition duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50`}>
 <td className="p-3 min-w-[200px] w-[200px]">
   <div className="relative">
-    <input 
-      type="text" 
-      value={row.reportNumber} 
-      onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)} 
-      className={`w-full px-3 py-2 text-gray-800 text-xs border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-        showOrangeBorder ? 'border-orange-400 bg-orange-50 ring-1 ring-orange-300' : 'border-gray-300'
-      }`}
-      placeholder="مثال: FAH-INS-APGT-0766" 
-      disabled={isLoading || row._loading} 
-      required 
-    />
+  <input 
+  type="text" 
+  value={row.reportNumber} 
+  onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)} 
+  dir="ltr"
+  className={`w-full px-3 py-2 text-gray-800 text-xs border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+    showOrangeBorder ? 'border-orange-400 bg-orange-50 ring-1 ring-orange-300' : 'border-gray-300'
+  }`}
+  placeholder="مثال: FAH-INS-APGT-0766" 
+  disabled={isLoading || row._loading} 
+  required 
+/>
     {row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}
     {showOrangeBorder && (
-  <div className="absolute  top-1/2 transform -translate-y-1/2">
+  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
     <div className="flex items-center gap-1">
       <div className="w-2.5 h-2.5 bg-orange-500 rounded-full animate-ping"></div>
       {/* <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div> */}
@@ -1023,20 +1024,21 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                     <div>
   <span className="text-gray-600 block mb-1">شماره گزارش *</span>
   <div className="relative">
-    <input 
-      type="text" 
-      value={row.reportNumber} 
-      onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)} 
-      className={`w-full px-3 py-2 border rounded-md text-xs ${
-        showOrangeBorder ? 'border-orange-400 bg-orange-50' : 'border-gray-300'
-      }`}
-      placeholder="شماره گزارش" 
-      disabled={isLoading || row._loading} 
-      required 
-    />
+  <input 
+  type="text" 
+  value={row.reportNumber} 
+  onChange={(e) => handleRowChange(row.id, "reportNumber", e.target.value)} 
+  dir="ltr"
+  className={`w-full px-3 py-2 border rounded-md text-xs ${
+    showOrangeBorder ? 'border-orange-400 bg-orange-50' : 'border-gray-300'
+  }`}
+  placeholder="شماره گزارش" 
+  disabled={isLoading || row._loading} 
+  required 
+/>
     {row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}
     {showOrangeBorder && (
-  <div className="absolute top-1/2 transform -translate-y-1/2">
+  <div className="absolute top-1/2 right-4 transform -translate-y-1/2">
     <div className="flex items-center gap-1">
       <div className="w-2.5 h-2.5 bg-orange-500 rounded-full animate-ping"></div>
       {/* <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div> */}

@@ -131,26 +131,32 @@ export const useCreateNewReport = () => {
       );
       console.error("❌ useCreateNewReport: Error:", error);
 
-      // ========== اضافه کردن toast خطا ==========
-      toast.error(
-        `❌ خطا در ثبت گزارش: ${
-          error.response?.data?.message || error.message
-        }`,
-        {
-          position: "top-center",
-          duration: 4000,
-          icon: "❌",
-          style: {
-            background: "#ef4444",
-            color: "white",
-            borderRadius: "10px",
-            padding: "16px",
-            fontSize: "14px",
-            direction: "rtl",
-            textAlign: "right",
-          },
-        }
-      );
+      // استخراج پیام خطا از detail
+      let errorMessage = "خطا در ثبت گزارش";
+
+      if (error.response?.data?.detail) {
+        // detail مستقیماً شامل متن فارسی خطا است
+        errorMessage = error.response.data.detail;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(`❌ ${errorMessage}`, {
+        position: "top-center",
+        duration: 5000,
+        icon: "❌",
+        style: {
+          background: "#ef4444",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
     },
   });
 };
@@ -243,26 +249,32 @@ export const useUpdateReport = () => {
       );
       console.error("❌ useUpdateReport: Error:", error);
 
-      // نمایش toast خطا
-      toast.error(
-        `❌ خطا در بروزرسانی گزارش: ${
-          error.response?.data?.message || error.message
-        }`,
-        {
-          position: "top-center",
-          duration: 4000,
-          icon: "❌",
-          style: {
-            background: "#ef4444",
-            color: "white",
-            borderRadius: "10px",
-            padding: "16px",
-            fontSize: "14px",
-            direction: "rtl",
-            textAlign: "right",
-          },
-        }
-      );
+      // استخراج پیام خطا از detail
+      let errorMessage = "خطا در بروزرسانی گزارش";
+
+      if (error.response?.data?.detail) {
+        // detail مستقیماً شامل متن فارسی خطا است
+        errorMessage = error.response.data.detail;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(`❌ ${errorMessage}`, {
+        position: "top-center",
+        duration: 5000,
+        icon: "❌",
+        style: {
+          background: "#ef4444",
+          color: "white",
+          borderRadius: "10px",
+          padding: "16px",
+          fontSize: "14px",
+          direction: "rtl",
+          textAlign: "right",
+        },
+      });
     },
   });
 };
