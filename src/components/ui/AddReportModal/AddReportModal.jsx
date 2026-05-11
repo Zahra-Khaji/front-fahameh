@@ -944,10 +944,13 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     />
     {row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}
     {showOrangeBorder && (
-      <div className="absolute  top-1/2 transform -translate-y-1/2">
-        <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
-      </div>
-    )}
+  <div className="absolute  top-1/2 transform -translate-y-1/2">
+    <div className="flex items-center gap-1">
+      <div className="w-2.5 h-2.5 bg-orange-500 rounded-full animate-ping"></div>
+      {/* <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div> */}
+    </div>
+  </div>
+)}
   </div>
 </td>
 
@@ -1033,10 +1036,13 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     />
     {row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}
     {showOrangeBorder && (
-      <div className="absolute  top-1/2 transform -translate-y-1/2">
-        <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
-      </div>
-    )}
+  <div className="absolute top-1/2 transform -translate-y-1/2">
+    <div className="flex items-center gap-1">
+      <div className="w-2.5 h-2.5 bg-orange-500 rounded-full animate-ping"></div>
+      {/* <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div> */}
+    </div>
+  </div>
+)}
   </div>
 </div>
                       <div className="grid grid-cols-2 gap-3">
