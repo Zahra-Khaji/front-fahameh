@@ -944,8 +944,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     />
     {row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}
     {showOrangeBorder && (
-      <div className="absolute left-0 -ml-5 top-1/2 transform -translate-y-1/2 text-orange-500 text-xs" title="نیاز به ویرایش شماره گزارش">
-        ⚠️
+      <div className="absolute  top-1/2 transform -translate-y-1/2">
+        <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
       </div>
     )}
   </div>
@@ -1033,8 +1033,8 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     />
     {row._loading && <div className="absolute left-2 top-1/2 transform -translate-y-1/2"><FaSync className="animate-spin text-blue-500 text-xs" /></div>}
     {showOrangeBorder && (
-      <div className="absolute -left-5 top-1/2 transform -translate-y-1/2 text-orange-500 text-sm" title="نیاز به ویرایش شماره گزارش">
-        ⚠️
+      <div className="absolute  top-1/2 transform -translate-y-1/2">
+        <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
       </div>
     )}
   </div>
