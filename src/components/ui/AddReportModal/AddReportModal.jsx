@@ -307,25 +307,23 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     
     const newId = reportRows.length > 0 ? Math.max(...reportRows.map(r => r.id)) + 1 : 1;
     
-    let lastRevNumber = '';
+    // ========== تغییر: همیشه multipart ==========
+    let lastRevNumber = 'multipart';  // <-- تغییر
     let lastApprovedDays = '';
     let lastReportNumber = '';
     
     if (reportRows.length > 0) {
       const lastRow = reportRows[reportRows.length - 1];
-      if (lastRow.revNumber === 'multipart') {
-        lastRevNumber = 'multipart';
-        lastApprovedDays = lastRow.approvedDays || '';
-      } else {
-        lastRevNumber = '';
-      }
+      // فقط approvedDays را از سطر قبلی می‌گیریم، revNumber دیگر شرط نمی‌خورد
+      lastApprovedDays = lastRow.approvedDays || '';
       lastReportNumber = lastRow.reportNumber || '';
     }
+    // ==========================================
     
     const newRow = {
       id: newId,
       reportNumber: lastReportNumber,
-      revNumber: lastRevNumber,
+      revNumber: lastRevNumber,  // حالا همیشه 'multipart' است
       status: "5",
       statusEnglish: "approved",
       corrections: "",
@@ -351,7 +349,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     
     toast.info('📝 سطر جدید اضافه شد. لطفاً شماره گزارش را ویرایش کنید');
   };
-
+  
   const handleCopyRow = (id) => {
     const rowToCopy = reportRows.find(row => row.id === id);
     if (!rowToCopy) {
@@ -365,21 +363,16 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     
     const newId = Math.max(...reportRows.map(r => r.id), 0) + 1;
     
-    let newRevNumber = '';
-    let newApprovedDays = '';
-    
-    if (rowToCopy.revNumber === 'multipart') {
-      newRevNumber = 'multipart';
-      newApprovedDays = rowToCopy.approvedDays || '';
-    } else {
-      newRevNumber = '';
-    }
+    // ========== تغییر: همیشه multipart ==========
+    let newRevNumber = 'multipart';  // <-- تغییر
+    let newApprovedDays = rowToCopy.approvedDays || '';  // فقط approvedDays از سطر مبدا
+    // ==========================================
     
     const newRow = { 
       ...rowToCopy, 
       id: newId, 
       reportNumber: rowToCopy.reportNumber,
-      revNumber: newRevNumber,
+      revNumber: newRevNumber,  // حالا همیشه 'multipart' است
       approvedDays: newApprovedDays,
       isNew: true, 
       needsUpdate: false, 
@@ -393,7 +386,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     setHasRowAddition(true);
     updateDuplicateStatus(newRows);
     
-    toast.info('📝 سطر کپی شد. لطفاً شماره گزارش را ویرایش کنید');
+    // toast.info('📝 سطر کپی شد. لطفاً شماره گزارش را ویرایش کنید');
   };
 
   const handleDeleteRow = (id) => {
@@ -519,7 +512,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   const validateForm = () => {
     const hasDuplicate = Object.keys(duplicateReportNumbers).length > 0;
     if (hasDuplicate) {
-      toast.error("❌ شماره گزارش تکراری است. لطفاً شماره‌های تکراری را اصلاح کنید");
+      toast.error(" شماره گزارش تکراری است. لطفاً شماره‌های تکراری را اصلاح کنید");
       return false;
     }
     
@@ -911,7 +904,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                     <tr className="bg-gradient-to-r from-blue-700 to-blue-600">
                       {/* <th className="p-3 text-right font-bold text-white text-xs min-w-[180px]">شماره گزارش *</th> */}
                       <th className="p-3 text-right font-bold text-white text-xs min-w-[200px] w-[200px]">شماره گزارش *</th>
-                      <th className="p-3 text-right font-bold text-white text-xs min-w-[90px]">نوع گزارش</th>
+                      <th className="p-3 text-right font-bold text-white text-xs min-w-[104px]">نوع گزارش</th>
                       <th className="p-3 text-right font-bold text-white text-xs min-w-[130px]">وضعیت</th>
                       <th className="p-3 text-right font-bold text-white text-xs min-w-[350px]">نظرات <span className="text-yellow-300 text-xs">*</span></th>
                       <th className="p-3 text-right font-bold text-white text-xs min-w-[120px]">تاریخ دریافت</th>
@@ -920,7 +913,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                       <th className="p-3 text-right font-bold text-white text-xs" style={{ width: "8%" }}>شماره واحد</th>
                       <th className="p-3 text-right font-bold text-white text-xs" style={{ width: "8%" }}>IRN</th>
                       <th className="p-3 text-right font-bold text-white text-xs" style={{ width: "8%" }}>SRN</th>
-                      {reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0 && <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '6%' }}>عملیات</th>}
+                       <th className="p-3 text-right font-bold text-white text-xs" style={{ width: '6%' }}>عملیات</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -955,7 +948,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
   </div>
 </td>
 
-                          <td className="p-3 min-w-[90px] text-gray-800">
+                          <td className="p-3 min-w-[104px] text-gray-800">
                             <select value={row.revNumber || ""} onChange={(e) => handleRowChange(row.id, "revNumber", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" disabled={isLoading || row._loading}>
                               <option value="">-</option>
                               <option value="rev">Rev</option>
@@ -989,14 +982,14 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
                           <td className="p-3 text-gray-800" style={{ width: "8%" }}>
                             <input type="text" value={row.srn} onChange={(e) => handleRowChange(row.id, "srn", e.target.value)} className="w-full px-3 py-2 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="SRN" disabled={isLoading} />
                           </td>
-                          {reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0 && (
+                        
                             <td className="p-3" style={{ width: '6%' }}>
                               <div className="flex items-center gap-1">
                                 <button type="button" onClick={() => handleCopyRow(row.id)} className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-100 transition duration-200" title="کپی سطر" disabled={isLoading || row._loading}><FaCopy className="text-xs" /></button>
                                 <button type="button" onClick={() => handleDeleteRow(row.id)} className="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-100 transition duration-200" title="حذف سطر" disabled={isLoading || isDeleting}><FaTrash className="text-xs" /></button>
                               </div>
                             </td>
-                          )}
+                        
                         </tr>
                       );
                     })}
