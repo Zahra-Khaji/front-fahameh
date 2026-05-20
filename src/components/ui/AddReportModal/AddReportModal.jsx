@@ -556,43 +556,64 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     const newRows = [];
     const changedRows = [];
     
+    console.log('================== START ==================');
+    console.log('reportInfo?.IDRE:', reportInfo?.IDRE);
+    console.log('reportInfo?.Report_No:', reportInfo?.Report_No);
+    console.log('============================================');
+    
     for (const row of reportRows) {
-      const initialRow = initialDataRef.current?.reportRows?.find(r => 
-        r.id === row.id || r.reportNumber === row.reportNumber
-      );
+      console.log(`\n--- سطر ID: ${row.id} ---`);
+      console.log('row.reportNumber (فعلی):', `"${row.reportNumber}"`);
+      console.log('row.isNew:', row.isNew);
       
-      const isNewRow = row.isNew === true;
-      const isPlaceholderReport = row.reportNumber === "************";
-      const hasNoReportNumber = !row.reportNumber || row.reportNumber.trim() === "";
-      const wasPlaceholder = initialRow?.reportNumber === "************";
-      const nowHasRealNumber = !isPlaceholderReport && row.reportNumber && row.reportNumber.trim() !== "";
+      const initialRow = initialDataRef.current?.reportRows?.find(r => r.id === row.id);
+      console.log('initialRow?.reportNumber (قبلی):', initialRow ? `"${initialRow.reportNumber}"` : 'undefined');
       
-      if (isNewRow || isPlaceholderReport || hasNoReportNumber || (wasPlaceholder && nowHasRealNumber)) {
+      // آیا شماره گزارش اصلی از بک‌اند placeholder بوده؟
+      const originalReportWasPlaceholder = reportInfo?.Report_No === "************";
+      
+      // ========== CASE 1: گزارش placeholder (چند تا ستاره) ==========
+      if (originalReportWasPlaceholder) {
+        const hasIDRE = reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0;
+        console.log('📌 CASE: گزارش placeholder - hasIDRE:', hasIDRE);
+        
+        if (hasIDRE) {
+          console.log('✅ گزارش placeholder با IDRE → UPDATE');
+          changedRows.push(row);
+        } else {
+          console.log('✅ گزارش placeholder بدون IDRE → CREATE');
+          newRows.push(row);
+        }
+        continue;
+      }
+      
+      // ========== CASE 2: گزارش معمولی (غیر placeholder) ==========
+      console.log('📌 CASE: گزارش معمولی');
+      
+      // اگر سطر جدید است (با دکمه افزودن یا کپی ایجاد شده)
+      if (row.isNew === true) {
+        console.log('✅ سطر جدید (isNew=true) → CREATE');
         newRows.push(row);
         continue;
       }
       
-      if (!initialRow) {
-        newRows.push(row);
-        continue;
-      }
-      
-      const hasChanges = 
-        isValueChanged(initialRow.reportNumber, row.reportNumber) ||
-        isValueChanged(initialRow.revNumber, row.revNumber) ||
-        isValueChanged(initialRow.status, row.status) ||
-        isValueChanged(initialRow.corrections, row.corrections) ||
-        !areValuesEqual(initialRow.receivedDate, row.receivedDate) ||
-        isValueChanged(initialRow.approvedDays, row.approvedDays) ||
-        isValueChanged(initialRow.unitNumber, row.unitNumber) ||
-        isValueChanged(initialRow.vendorName, row.vendorName) ||
-        isValueChanged(initialRow.irn, row.irn) ||
-        isValueChanged(initialRow.srn, row.srn);
-      
-      if (hasChanges) {
+      // اگر در دیتابیس وجود دارد (IDRE > 0) → UPDATE
+      const hasExistingIDRE = reportInfo && reportInfo.IDRE && reportInfo.IDRE > 0;
+      if (hasExistingIDRE) {
+        console.log('✅ گزارش در دیتابیس وجود دارد (IDRE > 0) → UPDATE');
         changedRows.push(row);
+        continue;
       }
+      
+      // اگر هیچکدام از شرایط بالا نبود → CREATE
+      console.log('✅ گزارش جدید (بدون IDRE و not isNew) → CREATE');
+      newRows.push(row);
     }
+    
+    console.log('\n========== نتیجه نهایی ==========');
+    console.log('newRows (POST):', newRows.map(r => ({ id: r.id, reportNumber: r.reportNumber })));
+    console.log('changedRows (UPDATE):', changedRows.map(r => ({ id: r.id, reportNumber: r.reportNumber })));
+    console.log('================================\n');
     
     const totalOperations = newRows.length + changedRows.length;
     
@@ -625,6 +646,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     
     for (const row of newRows) {
       const reportData = prepareReportData(row);
+      console.log(`📤 ارسال POST برای سطر ${row.id} با reportNumber: ${row.reportNumber}`);
       createReport(
         { reportData: reportData, rfiNumbering: rfiData?.RFI_Numbering || row.rfiNumbering },
         { onSuccess: () => onComplete(), onError: (error) => onError(error, row.id, 'POST') }
@@ -633,6 +655,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
     
     for (const row of changedRows) {
       const reportData = prepareReportData(row);
+      console.log(`📤 ارسال UPDATE (PUT) برای سطر ${row.id} با reportNumber: ${row.reportNumber}`);
       updateReport(
         { reportData: reportData, rfiNumbering: rfiData?.RFI_Numbering || row.rfiNumbering },
         { onSuccess: () => onComplete(), onError: (error) => onError(error, row.id, 'PUT') }
