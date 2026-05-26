@@ -80,6 +80,7 @@ export const useCreateNewReport = () => {
         user: reportData.user || "",
         IssueDate:
           reportData.issueDate || new Date().toISOString().split("T")[0], // با حروف بزرگ
+        idre: reportData.idre || null,
       };
 
       const result = await reportService.createReport(apiData);
@@ -172,6 +173,7 @@ export const useUpdateReport = () => {
       const updateData = {
         ...reportService.prepareReportUpdateData(reportData),
         rfi_numbering: rfiNumbering, // اضافه کردن rfi_numbering به body
+        idre: reportData.idre || null,
       };
 
       const result = await reportService.updateReport(rfiNumbering, updateData);

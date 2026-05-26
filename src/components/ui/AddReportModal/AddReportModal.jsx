@@ -497,6 +497,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       user: user?.username || "",
       issueDate: todayIsoDate,
       dateShamsi: todayShamsi,
+      idre: reportInfo?.IDRE || null,
     };
   };
 
