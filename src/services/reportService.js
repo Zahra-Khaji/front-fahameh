@@ -60,11 +60,19 @@ class ReportService {
     }
   }
 
-  async deleteReport(reportNumber) {
+  async deleteReport(reportNumber, idre = null) {
     try {
-      const response = await http.delete(
-        `/reports/report/?report_no=${encodeURIComponent(reportNumber)}`
-      );
+      // ساخت URL با query parameters
+      let url = `/reports/report/?report_no=${encodeURIComponent(
+        reportNumber
+      )}`;
+
+      // اگر idre وجود دارد، به query string اضافه کن
+      if (idre !== null && idre !== undefined) {
+        url += `&idre=${encodeURIComponent(idre)}`;
+      }
+
+      const response = await http.delete(url);
       return response.data;
     } catch (error) {
       console.error("❌ ReportService: Error deleting report:", error);

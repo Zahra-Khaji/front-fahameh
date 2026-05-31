@@ -282,19 +282,21 @@ export const useUpdateReport = () => {
 };
 
 // هوک جدید: حذف گزارش
+// هوک جدید: حذف گزارش
 export const useDeleteReport = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (reportNumber) => {
+    mutationFn: async ({ reportNumber, idre }) => {
+      // تغییر: دریافت object با reportNumber و idre
       if (!reportNumber || reportNumber.trim() === "") {
         throw new Error("شماره گزارش برای حذف الزامی است");
       }
 
-      const result = await reportService.deleteReport(reportNumber);
+      const result = await reportService.deleteReport(reportNumber, idre); // تغییر: ارسال idre به سرویس
       return result;
     },
-    onSuccess: (data, reportNumber) => {
+    onSuccess: (data, variables) => {
       // نمایش toast موفقیت
       toast.success(`با موفقیت حذف شد`, {
         position: "top-center",
@@ -324,9 +326,9 @@ export const useDeleteReport = () => {
         queryKey: ["lastIRN"],
       });
     },
-    onError: (error, reportNumber) => {
+    onError: (error, variables) => {
       console.error(
-        `❌ useDeleteReport: Delete failed for report: ${reportNumber}`,
+        `❌ useDeleteReport: Delete failed for report: ${variables.reportNumber}`,
         error
       );
 

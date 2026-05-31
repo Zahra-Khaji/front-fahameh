@@ -274,7 +274,7 @@ const AdvancedReport = () => {
                   className="flex items-center gap-1 text-xs py-1 px-2"
                 >
                   <FaFileExcel className="text-green-600" />
-                  {isFetching ? "در حال دانلود..." : "دانلود اکسل"}
+                  {isFetching ? "در حال دریافت..." : "بالانس مالی"}
                 </Button>
               </div>
             </div>

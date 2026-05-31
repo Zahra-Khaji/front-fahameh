@@ -333,7 +333,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       vendorName: rfiData?.VendorName || "",
       irn: "",
       srn: "",
-      firstPrice: "80000000",
+      firstPrice: "",
       rfiNumbering: rfiData?.RFI_Numbering || "",
       issueDate: new Date().toISOString().split("T")[0],
       isNew: true,
@@ -405,9 +405,23 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
 
   const handleConfirmDelete = () => {
     if (!selectedReportForDelete) return;
-    deleteReport(selectedReportForDelete.reportNumber, {
-      onSuccess: () => { setTimeout(() => onClose(), 300); setSelectedReportForDelete(null); setShowDeleteConfirm(false); },
-      onError: (error) => { setSelectedReportForDelete(null); setShowDeleteConfirm(false); }
+    
+    // اضافه کردن idre به داده‌های ارسالی
+    const deleteData = {
+      reportNumber: selectedReportForDelete.reportNumber,
+      idre: reportInfo?.IDRE || null
+    };
+    
+    deleteReport(deleteData, {
+      onSuccess: () => { 
+        setTimeout(() => onClose(), 300); 
+        setSelectedReportForDelete(null); 
+        setShowDeleteConfirm(false); 
+      },
+      onError: (error) => { 
+        setSelectedReportForDelete(null); 
+        setShowDeleteConfirm(false); 
+      }
     });
   };
 
@@ -492,7 +506,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
       vendorName: row.vendorName || "",
       irn: row.irn || "",
       srn: row.srn || "",
-      firstPrice: row.firstPrice || "80000000",
+      firstPrice: row.firstPrice || "",
       rfiNumbering: row.rfiNumbering || rfiData?.RFI_Numbering,
       user: user?.username || "",
       issueDate: todayIsoDate,
@@ -782,7 +796,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
           vendorName: reportSource.VendorName || "",
           irn: (reportSource.IRNNO && reportSource.IRNNO.trim() !== "") ? reportSource.IRNNO : "",
           srn: reportSource.SRNNO || "",
-          firstPrice: reportSource.FirstPrice || "80000000",
+          firstPrice: reportSource.FirstPrice || "",
           rfiNumbering: reportSource.RFI_Numbering || "",
           issueDate: reportSource.IssueDate || new Date().toISOString().split("T")[0],
           originalApprovedDays: undefined
@@ -825,7 +839,7 @@ const AddReportModal = ({ isOpen, onClose, rfiData, nextIRN = "" }) => {
           vendorName: rfiData?.VendorName || "",
           irn: "", 
           srn: "",
-          firstPrice: "80000000",
+          firstPrice: "",
           rfiNumbering: rfiData?.RFI_Numbering || "",
           issueDate: new Date().toISOString().split("T")[0],
           originalApprovedDays: undefined
