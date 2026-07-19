@@ -29,6 +29,10 @@ function AdminLayout() {
         <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>صورت وضعیت(نهایی)</span>
       </CustomNavLink>
+      <CustomNavLink to="financialBalance">
+        <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
+        <span>بالانس مالی</span>
+      </CustomNavLink>
       <CustomNavLink to="baseDataForm">
         <HiDocumentReport className="w-5 h-5 lg:w-4 lg:h-4" />
         <span>فرم اطلاعات پایه</span>

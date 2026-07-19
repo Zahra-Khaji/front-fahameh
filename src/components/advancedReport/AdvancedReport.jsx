@@ -264,7 +264,7 @@ const AdvancedReport = () => {
                 </Button>
                 
                 {/* دکمه دانلود اکسل */}
-                <Button
+                {/* <Button
                   type="button"
                   variant="secondary"
                   size="sm"
@@ -275,7 +275,7 @@ const AdvancedReport = () => {
                 >
                   <FaFileExcel className="text-green-600" />
                   {isFetching ? "در حال دریافت..." : "بالانس مالی"}
-                </Button>
+                </Button> */}
               </div>
             </div>
             

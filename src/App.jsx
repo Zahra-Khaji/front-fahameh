@@ -26,6 +26,7 @@ import BaseDataForm from "./pages/BaseData";
 import BaseData from "./pages/BaseData";
 import InspectorFinancialSummary from "./pages/InspectorFinancialSummaryInfo";
 import InspectorFinancialSummaryInfo from "./pages/InspectorFinancialSummaryInfo";
+import FinancialBalanceInfo from "./pages/FinancialBalanceInfo";
 
 
 
@@ -115,6 +116,8 @@ function App() {
       <Route path="rfi-report" element={<ProjectsInfo />} />
       <Route path="advanced-report" element={<AdvancedReportInfo />} />
       <Route path="inspectorFinancialSummary" element={<InspectorFinancialSummaryInfo />} />
+      <Route path="financialBalance" element={<FinancialBalanceInfo />} />
+
 
       <Route path="baseDataForm" element={<BaseData />} />
 
